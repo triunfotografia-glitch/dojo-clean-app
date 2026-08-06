@@ -36,3 +36,77 @@ export async function addCobranca(cobranca) {
 
   return result.rows[0];
 }
+
+export async function getProfessores() {
+  const result = await query('SELECT * FROM professores ORDER BY id DESC');
+  return result.rows;
+}
+
+export async function addProfessor(professor) {
+  const result = await query(
+    'INSERT INTO professores (nome, email, senha, telefone, faixa, graus, especialidade, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+    [
+      professor.nome,
+      professor.email,
+      professor.senha,
+      professor.telefone,
+      professor.faixa,
+      professor.graus,
+      professor.especialidade,
+      professor.ativo,
+    ],
+  );
+  return result.rows[0];
+}
+
+export async function getTurmas() {
+  const result = await query('SELECT * FROM turmas ORDER BY id DESC');
+  return result.rows;
+}
+
+export async function addTurma(turma) {
+  const result = await query(
+    'INSERT INTO turmas (nome, professor, alunos) VALUES ($1, $2, $3) RETURNING *',
+    [turma.nome, turma.professor, JSON.stringify(turma.alunos || [])],
+  );
+  return result.rows[0];
+}
+
+export async function getTreinos() {
+  const result = await query('SELECT * FROM treinos ORDER BY id DESC');
+  return result.rows;
+}
+
+export async function addTreino(treino) {
+  const result = await query(
+    'INSERT INTO treinos (nome, dia, horario, turma, professor) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+    [treino.nome, treino.dia, treino.horario, treino.turma, treino.professor],
+  );
+  return result.rows[0];
+}
+
+export async function getPresencas() {
+  const result = await query('SELECT * FROM presencas ORDER BY id DESC');
+  return result.rows;
+}
+
+export async function addPresenca(presenca) {
+  const result = await query(
+    'INSERT INTO presencas (alunoId, treinoId, data, status) VALUES ($1, $2, $3, $4) RETURNING *',
+    [presenca.alunoId, presenca.treinoId, presenca.data, presenca.status],
+  );
+  return result.rows[0];
+}
+
+export async function getGraduacoes() {
+  const result = await query('SELECT * FROM graduacoes ORDER BY id DESC');
+  return result.rows;
+}
+
+export async function addGraduacao(graduacao) {
+  const result = await query(
+    'INSERT INTO graduacoes (alunoId, faixa, data, professor, observacao) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+    [graduacao.alunoId, graduacao.faixa, graduacao.data, graduacao.professor, graduacao.observacao],
+  );
+  return result.rows[0];
+}

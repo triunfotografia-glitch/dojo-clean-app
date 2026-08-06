@@ -18,3 +18,53 @@ create table if not exists cobrancas (
   pago boolean default false,
   created_at timestamp default now()
 );
+
+create table if not exists professores (
+  id serial primary key,
+  nome text,
+  email text,
+  senha text,
+  telefone text,
+  faixa text,
+  graus integer,
+  especialidade text,
+  ativo boolean,
+  criadoEm timestamp default now()
+);
+
+create table if not exists turmas (
+  id serial primary key,
+  nome text,
+  professor text,
+  alunos jsonb,
+  criadoEm timestamp default now()
+);
+
+create table if not exists treinos (
+  id serial primary key,
+  nome text,
+  dia text,
+  horario text,
+  turma text,
+  professor text,
+  criadoEm timestamp default now()
+);
+
+create table if not exists presencas (
+  id serial primary key,
+  alunoId text,
+  treinoId text,
+  data text,
+  status text,
+  criadoEm timestamp default now()
+);
+
+create table if not exists graduacoes (
+  id serial primary key,
+  alunoId text,
+  faixa text,
+  data text,
+  professor text,
+  observacao text,
+  criadoEm timestamp default now()
+);
