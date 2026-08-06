@@ -13,19 +13,32 @@ export async function listGraduacoes(req, res) {
 export async function createGraduacao(req, res) {
   try {
     const graduacao = req.body;
+    const alunoId = graduacao?.alunoId || graduacao?.aluno;
+    const faixa = graduacao?.faixa;
+    const data = graduacao?.data;
+    const professor = graduacao?.professor;
+    const observacao = graduacao?.observacao;
 
     if (
       !graduacao ||
       typeof graduacao !== 'object' ||
-      !graduacao.alunoId ||
-      !graduacao.faixa ||
-      typeof graduacao.alunoId !== 'string' ||
-      typeof graduacao.faixa !== 'string'
+      !alunoId ||
+      !faixa ||
+      !data ||
+      typeof alunoId !== 'string' ||
+      typeof faixa !== 'string' ||
+      typeof data !== 'string'
     ) {
       return res.status(400).json({ error: 'Dados de graduação inválidos.' });
     }
 
-    const novaGraduacao = await addGraduacao(graduacao);
+    const novaGraduacao = await addGraduacao({
+      alunoId: alunoId.trim(),
+      faixa: faixa.trim(),
+      data: data.trim(),
+      professor: typeof professor === 'string' ? professor.trim() : '',
+      observacao: typeof observacao === 'string' ? observacao.trim() : '',
+    });
     res.status(201).json(novaGraduacao);
   } catch (error) {
     console.error(error);

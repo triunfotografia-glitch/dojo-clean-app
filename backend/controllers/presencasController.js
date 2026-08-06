@@ -13,19 +13,35 @@ export async function listPresencas(req, res) {
 export async function createPresenca(req, res) {
   try {
     const presenca = req.body;
+    const alunoId = presenca?.alunoId || presenca?.aluno;
+    const treinoId = presenca?.treinoId || presenca?.treino;
+    const status = presenca?.status;
+    const data = presenca?.data;
+
+    const statusPermitido = ['presente', 'falta', 'justificado'];
 
     if (
       !presenca ||
       typeof presenca !== 'object' ||
-      !presenca.alunoId ||
-      !presenca.treinoId ||
-      typeof presenca.alunoId !== 'string' ||
-      typeof presenca.treinoId !== 'string'
+      !alunoId ||
+      !treinoId ||
+      !data ||
+      !status ||
+      typeof alunoId !== 'string' ||
+      typeof treinoId !== 'string' ||
+      typeof data !== 'string' ||
+      typeof status !== 'string' ||
+      !statusPermitido.includes(status)
     ) {
       return res.status(400).json({ error: 'Dados de presença inválidos.' });
     }
 
-    const novaPresenca = await addPresenca(presenca);
+    const novaPresenca = await addPresenca({
+      alunoId: alunoId.trim(),
+      treinoId: treinoId.trim(),
+      data: data.trim(),
+      status: status.trim(),
+    });
     res.status(201).json(novaPresenca);
   } catch (error) {
     console.error(error);
