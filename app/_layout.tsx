@@ -1,25 +1,30 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import {
+  DarkTheme,
+  ThemeProvider,
+} from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { DojoProvider } from '@/components/context/DojoContext';
+import { PixProvider } from '@/components/context/PixContext';
+import { PresencaProvider } from '@/components/context/PresencaContext';
+import { ProfessorProvider } from '@/components/context/ProfessorContext';
+import { PromptProvider } from '@/components/Prompt';
+import { TreinoProvider } from '@/components/context/TreinoContext';
+import { TurmaProvider } from '@/components/context/TurmaContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+export { ErrorBoundary } from 'expo-router';
 
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
+// 🚨 IMPORTANTE: remover initialRouteName daqui
+// o controle agora é pelo app/index.tsx
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -27,14 +32,15 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
   }, [error]);
 
   useEffect(() => {
     if (loaded) {
-      SplashScreen.hideAsync();
+      void SplashScreen.hideAsync();
     }
   }, [loaded]);
 
@@ -42,18 +48,41 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <TreinoProvider>
+      <PresencaProvider>
+        <TurmaProvider>
+          <ProfessorProvider>
+            <PixProvider>
+              <DojoProvider>
+                <ThemeProvider value={DarkTheme}>
+                  <PromptProvider>
+                    <ProtectedRoute>
+                      <Stack screenOptions={{ headerShown: false }}>
+
+                        {/* APP PRINCIPAL */}
+                        <Stack.Screen
+                        name="(tabs)"
+                        options={{
+                        headerShown:false
+ }}
+ />
+
+                        {/* MODAL */}
+                        <Stack.Screen
+                          name="modal"
+                          options={{ presentation: 'modal' }}
+                        />
+
+                      </Stack>
+                    </ProtectedRoute>
+                  </PromptProvider>
+                </ThemeProvider>
+              </DojoProvider>
+            </PixProvider>
+          </ProfessorProvider>
+        </TurmaProvider>
+      </PresencaProvider>
+    </TreinoProvider>
   );
 }
