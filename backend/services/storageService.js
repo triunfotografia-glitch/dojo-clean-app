@@ -13,6 +13,32 @@ export async function addAluno(aluno) {
   return result.rows[0];
 }
 
+export async function updateAluno(id, aluno) {
+  const fields = Object.entries(aluno || {})
+    .filter(
+      ([key, value]) =>
+        key !== 'id' &&
+        /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) &&
+        value !== undefined,
+    );
+
+  if (!fields.length) {
+    throw new Error('Nenhum campo válido para atualizar.');
+  }
+
+  const columns = fields.map(([key], index) => `${key} = $${index + 1}`);
+  const values = fields.map(([, value]) => value);
+  const queryText = `UPDATE alunos SET ${columns.join(', ')} WHERE id = $${values.length + 1} RETURNING *`;
+
+  const result = await query(queryText, [...values, id]);
+  return result.rows[0];
+}
+
+export async function deleteAluno(id) {
+  const result = await query('DELETE FROM alunos WHERE id = $1 RETURNING *', [id]);
+  return result.rows[0];
+}
+
 export async function getCobrancas() {
   const result = await query('SELECT * FROM cobrancas ORDER BY id DESC');
   return result.rows;
