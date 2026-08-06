@@ -8,6 +8,8 @@ import { connectDatabase } from './services/databaseService.js';
 
 const app = express();
 
+console.log('BACKEND CORRETO - POSTGRES VERSION');
+
 app.use(cors());
 app.use(express.json());
 
@@ -22,6 +24,7 @@ app.get('/', (req, res) => {
   res.json({
     status: 'online',
     message: 'API Dojo LB rodando 🚀',
+    backend: 'postgres-version',
   });
 });
 
