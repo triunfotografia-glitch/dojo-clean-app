@@ -7,7 +7,7 @@ import React, {
     useState,
 } from "react";
 import { useProfessores } from "./ProfessorContext";
-import { getAlunos } from "@/services/api";
+import { getAlunos, postAluno } from "@/services/api";
 
 // ==============================
 // 🔐 USER
@@ -72,7 +72,7 @@ interface DojoContextData {
   login: (nome: string, senha: string) => UserLogado | null;
   logout: () => void;
 
-  adicionarAluno: (aluno: Aluno) => void;
+  adicionarAluno: (aluno: Aluno) => Promise<void>;
   removerAluno: (id: string) => void;
   buscarAluno: (id: string) => Aluno | undefined;
   editarAluno: (alunoAtualizado: Aluno) => void;
@@ -108,7 +108,7 @@ const DojoContext = createContext<DojoContextData>({
   setUserLogado: () => {},
   login: () => null,
   logout: () => {},
-  adicionarAluno: () => {},
+  adicionarAluno: async () => {},
   removerAluno: () => {},
   buscarAluno: () => undefined,
   editarAluno: () => {},
@@ -261,17 +261,26 @@ export function DojoProvider({
   // FUNÇÕES
   // ==============================
 
-  function adicionarAluno(aluno: Aluno) {
+  async function adicionarAluno(aluno: Aluno) {
+    const { id, ...alunoPayload } = aluno;
+
+    const novoAlunoApi = await postAluno({
+      ...alunoPayload,
+      nome: aluno.nome.trim(),
+    });
+
+    const novoAlunoFinal: Aluno = {
+      ...novoAlunoApi,
+      id: String(novoAlunoApi.id),
+      cobrancas: novoAlunoApi.cobrancas || [],
+      historicoGraduacao: novoAlunoApi.historicoGraduacao || [],
+      ativo: novoAlunoApi.ativo ?? true,
+      proximaCobranca: novoAlunoApi.proximaCobranca || new Date().toISOString().slice(0, 10),
+    } as Aluno;
+
     setAlunos((lista) => [
       ...lista,
-      {
-        ...aluno, // Mantém todas as propriedades
-        cobrancas: aluno.cobrancas || [],
-        criadoEm: new Date().toISOString(),
-        ativo: aluno.ativo ?? true,
-        // Garante que a proximaCobranca seja definida se não vier do formulário
-        proximaCobranca: aluno.proximaCobranca || new Date().toISOString().slice(0, 10),
-      },
+      novoAlunoFinal,
     ]);
   }
 

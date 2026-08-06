@@ -6,16 +6,16 @@ import { router } from "expo-router";
 import { useState } from "react";
 
 import {
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 export default function NovoAluno() {
@@ -93,52 +93,48 @@ export default function NovoAluno() {
     }
   }
 
-  function salvarAluno() {
+  async function salvarAluno() {
 
     if (!nome || !faixa) {
       Alert.alert("Atenção","Informe nome e faixa do aluno.");
       return;
     }
-
+  
     const id = Date.now().toString();
-
-    adicionarAluno({
-      id: id,
-      foto,
-      nome,
-      telefone,
-      email,
-      dataNascimento,
-      senha: senha.trim(),
-      faixa,
-      graus,
-      turma,
-      professorId,
-      dataEntrada: new Date().toISOString(),
-      ativo: true,
-      mensalidade,
-      historicoGraduacao: dataGraduacao
-        ? [
-            {
-              id: Date.now().toString(),
-              faixa: faixa,
-              data: dataGraduacao,
-              professor: "Não informado", // Pode ser melhorado no futuro
-              observacao: "Graduação inicial",
-            },
-          ]
-        : [],
-      valorMensalidade,
-      diaVencimento: Number(diaVencimento) || 10, // Padrão 10 se vazio
-      proximaCobranca: new Date().toISOString().slice(0, 10), // Define a próxima cobrança como hoje
-      cobrancas: [], // Inicia vazio
-      observacao,
-      criadoEm: new Date().toISOString(),
-    });
-
-    Alert.alert("Sucesso","Aluno cadastrado!");
-    router.back();
+  
+    try {
+      await adicionarAluno({
+        id: id,
+        foto,
+        nome,
+        telefone,
+        email,
+        dataNascimento,
+        senha: senha.trim(),
+        faixa,
+        graus,
+        turma,
+        professorId,
+        dataEntrada: new Date().toISOString(),
+        ativo: true,
+        mensalidade,
+        historicoGraduacao: dataGraduacao ? [{ id: Date.now().toString(), faixa: faixa, data: dataGraduacao, professor: "Não informado", observacao: "Graduação inicial" }] : [],
+        valorMensalidade,
+        diaVencimento: Number(diaVencimento) || 10,
+        proximaCobranca: new Date().toISOString().slice(0, 10),
+        cobrancas: [],
+        observacao,
+        criadoEm: new Date().toISOString(),
+      });
+  
+      Alert.alert("Sucesso","Aluno cadastrado!");
+      router.back();
+    } catch (error) {
+      console.error("Erro ao salvar aluno:", error);
+      Alert.alert("Erro","Não foi possível cadastrar o aluno. Tente novamente.");
+    }
   }
+
 
 
   return (
