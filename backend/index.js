@@ -4,6 +4,12 @@ import express from 'express';
 
 import alunosRoutes from './routes/alunos.js';
 import cobrancasRoutes from './routes/cobrancas.js';
+import graduacoesRoutes from './routes/graduacoes.js';
+import presencasRoutes from './routes/presencas.js';
+import professoresRoutes from './routes/professores.js';
+import treinosRoutes from './routes/treinos.js';
+import turmasRoutes from './routes/turmas.js';
+
 import { connectDatabase } from './services/databaseService.js';
 
 const app = express();
@@ -20,6 +26,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// Teste da API
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
@@ -28,12 +35,22 @@ app.get('/', (req, res) => {
   });
 });
 
+// Rotas existentes
 app.use('/alunos', alunosRoutes);
 app.use('/cobrancas', cobrancasRoutes);
 
+// Novas rotas PostgreSQL
+app.use('/professores', professoresRoutes);
+app.use('/turmas', turmasRoutes);
+app.use('/treinos', treinosRoutes);
+app.use('/presencas', presencasRoutes);
+app.use('/graduacoes', graduacoesRoutes);
+
+// Tratamento de rota inexistente
 app.use((req, res) => {
   res.status(404).json({
     error: 'Rota não encontrada.',
+    route: req.originalUrl,
   });
 });
 
