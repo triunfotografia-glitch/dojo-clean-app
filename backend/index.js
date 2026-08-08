@@ -1,8 +1,11 @@
+import 'dotenv/config'; // 🔥 TEM QUE SER A PRIMEIRA LINHA
+
 import cors from 'cors';
-import 'dotenv/config';
 import express from 'express';
 
+// Rotas
 import alunosRoutes from './routes/alunos.js';
+import authRoutes from './routes/auth.js';
 import cobrancasRoutes from './routes/cobrancas.js';
 import graduacoesRoutes from './routes/graduacoes.js';
 import presencasRoutes from './routes/presencas.js';
@@ -10,15 +13,21 @@ import professoresRoutes from './routes/professores.js';
 import treinosRoutes from './routes/treinos.js';
 import turmasRoutes from './routes/turmas.js';
 
+// Conexão com banco
 import { connectDatabase } from './services/databaseService.js';
 
 const app = express();
 
-console.log('BACKEND CORRETO - POSTGRES VERSION');
+console.log('🚀 BACKEND DOJO LB - POSTGRESQL');
 
+// 🔍 DEBUG (pode remover depois)
+console.log('ENV DATABASE_URL:', process.env.DATABASE_URL);
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
+// Log de requisições
 app.use((req, res, next) => {
   console.log(
     `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`
@@ -26,50 +35,51 @@ app.use((req, res, next) => {
   next();
 });
 
-// Teste da API
+// Rota base
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
     message: 'API Dojo LB rodando 🚀',
-    backend: 'postgres-version',
+    database: 'PostgreSQL',
   });
 });
 
-// Rotas existentes
+// Rotas
+app.use('/auth', authRoutes);
 app.use('/alunos', alunosRoutes);
 app.use('/cobrancas', cobrancasRoutes);
-
-// Novas rotas PostgreSQL
 app.use('/professores', professoresRoutes);
 app.use('/turmas', turmasRoutes);
 app.use('/treinos', treinosRoutes);
 app.use('/presencas', presencasRoutes);
 app.use('/graduacoes', graduacoesRoutes);
 
-// Tratamento de rota inexistente
+// 404
 app.use((req, res) => {
   res.status(404).json({
-    error: 'Rota não encontrada.',
-    route: req.originalUrl,
+    error: 'Rota não encontrada',
+    path: req.originalUrl,
   });
 });
 
-const PORT = Number(process.env.PORT) || 3000;
+// Porta
+const PORT = process.env.PORT || 3000;
 
+// Inicialização
 async function startServer() {
   try {
+    console.log('🔌 Conectando ao banco...');
+
     await connectDatabase();
 
+    console.log('✅ Banco conectado com sucesso');
+
     app.listen(PORT, () => {
-      console.log(`Servidor rodando na porta ${PORT}`);
+      console.log(`🌐 Servidor rodando em http://localhost:${PORT}`);
     });
 
   } catch (error) {
-    console.error(
-      'Falha ao conectar ao banco de dados:',
-      error.message
-    );
-
+    console.error('❌ Erro ao conectar no banco:', error.message);
     process.exit(1);
   }
 }
