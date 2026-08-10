@@ -1,5 +1,17 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import {
+  getProfessores,
+  postProfessor,
+  updateProfessor,
+} from "@/services/api";
+
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+
 
 export interface Professor {
   id: string;
@@ -14,95 +26,305 @@ export interface Professor {
   alunoId?: string;
 }
 
+
 interface ProfessorContextData {
+
   professores: Professor[];
-  adicionarProfessor: (professor: Professor) => void;
-  editarProfessor: (professor: Professor) => void;
-  removerProfessor: (id: string) => void;
-  excluirProfessor: (id: string) => void;
-  buscarProfessor: (id: string) => Professor | undefined;
-  desvincularProfessor: (professorId: string) => void;
+
+  adicionarProfessor:
+    (professor: Professor) => Promise<void>;
+
+  editarProfessor:
+    (professor: Professor) => Promise<void>;
+
+  removerProfessor:
+    (id: string) => void;
+
+  excluirProfessor:
+    (id: string) => void;
+
+  buscarProfessor:
+    (id: string) => Professor | undefined;
+
+  desvincularProfessor:
+    (professorId: string) => void;
+
 }
 
-const STORAGE_KEY = '@dojo_professores';
-const ProfessorContext = createContext<ProfessorContextData>({
-  professores: [],
-  adicionarProfessor: () => {},
-  editarProfessor: () => {},
-  removerProfessor: () => {},
-  excluirProfessor: () => {},
-  buscarProfessor: () => undefined,
-  desvincularProfessor: () => {},
-});
 
-export function ProfessorProvider({ children }: { children: ReactNode }) {
-  const [professores, setProfessores] = useState<Professor[]>([]);
-  const [carregado, setCarregado] = useState(false);
+
+const ProfessorContext =
+  createContext<ProfessorContextData>({
+    
+    professores: [],
+
+    adicionarProfessor: async () => {},
+
+    editarProfessor: async () => {},
+
+    removerProfessor: () => {},
+
+    excluirProfessor: () => {},
+
+    buscarProfessor: () => undefined,
+
+    desvincularProfessor: () => {},
+
+  });
+
+
+
+export function ProfessorProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+
+
+  const [professores, setProfessores] =
+    useState<Professor[]>([]);
+
+
+
+  /*
+  ================================
+  CARREGAR PROFESSORES DO POSTGRESQL
+  ================================
+  */
+
 
   useEffect(() => {
-    async function carregar() {
+
+    async function carregar(){
+
       try {
-        const dados = await AsyncStorage.getItem(STORAGE_KEY);
-        if (dados) {
-          setProfessores(JSON.parse(dados));
-        }
-      } finally {
-        setCarregado(true);
+
+        const lista =
+          await getProfessores();
+
+
+        setProfessores(
+          lista.map((p)=>({
+            ...p,
+            id:String(p.id),
+          }))
+        );
+
+
+      } catch(error){
+
+        console.warn(
+          "Erro ao carregar professores:",
+          error
+        );
+
       }
+
     }
 
-    void carregar();
-  }, []);
 
-  useEffect(() => {
-    if (carregado) {
-      void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(professores));
-    }
-  }, [carregado, professores]);
+    carregar();
 
-  function adicionarProfessor(professor: Professor) {
-    setProfessores((lista) => [...lista, professor]);
-  }
+  },[]);
 
-  function editarProfessor(professor: Professor) {
-    setProfessores((lista) =>
-      lista.map((item) => (item.id === professor.id ? professor : item)),
+
+
+  /*
+  ================================
+  CRIAR PROFESSOR
+  ================================
+  */
+
+
+  async function adicionarProfessor(
+    professor: Professor
+  ){
+
+    const {
+      id,
+      ...dados
+    } = professor;
+
+
+    const criado =
+      await postProfessor(
+        dados
+      );
+
+
+    setProfessores(
+      lista=>[
+        ...lista,
+        {
+          ...criado,
+          id:String(criado.id)
+        }
+      ]
     );
+
   }
 
-  function removerProfessor(id: string) {
-    setProfessores((lista) => lista.filter((item) => item.id !== id));
+
+
+
+  /*
+  ================================
+  EDITAR PROFESSOR
+  ================================
+  */
+
+
+  async function editarProfessor(
+    professor: Professor
+  ){
+
+    const atualizado =
+      await updateProfessor(
+        professor.id,
+        professor
+      );
+
+
+    setProfessores(
+      lista=>
+        lista.map(
+          item=>
+            item.id === professor.id
+            ? atualizado
+            : item
+        )
+    );
+
   }
 
-  function excluirProfessor(id: string) {
-    setProfessores((lista) => lista.filter((item) => item.id !== id));
+
+
+
+
+  /*
+  ================================
+  REMOVER LOCAL
+  ================================
+
+  Mantido assim porque ainda
+  não existe DELETE no backend.
+  */
+
+  function removerProfessor(
+    id:string
+  ){
+
+    setProfessores(
+      lista=>
+        lista.filter(
+          item=>item.id !== id
+        )
+    );
+
   }
 
-  function desvincularProfessor(professorId: string) {
-    // Esta função será implementada no DojoContext para evitar dependência cruzada
+
+
+  function excluirProfessor(
+    id:string
+  ){
+
+    removerProfessor(id);
+
   }
 
-  function buscarProfessor(id: string) {
-    return professores.find((item) => item.id === id);
+
+
+
+  /*
+  ================================
+  BUSCAR
+  ================================
+  */
+
+
+  function buscarProfessor(
+    id:string
+  ){
+
+    return professores.find(
+      item=>item.id === id
+    );
+
   }
+
+
+
+
+
+  /*
+  ================================
+  DESVINCULAR
+  ================================
+  */
+
+
+  function desvincularProfessor(
+    professorId:string
+  ){
+
+    setProfessores(
+      lista=>
+        lista.map(
+          professor=>
+            professor.id === professorId
+            ? {
+                ...professor,
+                alunoId:undefined
+              }
+            : professor
+        )
+    );
+
+  }
+
+
+
 
   return (
+
     <ProfessorContext.Provider
+
       value={{
+
         professores,
+
         adicionarProfessor,
+
         editarProfessor,
+
         removerProfessor,
+
         excluirProfessor,
+
         buscarProfessor,
+
         desvincularProfessor,
+
       }}
+
     >
+
       {children}
+
     </ProfessorContext.Provider>
+
   );
+
 }
 
-export function useProfessores() {
-  return useContext(ProfessorContext);
+
+
+
+export function useProfessores(){
+
+  return useContext(
+    ProfessorContext
+  );
+
 }

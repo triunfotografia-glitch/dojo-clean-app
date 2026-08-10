@@ -1,48 +1,873 @@
-import { Aluno, Cobranca } from '@/components/context/DojoContext';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const API_URL = 'https://dojo-backend-ofn6.onrender.com';
+import type {
+  Aluno,
+  Cobranca,
+} from "@/components/context/DojoContext";
 
-async function parseJson<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `API request failed with status ${response.status}: ${errorText}`,
+import type {
+  Professor,
+} from "@/components/context/ProfessorContext";
+
+// ==============================
+// BACKEND POSTGRESQL
+// ==============================
+
+export const API_URL =
+  "https://dojo-backend-ofn6.onrender.com";
+
+// ==============================
+// JWT
+// ==============================
+
+const TOKEN_KEY = "@dojo_lb:jwt";
+
+// ==============================
+// TYPES
+// ==============================
+
+export interface LoginResponse {
+  sucesso: boolean;
+  token: string;
+  professor: Professor;
+}
+
+// ==============================
+// TOKEN
+// ==============================
+
+export async function saveToken(
+  token: string
+): Promise<void> {
+  await AsyncStorage.setItem(
+    TOKEN_KEY,
+    token
+  );
+}
+
+export async function getToken(): Promise<string | null> {
+  return AsyncStorage.getItem(
+    TOKEN_KEY
+  );
+}
+
+export async function removeToken(): Promise<void> {
+  await AsyncStorage.removeItem(
+    TOKEN_KEY
+  );
+}
+
+export async function hasToken(): Promise<boolean> {
+  const token = await getToken();
+
+  return !!token;
+}
+
+// ==============================
+// CONVERSÃO SNAKE -> CAMEL
+// ==============================
+
+function snakeToCamelKey(
+  key: string
+): string {
+  return key.replace(
+    /_([a-z])/g,
+    (_, letter) =>
+      letter.toUpperCase()
+  );
+}
+
+function convertKeysToCamelCase(
+  value: any
+): any {
+
+  if (Array.isArray(value)) {
+    return value.map(
+      convertKeysToCamelCase
     );
   }
 
-  return response.json();
+  if (
+    value !== null &&
+    typeof value === "object"
+  ) {
+
+    const result: Record<
+      string,
+      any
+    > = {};
+
+    Object.entries(value).forEach(
+      ([key, val]) => {
+
+        result[
+          snakeToCamelKey(key)
+        ] =
+          convertKeysToCamelCase(
+            val
+          );
+
+      }
+    );
+
+    return result;
+  }
+
+  return value;
 }
+
+// ==============================
+// CONVERSÃO CAMEL -> SNAKE
+// ==============================
+
+function camelToSnakeKey(
+  key: string
+): string {
+  return key.replace(
+    /[A-Z]/g,
+    (letter) =>
+      `_${letter.toLowerCase()}`
+  );
+}
+
+function convertKeysToSnakeCase(
+  value: any
+): any {
+
+  if (Array.isArray(value)) {
+    return value.map(
+      convertKeysToSnakeCase
+    );
+  }
+
+  if (
+    value !== null &&
+    typeof value === "object"
+  ) {
+
+    const result: Record<
+      string,
+      any
+    > = {};
+
+    Object.entries(value).forEach(
+      ([key, val]) => {
+
+        result[
+          camelToSnakeKey(key)
+        ] =
+          convertKeysToSnakeCase(
+            val
+          );
+
+      }
+    );
+
+    return result;
+  }
+
+  return value;
+}
+
+// ==============================
+// PARSE JSON
+// ==============================
+
+async function parseJson<T>(
+  response: Response
+): Promise<T> {
+
+  const text =
+    await response.text();
+
+  let data: any = null;
+
+  try {
+
+    data =
+      text
+        ? JSON.parse(text)
+        : null;
+
+  } catch {
+
+    throw new Error(
+      `Resposta inválida do servidor: ${text}`
+    );
+
+  }
+
+  if (!response.ok) {
+
+    const mensagem =
+      data?.error ||
+      data?.message ||
+      `Erro HTTP ${response.status}`;
+
+    throw new Error(
+      mensagem
+    );
+
+  }
+
+  return convertKeysToCamelCase(
+    data
+  ) as T;
+}
+
+// ==============================
+// REQUEST AUTENTICADO
+// ==============================
+
+async function request<T>(
+  url: string,
+  options: RequestInit = {}
+): Promise<T> {
+
+  const token =
+    await getToken();
+
+  const headers: Record<
+    string,
+    string
+  > = {
+    ...(options.headers as Record<
+      string,
+      string
+    > || {}),
+  };
+
+  if (
+    !headers["Content-Type"] &&
+    !headers["content-type"]
+  ) {
+
+    headers["Content-Type"] =
+      "application/json";
+
+  }
+
+  // ============================
+  // JWT
+  // ============================
+
+  if (token) {
+
+    headers.Authorization =
+      `Bearer ${token}`;
+
+  }
+
+  const response =
+    await fetch(
+      url,
+      {
+        ...options,
+        headers,
+      }
+    );
+
+  // ============================
+  // TOKEN INVÁLIDO / EXPIRADO
+  // ============================
+
+  if (
+    response.status === 401
+  ) {
+
+    await removeToken();
+
+  }
+
+  return parseJson<T>(
+    response
+  );
+}
+
+// ==============================
+// HEADERS JSON
+// ==============================
+
+function jsonHeaders(): Record<
+  string,
+  string
+> {
+
+  return {
+    "Content-Type":
+      "application/json",
+  };
+
+}
+
+// ==============================
+// LOGIN PROFESSOR
+// ==============================
+
+export async function loginProfessor(
+  nome: string,
+  senha: string
+): Promise<LoginResponse> {
+
+  const response =
+    await fetch(
+      `${API_URL}/auth/login`,
+      {
+        method: "POST",
+
+        headers:
+          jsonHeaders(),
+
+        body:
+          JSON.stringify({
+            nome: nome.trim(),
+            senha,
+          }),
+      }
+    );
+
+  const data =
+    await parseJson<any>(
+      response
+    );
+
+  // ============================
+  // DEBUG SOMENTE DO LOGIN
+  // ============================
+
+  console.log(
+    "🔐 RESPOSTA LOGIN:",
+    data
+  );
+
+  console.log(
+    "🔐 TOKEN RECEBIDO:",
+    data?.token
+  );
+
+  // ============================
+  // VALIDAR RESPOSTA
+  // ============================
+
+  if (
+    !data ||
+    data.sucesso !== true
+  ) {
+
+    throw new Error(
+      data?.error ||
+      "Login não autorizado."
+    );
+
+  }
+
+  if (
+    !data.token ||
+    typeof data.token !== "string"
+  ) {
+
+    throw new Error(
+      "Login realizado, mas o servidor não retornou um token JWT."
+    );
+
+  }
+
+  if (
+    !data.professor
+  ) {
+
+    throw new Error(
+      "Servidor não retornou os dados do professor."
+    );
+
+  }
+
+  // ============================
+  // SALVAR JWT
+  // ============================
+
+  await saveToken(
+    data.token
+  );
+
+  console.log(
+    "🔐 JWT salvo com sucesso."
+  );
+
+  return data as LoginResponse;
+}
+
+// ==============================
+// LOGOUT
+// ==============================
+
+export async function logoutProfessor(): Promise<void> {
+
+  await removeToken();
+
+}
+
+// ==============================
+// ALUNOS
+// ==============================
 
 export async function getAlunos(): Promise<Aluno[]> {
-  const response = await fetch(`${API_URL}/alunos`);
-  return parseJson<Aluno[]>(response);
+
+  return request<Aluno[]>(
+    `${API_URL}/alunos`
+  );
+
 }
 
-export async function postAluno(aluno: Omit<Aluno, 'id'>): Promise<Aluno> {
-  const response = await fetch(`${API_URL}/alunos`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(aluno),
-  });
+export async function postAluno(
+  aluno: Omit<Aluno, "id">
+): Promise<Aluno> {
 
-  return parseJson<Aluno>(response);
+  const payload =
+    convertKeysToSnakeCase(
+      aluno
+    );
+
+  return request<Aluno>(
+    `${API_URL}/alunos`,
+    {
+      method: "POST",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
 }
+
+export async function updateAluno(
+  id: string,
+  aluno: Partial<Aluno>
+): Promise<Aluno> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      aluno
+    );
+
+  return request<Aluno>(
+    `${API_URL}/alunos/${id}`,
+    {
+      method: "PUT",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
+
+export async function deleteAluno(
+  id: string
+): Promise<void> {
+
+  const token =
+    await getToken();
+
+  const headers: Record<
+    string,
+    string
+  > = {};
+
+  if (token) {
+
+    headers.Authorization =
+      `Bearer ${token}`;
+
+  }
+
+  const response =
+    await fetch(
+      `${API_URL}/alunos/${id}`,
+      {
+        method: "DELETE",
+        headers,
+      }
+    );
+
+  if (
+    response.status === 401
+  ) {
+
+    await removeToken();
+
+  }
+
+  if (!response.ok) {
+
+    const text =
+      await response.text();
+
+    let data: any = null;
+
+    try {
+      data =
+        text
+          ? JSON.parse(text)
+          : null;
+    } catch {}
+
+    throw new Error(
+      data?.error ||
+      `API request failed ${response.status}`
+    );
+
+  }
+
+}
+
+// ==============================
+// COBRANÇAS
+// ==============================
 
 export async function getCobrancas(): Promise<Cobranca[]> {
-  const response = await fetch(`${API_URL}/cobrancas`);
-  return parseJson<Cobranca[]>(response);
+
+  return request<Cobranca[]>(
+    `${API_URL}/cobrancas`
+  );
+
 }
 
-export async function postCobranca(cobranca: Omit<Cobranca, 'id'>): Promise<Cobranca> {
-  const response = await fetch(`${API_URL}/cobrancas`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(cobranca),
-  });
+export async function postCobranca(
+  cobranca: Omit<Cobranca, "id">
+): Promise<Cobranca> {
 
-  return parseJson<Cobranca>(response);
+  const payload =
+    convertKeysToSnakeCase(
+      cobranca
+    );
+
+  return request<Cobranca>(
+    `${API_URL}/cobrancas`,
+    {
+      method: "POST",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
+
+export async function updateCobranca(
+  id: string,
+  cobranca: Partial<Cobranca>
+): Promise<Cobranca> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      cobranca
+    );
+
+  return request<Cobranca>(
+    `${API_URL}/cobrancas/${id}`,
+    {
+      method: "PUT",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
+
+export async function deleteCobranca(
+  id: string
+): Promise<void> {
+
+  const token =
+    await getToken();
+
+  const headers: Record<
+    string,
+    string
+  > = {};
+
+  if (token) {
+
+    headers.Authorization =
+      `Bearer ${token}`;
+
+  }
+
+  const response =
+    await fetch(
+      `${API_URL}/cobrancas/${id}`,
+      {
+        method: "DELETE",
+        headers,
+      }
+    );
+
+  if (
+    response.status === 401
+  ) {
+
+    await removeToken();
+
+  }
+
+  if (!response.ok) {
+
+    const text =
+      await response.text();
+
+    let data: any = null;
+
+    try {
+      data =
+        text
+          ? JSON.parse(text)
+          : null;
+    } catch {}
+
+    throw new Error(
+      data?.error ||
+      `API request failed ${response.status}`
+    );
+
+  }
+
+}
+
+// ==============================
+// PROFESSORES
+// ==============================
+
+export async function getProfessores(): Promise<Professor[]> {
+
+  return request<Professor[]>(
+    `${API_URL}/professores`
+  );
+
+}
+
+export async function postProfessor(
+  professor: Omit<Professor, "id">
+): Promise<Professor> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      professor
+    );
+
+  return request<Professor>(
+    `${API_URL}/professores`,
+    {
+      method: "POST",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
+
+export async function updateProfessor(
+  id: string,
+  professor: Partial<Professor>
+): Promise<Professor> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      professor
+    );
+
+  return request<Professor>(
+    `${API_URL}/professores/${id}`,
+    {
+      method: "PUT",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
+
+// ==============================
+// TURMAS
+// ==============================
+
+export async function getTurmas(): Promise<any[]> {
+
+  return request<any[]>(
+    `${API_URL}/turmas`
+  );
+
+}
+
+export async function postTurma(
+  turma: any
+): Promise<any> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      turma
+    );
+
+  return request<any>(
+    `${API_URL}/turmas`,
+    {
+      method: "POST",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
+
+// ==============================
+// TREINOS
+// ==============================
+
+export async function getTreinos(): Promise<any[]> {
+
+  return request<any[]>(
+    `${API_URL}/treinos`
+  );
+
+}
+
+export async function postTreino(
+  treino: any
+): Promise<any> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      treino
+    );
+
+  return request<any>(
+    `${API_URL}/treinos`,
+    {
+      method: "POST",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
+
+// ==============================
+// PRESENÇAS
+// ==============================
+
+export async function getPresencas(): Promise<any[]> {
+
+  return request<any[]>(
+    `${API_URL}/presencas`
+  );
+
+}
+
+export async function postPresenca(
+  presenca: any
+): Promise<any> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      presenca
+    );
+
+  return request<any>(
+    `${API_URL}/presencas`,
+    {
+      method: "POST",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
+
+// ==============================
+// GRADUAÇÕES
+// ==============================
+
+export async function getGraduacoes(): Promise<any[]> {
+
+  return request<any[]>(
+    `${API_URL}/graduacoes`
+  );
+
+}
+
+export async function postGraduacao(
+  graduacao: any
+): Promise<any> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      graduacao
+    );
+
+  return request<any>(
+    `${API_URL}/graduacoes`,
+    {
+      method: "POST",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
 }

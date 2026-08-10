@@ -1,11 +1,44 @@
 import { Router } from 'express';
-import { listAlunos, createAluno, updateAluno, deleteAluno } from '../controllers/alunosController.js';
+
+import {
+    createAluno,
+    deleteAluno,
+    listAlunos,
+    updateAluno,
+} from '../controllers/alunosController.js';
+
+import {
+    authMiddleware,
+} from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-router.get('/', listAlunos);
-router.post('/', createAluno);
-router.put('/:id', updateAluno);
-router.delete('/:id', deleteAluno);
+// ==============================
+// ROTAS PROTEGIDAS POR JWT
+// ==============================
+
+router.get(
+  '/',
+  authMiddleware,
+  listAlunos
+);
+
+router.post(
+  '/',
+  authMiddleware,
+  createAluno
+);
+
+router.put(
+  '/:id',
+  authMiddleware,
+  updateAluno
+);
+
+router.delete(
+  '/:id',
+  authMiddleware,
+  deleteAluno
+);
 
 export default router;

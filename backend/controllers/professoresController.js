@@ -7,6 +7,23 @@ import {
 } from '../services/storageService.js';
 
 /* =========================
+   REMOVER DADOS SENSÍVEIS
+========================= */
+
+function professorSeguro(professor) {
+  if (!professor) {
+    return professor;
+  }
+
+  const {
+    senha: _senha,
+    ...dadosSeguros
+  } = professor;
+
+  return dadosSeguros;
+}
+
+/* =========================
    LISTAR PROFESSORES
 ========================= */
 
@@ -14,11 +31,20 @@ export async function listProfessores(req, res) {
   try {
     const professores = await getProfessores();
 
-    res.json(professores);
-  } catch (error) {
-    console.error('Erro ao buscar professores:', error);
+    const professoresSeguros =
+      Array.isArray(professores)
+        ? professores.map(professorSeguro)
+        : [];
 
-    res.status(500).json({
+    return res.json(professoresSeguros);
+
+  } catch (error) {
+    console.error(
+      'Erro ao buscar professores:',
+      error
+    );
+
+    return res.status(500).json({
       error: 'Erro ao buscar professores.',
     });
   }
@@ -39,27 +65,52 @@ export async function createProfessor(req, res) {
       typeof professor.nome !== 'string' ||
       !professor.nome.trim() ||
       !professor.email ||
-      !professor.senha
+      !professor.senha ||
+      typeof professor.senha !== 'string'
     ) {
       return res.status(400).json({
         error: 'Dados de professor inválidos.',
       });
     }
 
-    // 🔐 Criptografa a senha antes de salvar no PostgreSQL
-    const senhaHash = await bcrypt.hash(professor.senha, 10);
+    // =========================
+    // CRIPTOGRAFAR SENHA
+    // =========================
 
-    const novoProfessor = await addProfessor({
-      ...professor,
-      nome: professor.nome.trim(),
-      senha: senhaHash,
-    });
+    const senhaHash =
+      await bcrypt.hash(
+        professor.senha,
+        10
+      );
 
-    res.status(201).json(novoProfessor);
+    const novoProfessor =
+      await addProfessor({
+        ...professor,
+
+        nome:
+          professor.nome.trim(),
+
+        senha:
+          senhaHash,
+      });
+
+    // =========================
+    // NUNCA DEVOLVER HASH
+    // =========================
+
+    return res.status(201).json(
+      professorSeguro(
+        novoProfessor
+      )
+    );
+
   } catch (error) {
-    console.error('Erro ao criar professor:', error);
+    console.error(
+      'Erro ao criar professor:',
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Erro ao criar professor.',
     });
   }
@@ -71,21 +122,37 @@ export async function createProfessor(req, res) {
 
 export async function updateProfessor(req, res) {
   try {
-    const { id } = req.params;
-    const professor = req.body;
+    const { id } =
+      req.params;
 
-    if (!id || !/^[0-9]+$/.test(id)) {
+    const professor =
+      req.body;
+
+    // =========================
+    // VALIDAR ID
+    // =========================
+
+    if (
+      !id ||
+      !/^[0-9]+$/.test(id)
+    ) {
       return res.status(400).json({
-        error: 'ID de professor inválido.',
+        error:
+          'ID de professor inválido.',
       });
     }
+
+    // =========================
+    // VALIDAR DADOS
+    // =========================
 
     if (
       !professor ||
       typeof professor !== 'object'
     ) {
       return res.status(400).json({
-        error: 'Dados de professor inválidos.',
+        error:
+          'Dados de professor inválidos.',
       });
     }
 
@@ -93,31 +160,65 @@ export async function updateProfessor(req, res) {
       ...professor,
     };
 
-    // 🔐 Só gera novo hash se uma nova senha foi enviada
-    if (professor.senha) {
-      dadosAtualizados.senha = await bcrypt.hash(
-        professor.senha,
-        10
-      );
+    // =========================
+    // SENHA
+    // =========================
+    //
+    // Só cria um novo hash quando
+    // uma nova senha foi enviada.
+    //
+
+    if (
+      professor.senha &&
+      typeof professor.senha === 'string'
+    ) {
+      dadosAtualizados.senha =
+        await bcrypt.hash(
+          professor.senha,
+          10
+        );
+    } else {
+      // Nunca enviar senha vazia
+      // para o storage.
+      delete dadosAtualizados.senha;
     }
 
-    const atualizado = await updateProfessorRecord(
-      id,
-      dadosAtualizados
-    );
+    // =========================
+    // ATUALIZAR
+    // =========================
+
+    const atualizado =
+      await updateProfessorRecord(
+        id,
+        dadosAtualizados
+      );
 
     if (!atualizado) {
       return res.status(404).json({
-        error: 'Professor não encontrado.',
+        error:
+          'Professor não encontrado.',
       });
     }
 
-    res.json(atualizado);
-  } catch (error) {
-    console.error('Erro ao atualizar professor:', error);
+    // =========================
+    // NUNCA DEVOLVER HASH
+    // =========================
 
-    res.status(500).json({
-      error: 'Erro ao atualizar professor.',
+    return res.json(
+      professorSeguro(
+        atualizado
+      )
+    );
+
+  } catch (error) {
+    console.error(
+      'Erro ao atualizar professor:',
+      error
+    );
+
+    return res.status(500).json({
+      error:
+        'Erro ao atualizar professor.',
     });
   }
 }

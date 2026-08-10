@@ -14,9 +14,9 @@ import { DojoProvider } from '@/components/context/DojoContext';
 import { PixProvider } from '@/components/context/PixContext';
 import { PresencaProvider } from '@/components/context/PresencaContext';
 import { ProfessorProvider } from '@/components/context/ProfessorContext';
-import { PromptProvider } from '@/components/Prompt';
 import { TreinoProvider } from '@/components/context/TreinoContext';
 import { TurmaProvider } from '@/components/context/TurmaContext';
+import { PromptProvider } from '@/components/Prompt';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export { ErrorBoundary } from 'expo-router';

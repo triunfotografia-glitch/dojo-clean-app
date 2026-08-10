@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import { query } from '../services/databaseService.js';
 
 export async function login(req, res) {
@@ -18,6 +19,20 @@ export async function login(req, res) {
     ) {
       return res.status(400).json({
         error: 'Nome e senha são obrigatórios.',
+      });
+    }
+
+    // =========================
+    // JWT SECRET
+    // =========================
+
+    if (!process.env.JWT_SECRET) {
+      console.error(
+        'JWT_SECRET não configurado no ambiente.'
+      );
+
+      return res.status(500).json({
+        error: 'Configuração de autenticação ausente.',
       });
     }
 
@@ -90,17 +105,34 @@ export async function login(req, res) {
     } = professor;
 
     // =========================
+    // GERAR JWT
+    // =========================
+
+    const token = jwt.sign(
+      {
+        id: String(professor.id),
+        nome: professor.nome,
+        tipo: 'professor',
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: '8h',
+      }
+    );
+
+    // =========================
     // LOGIN OK
     // =========================
 
-    res.json({
+    return res.json({
       sucesso: true,
+      token,
       professor: professorSeguro,
     });
   } catch (error) {
     console.error('Erro no login:', error);
 
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Erro interno ao realizar login.',
     });
   }

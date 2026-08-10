@@ -1,7 +1,10 @@
-import 'dotenv/config'; // 🔥 TEM QUE SER A PRIMEIRA LINHA
+import 'dotenv/config';
 
 import cors from 'cors';
 import express from 'express';
+
+// Middleware de autenticação JWT
+import { authMiddleware } from './middleware/authMiddleware.js';
 
 // Rotas
 import alunosRoutes from './routes/alunos.js';
@@ -20,41 +23,139 @@ const app = express();
 
 console.log('🚀 BACKEND DOJO LB - POSTGRESQL');
 
-// 🔍 DEBUG (pode remover depois)
-console.log('ENV DATABASE_URL:', process.env.DATABASE_URL);
+// ==============================
+// DEBUG
+// ==============================
 
-// Middlewares
+// Pode remover depois.
+// NÃO exiba DATABASE_URL em produção,
+// pois ela contém credenciais sensíveis.
+console.log(
+  'DATABASE_URL configurada:',
+  Boolean(process.env.DATABASE_URL)
+);
+
+// ==============================
+// MIDDLEWARES GERAIS
+// ==============================
+
 app.use(cors());
-app.use(express.json());
 
-// Log de requisições
+app.use(
+  express.json({
+    limit: '1mb',
+  })
+);
+
+// ==============================
+// LOG DE REQUISIÇÕES
+// ==============================
+
 app.use((req, res, next) => {
   console.log(
     `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`
   );
+
   next();
 });
 
-// Rota base
+// ==============================
+// ROTA BASE
+// ==============================
+
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
-    message: 'API Dojo LB rodando 🚀',
+    message: 'API Dojo LB rodando',
     database: 'PostgreSQL',
   });
 });
 
-// Rotas
-app.use('/auth', authRoutes);
-app.use('/alunos', alunosRoutes);
-app.use('/cobrancas', cobrancasRoutes);
-app.use('/professores', professoresRoutes);
-app.use('/turmas', turmasRoutes);
-app.use('/treinos', treinosRoutes);
-app.use('/presencas', presencasRoutes);
-app.use('/graduacoes', graduacoesRoutes);
+// ==============================
+// AUTENTICAÇÃO
+// ==============================
 
+// IMPORTANTE:
+// /auth permanece público.
+// É através dele que o professor
+// obtém o JWT para acessar o sistema.
+
+app.use('/auth', authRoutes);
+
+// ==============================
+// TESTE DO JWT
+// ==============================
+
+// Rota temporária para validar
+// se o middleware JWT está funcionando.
+
+app.get(
+  '/teste-auth',
+  authMiddleware,
+  (req, res) => {
+    res.json({
+      sucesso: true,
+      mensagem: 'JWT válido.',
+      usuario: req.usuario,
+    });
+  }
+);
+
+// ==============================
+// ROTAS PROTEGIDAS
+// ==============================
+
+// IMPORTANTE:
+// Por enquanto estamos protegendo
+// as rotas inteiras.
+// O login continua público acima.
+
+app.use(
+  '/alunos',
+  authMiddleware,
+  alunosRoutes
+);
+
+app.use(
+  '/cobrancas',
+  authMiddleware,
+  cobrancasRoutes
+);
+
+app.use(
+  '/professores',
+  authMiddleware,
+  professoresRoutes
+);
+
+app.use(
+  '/turmas',
+  authMiddleware,
+  turmasRoutes
+);
+
+app.use(
+  '/treinos',
+  authMiddleware,
+  treinosRoutes
+);
+
+app.use(
+  '/presencas',
+  authMiddleware,
+  presencasRoutes
+);
+
+app.use(
+  '/graduacoes',
+  authMiddleware,
+  graduacoesRoutes
+);
+
+// ==============================
 // 404
+// ==============================
+
 app.use((req, res) => {
   res.status(404).json({
     error: 'Rota não encontrada',
@@ -62,24 +163,65 @@ app.use((req, res) => {
   });
 });
 
-// Porta
-const PORT = process.env.PORT || 3000;
+// ==============================
+// TRATAMENTO DE ERROS
+// ==============================
 
-// Inicialização
+app.use(
+  (error, req, res, next) => {
+    console.error(
+      'Erro não tratado:',
+      error
+    );
+
+    if (res.headersSent) {
+      return next(error);
+    }
+
+    res.status(500).json({
+      error: 'Erro interno do servidor.',
+    });
+  }
+);
+
+// ==============================
+// PORTA
+// ==============================
+
+const PORT =
+  process.env.PORT || 3000;
+
+// ==============================
+// INICIALIZAÇÃO
+// ==============================
+
 async function startServer() {
   try {
-    console.log('🔌 Conectando ao banco...');
+    console.log(
+      '🔌 Conectando ao banco...'
+    );
 
     await connectDatabase();
 
-    console.log('✅ Banco conectado com sucesso');
+    console.log(
+      '✅ Banco conectado com sucesso'
+    );
 
-    app.listen(PORT, () => {
-      console.log(`🌐 Servidor rodando em http://localhost:${PORT}`);
-    });
+    app.listen(
+      PORT,
+      () => {
+        console.log(
+          `🌐 Servidor rodando em http://localhost:${PORT}`
+        );
+      }
+    );
 
   } catch (error) {
-    console.error('❌ Erro ao conectar no banco:', error.message);
+    console.error(
+      '❌ Erro ao conectar no banco:',
+      error.message
+    );
+
     process.exit(1);
   }
 }

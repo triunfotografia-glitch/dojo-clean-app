@@ -12,140 +12,273 @@ import {
 } from "react-native";
 
 export default function Index() {
-  const { alunos } = useDojo();
+  const { alunos, userLogado } = useDojo();
   const { professores } = useProfessores();
 
-  const [listaAlunosVisivel, setListaAlunosVisivel] = useState(true);
+  const [listaAlunosVisivel, setListaAlunosVisivel] =
+    useState(true);
 
   const totalAlunos = alunos.length;
+
   const totalProfessores = professores.length;
-  const hoje = new Date().toISOString().slice(0, 10);
-  const mensalidadesAtrasadas = alunos.filter((aluno) =>
-    aluno.cobrancas.some((cobranca) => !cobranca.pagoEm && cobranca.vencimento < hoje),
+
+  const hoje = new Date()
+    .toISOString()
+    .slice(0, 10);
+
+  // ==============================
+  // MENSALIDADES ATRASADAS
+  // ==============================
+
+  const mensalidadesAtrasadas = alunos.filter(
+    (aluno) => {
+      const cobrancas = Array.isArray(
+        aluno.cobrancas
+      )
+        ? aluno.cobrancas
+        : [];
+
+      return cobrancas.some(
+        (cobranca) =>
+          !cobranca.pagoEm &&
+          cobranca.vencimento < hoje
+      );
+    }
   );
-  // Calcula o total de graduações somando o tamanho do histórico de cada aluno
-  const totalGraduacoes = alunos.reduce((total, aluno) => total + (aluno.historicoGraduacao?.length || 0), 0);
+
+  // ==============================
+  // GRADUAÇÕES
+  // ==============================
+
+  const totalGraduacoes = alunos.reduce(
+    (total, aluno) =>
+      total +
+      (Array.isArray(
+        aluno.historicoGraduacao
+      )
+        ? aluno.historicoGraduacao.length
+        : 0),
+    0
+  );
+
   const treinosHoje = 0;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={
+        styles.contentContainer
+      }
+    >
+      {/* CABEÇALHO */}
 
-      <Text style={styles.logo}>
-        DOJO LB
-      </Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.logo}>
+            DOJO LB
+          </Text>
 
-      <Text style={styles.subtitle}>
-        Gestão da Academia
-      </Text>
-
-      {/* GRID */}
-      <View style={styles.grid}>
-
-        <View style={styles.card}>
-          <Text style={styles.title}>Alunos ativos</Text>
-          <Text style={styles.number}>{totalAlunos}</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.title}>Professores</Text>
-          <Text style={styles.number}>{totalProfessores}</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.title}>Treinos hoje</Text>
-          <Text style={styles.number}>{treinosHoje}</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.title}>Graduações</Text>
-          <Text style={styles.number}>{totalGraduacoes}</Text>
-        </View>
-
-      </View>
-
-      {mensalidadesAtrasadas.length > 0 ? (
-        <View style={styles.financeAlert}>
-          <Text style={styles.financeAlertTitle}>Mensalidades em atraso</Text>
-          <Text style={styles.financeAlertText}>
-            {mensalidadesAtrasadas.length} aluno(s) com cobrança vencida.
+          <Text style={styles.subtitle}>
+            Gestão da Academia
           </Text>
         </View>
-      ) : null}
+
+        {userLogado && (
+          <View style={styles.userBox}>
+            <Text style={styles.userName}>
+              {userLogado.nome}
+            </Text>
+
+            <Text style={styles.userRole}>
+              Professor
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* INDICADORES */}
+
+      <View style={styles.grid}>
+        <View style={styles.card}>
+          <Text style={styles.title}>
+            Alunos ativos
+          </Text>
+
+          <Text style={styles.number}>
+            {totalAlunos}
+          </Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.title}>
+            Professores
+          </Text>
+
+          <Text style={styles.number}>
+            {totalProfessores}
+          </Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.title}>
+            Treinos hoje
+          </Text>
+
+          <Text style={styles.number}>
+            {treinosHoje}
+          </Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.title}>
+            Graduações
+          </Text>
+
+          <Text style={styles.number}>
+            {totalGraduacoes}
+          </Text>
+        </View>
+      </View>
+
+      {/* ALERTA FINANCEIRO */}
+
+      {mensalidadesAtrasadas.length > 0 && (
+        <View style={styles.financeAlert}>
+          <Text
+            style={
+              styles.financeAlertTitle
+            }
+          >
+            Mensalidades em atraso
+          </Text>
+
+          <Text
+            style={
+              styles.financeAlertText
+            }
+          >
+            {mensalidadesAtrasadas.length}{" "}
+            aluno(s) com cobrança vencida.
+          </Text>
+        </View>
+      )}
+
+      {/* BOTÕES */}
 
       <Pressable
-        style={styles.financeButton}
-        onPress={() => router.push('/financeiro')}
+        style={styles.primaryButton}
+        onPress={() =>
+          router.push("/financeiro")
+        }
       >
-        <Text style={styles.professoresButtonText}>Ver painel financeiro</Text>
+        <Text style={styles.buttonText}>
+          Ver painel financeiro
+        </Text>
       </Pressable>
 
       <Pressable
-        style={styles.professoresButton}
-        onPress={() => router.push({ pathname: '/professores' })}
+        style={styles.secondaryButton}
+        onPress={() =>
+          router.push("/professores")
+        }
       >
-        <Text style={styles.professoresButtonText}>Gerenciar professores</Text>
+        <Text style={styles.buttonText}>
+          Gerenciar professores
+        </Text>
       </Pressable>
 
       <Pressable
-        style={styles.professoresButton}
-        onPress={() => router.push({ pathname: '/turmas' })}
+        style={styles.secondaryButton}
+        onPress={() =>
+          router.push("/turmas")
+        }
       >
-        <Text style={styles.professoresButtonText}>Gerenciar turmas</Text>
+        <Text style={styles.buttonText}>
+          Gerenciar turmas
+        </Text>
       </Pressable>
 
       <Pressable
-        style={styles.professoresButton}
-        onPress={() => router.push({ pathname: '/agenda' })}
+        style={styles.secondaryButton}
+        onPress={() =>
+          router.push("/agenda")
+        }
       >
-        <Text style={styles.professoresButtonText}>Ver agenda semanal</Text>
+        <Text style={styles.buttonText}>
+          Ver agenda semanal
+        </Text>
       </Pressable>
 
-      {/* LISTA DE ALUNOS */}
+      {/* ALUNOS */}
+
       <View style={styles.listaContainer}>
         <View style={styles.listaHeader}>
           <Text style={styles.listaTitulo}>
             Alunos cadastrados
           </Text>
-          <Pressable onPress={() => setListaAlunosVisivel(!listaAlunosVisivel)}>
-            <Text style={styles.toggleButton}>
-              {listaAlunosVisivel ? "Minimizar" : "Mostrar"}
+
+          <Pressable
+            onPress={() =>
+              setListaAlunosVisivel(
+                !listaAlunosVisivel
+              )
+            }
+          >
+            <Text
+              style={
+                styles.toggleButton
+              }
+            >
+              {listaAlunosVisivel
+                ? "Minimizar"
+                : "Mostrar"}
             </Text>
           </Pressable>
         </View>
 
-        {listaAlunosVisivel && (
-          <>
-            {alunos.length === 0 ? (
-              <Text style={styles.vazio}>
-                Nenhum aluno cadastrado
-              </Text>
-            ) : (
-              alunos.map((aluno) => (
-                <View key={aluno.id} style={styles.alunoCard}>
-                  <Text style={styles.alunoNome}>
-                    {aluno.nome}
-                  </Text>
-                  <Text style={styles.alunoInfo}>
-                    Faixa: {aluno.faixa}
-                  </Text>
-                </View>
-              ))
-            )}
-          </>
-        )}
+        {listaAlunosVisivel &&
+          (alunos.length === 0 ? (
+            <Text style={styles.vazio}>
+              Nenhum aluno cadastrado
+            </Text>
+          ) : (
+            alunos.map((aluno) => (
+              <View
+                key={aluno.id}
+                style={styles.alunoCard}
+              >
+                <Text
+                  style={
+                    styles.alunoNome
+                  }
+                >
+                  {aluno.nome}
+                </Text>
+
+                <Text
+                  style={
+                    styles.alunoInfo
+                  }
+                >
+                  Faixa: {aluno.faixa}
+                </Text>
+              </View>
+            ))
+          ))}
       </View>
 
-      {/* FOOTER */}
+      {/* RODAPÉ */}
+
       <View style={styles.footerCard}>
         <Text style={styles.footerTitle}>
           Academia preparada
         </Text>
 
         <Text style={styles.footerText}>
-          Cadastre alunos e professores para iniciar a gestão do DOJO LB.
+          Cadastre alunos e professores para
+          iniciar a gestão do DOJO LB.
         </Text>
       </View>
-
     </ScrollView>
   );
 }
@@ -153,39 +286,68 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 25,
-    paddingTop: 70,
+    backgroundColor:
+      COLORS.background,
+  },
+
+  contentContainer: {
+    paddingHorizontal: 25,
+    paddingTop: 45,
+    paddingBottom: 100,
+  },
+
+  header: {
+    flexDirection: "row",
+    justifyContent:
+      "space-between",
+    alignItems: "center",
+    marginBottom: 30,
   },
 
   logo: {
     color: COLORS.primary,
-    fontSize: 42,
+    fontSize: 40,
     fontWeight: "900",
     letterSpacing: 2,
   },
 
   subtitle: {
     color: COLORS.muted,
-    fontSize: 16,
-    marginTop: 5,
-    marginBottom: 35,
+    fontSize: 15,
+    marginTop: 4,
+  },
+
+  userBox: {
+    alignItems: "flex-end",
+  },
+
+  userName: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  userRole: {
+    color: COLORS.primary,
+    fontSize: 12,
+    marginTop: 4,
   },
 
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
   },
 
   card: {
     backgroundColor: COLORS.card,
     width: "48%",
-    padding: 20,
-    borderRadius: 20,
+    padding: 18,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: 15, // 🔥 substitui o gap
+    marginBottom: 14,
   },
 
   title: {
@@ -195,20 +357,63 @@ const styles = StyleSheet.create({
 
   number: {
     color: COLORS.text,
-    fontSize: 40,
+    fontSize: 38,
     fontWeight: "bold",
+    marginTop: 10,
+  },
+
+  financeAlert: {
+    backgroundColor: "#7F1D1D",
+    borderRadius: 15,
+    padding: 16,
+    marginTop: 8,
+  },
+
+  financeAlertTitle: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
+  financeAlertText: {
+    color: COLORS.textSecondary,
+    marginTop: 5,
+  },
+
+  primaryButton: {
+    backgroundColor:
+      COLORS.primary,
+    borderRadius: 15,
+    alignItems: "center",
+    padding: 16,
+    marginTop: 18,
+  },
+
+  secondaryButton: {
+    borderColor:
+      COLORS.primary,
+    borderWidth: 1,
+    borderRadius: 15,
+    alignItems: "center",
+    padding: 16,
     marginTop: 12,
   },
 
+  buttonText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+  },
+
   listaContainer: {
-    marginTop: 30,
+    marginTop: 35,
   },
 
   listaHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 15,
   },
 
   listaTitulo: {
@@ -228,11 +433,11 @@ const styles = StyleSheet.create({
 
   alunoCard: {
     backgroundColor: COLORS.card,
-    padding: 15,
+    padding: 16,
     borderRadius: 12,
-    marginBottom: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
+    marginBottom: 12,
   },
 
   alunoNome: {
@@ -243,50 +448,17 @@ const styles = StyleSheet.create({
 
   alunoInfo: {
     color: COLORS.muted,
-    marginTop: 5,
+    marginTop: 6,
   },
 
   footerCard: {
-    marginTop: 30,
-    backgroundColor: COLORS.card,
+    marginTop: 35,
+    backgroundColor:
+      COLORS.card,
     padding: 20,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
-  },
-  professoresButton: {
-    alignItems: "center",
-    borderColor: COLORS.primary,
-    borderRadius: 15,
-    borderWidth: 1,
-    marginTop: 10,
-    padding: 15,
-  },
-  financeButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.primary,
-    borderRadius: 15,
-    marginTop: 18,
-    padding: 15,
-  },
-  professoresButtonText: {
-    color: COLORS.white,
-    fontWeight: "bold",
-  },
-  financeAlert: {
-    backgroundColor: "#7F1D1D",
-    borderRadius: 15,
-    marginTop: 10,
-    padding: 16,
-  },
-  financeAlertTitle: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  financeAlertText: {
-    color: COLORS.textSecondary,
-    marginTop: 5,
   },
 
   footerTitle: {
@@ -298,10 +470,6 @@ const styles = StyleSheet.create({
   footerText: {
     color: COLORS.muted,
     marginTop: 8,
-    fontSize: 14,
     lineHeight: 20,
-  },
-  contentContainer: {
-    paddingBottom: 120,
   },
 });

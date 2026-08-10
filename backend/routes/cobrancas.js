@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { listCobrancas, createCobranca } from '../controllers/cobrancasController.js';
+
+import {
+    createCobranca,
+    listCobrancas,
+} from '../controllers/cobrancasController.js';
 
 const router = Router();
 

@@ -1,24 +1,32 @@
 import { useDojo } from "@/components/context/DojoContext";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 export default function Login() {
   const { login } = useDojo();
-  const router = useRouter();
 
-  const [nome, setNome] = useState("Gabriel Triunfo");
-  const [senha, setSenha] = useState("418221");
+  const [nome, setNome] = useState("");
+  const [senha, setSenha] = useState("");
+  const [carregando, setCarregando] = useState(false);
 
-  function handleLogin() {
-    if (!nome.trim() || !senha.trim()) {
+  async function handleLogin() {
+    const nomeDigitado = nome.trim();
+    const senhaDigitada = senha.trim();
+
+    // ==============================
+    // VALIDAÇÃO
+    // ==============================
+
+    if (!nomeDigitado || !senhaDigitada) {
       Alert.alert(
         "Atenção",
         "Preencha nome e senha."
@@ -26,149 +34,215 @@ export default function Login() {
       return;
     }
 
-    const usuario = login(
-      nome.trim(),
-      senha.trim()
-    );
+    // ==============================
+    // EVITA DUPLO CLIQUE
+    // ==============================
 
-    if (!usuario) {
+    if (carregando) {
+      return;
+    }
+
+    try {
+      setCarregando(true);
+
+      // ==============================
+      // LOGIN PELO DOJOCONTEXT
+      // ==============================
+
+      const usuario = await login(
+        nomeDigitado,
+        senhaDigitada
+      );
+
+      // ==============================
+      // LOGIN RECUSADO
+      // ==============================
+
+      if (!usuario) {
+        Alert.alert(
+          "Erro",
+          "Nome ou senha inválidos."
+        );
+        return;
+      }
+
+      // ==============================
+      // LOGIN APROVADO
+      // ==============================
+
+     router.replace("/");
+    
+    } catch (error) {
+      console.error(
+        "Erro ao realizar login:",
+        error
+      );
+
       Alert.alert(
         "Erro",
-        "Nome ou senha inválidos."
+        "Não foi possível realizar o login. Verifique sua conexão e tente novamente."
       );
-      return;
+    } finally {
+      setCarregando(false);
     }
-
-    if (usuario.tipo !== "professor") {
-      Alert.alert(
-        "Acesso negado",
-        "Esta área é restrita para professores."
-      );
-      return;
-    }
-
-    router.replace("/treinos");
-
   }
+
   return (
-
     <View style={styles.container}>
-
-
-      <Text style={styles.titulo}>
+      <Text style={styles.logo}>
         DOJO LB
       </Text>
 
-
       <Text style={styles.subtitulo}>
-        Acesso do Professor
+        Acesso exclusivo para professores
       </Text>
 
-
-      <TextInput
-        style={styles.input}
-        placeholder="Nome completo"
-        placeholderTextColor="#777"
-        value={nome}
-        onChangeText={setNome}
-        autoCapitalize="words"
-      />
-
-
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        placeholderTextColor="#777"
-        value={senha}
-        onChangeText={setSenha}
-        secureTextEntry
-      />
-
-
-      <TouchableOpacity
-        style={styles.botao}
-        onPress={handleLogin}
-      >
-
-        <Text style={styles.botaoTexto}>
-          Entrar
+      <View style={styles.card}>
+        <Text style={styles.titulo}>
+          Login Professor
         </Text>
 
-      </TouchableOpacity>
+        <TextInput
+          style={styles.input}
+          placeholder="Nome completo"
+          placeholderTextColor="#777"
+          value={nome}
+          onChangeText={setNome}
+          autoCapitalize="words"
+          autoCorrect={false}
+          editable={!carregando}
+        />
 
+        <TextInput
+          style={styles.input}
+          placeholder="Senha"
+          placeholderTextColor="#777"
+          value={senha}
+          onChangeText={setSenha}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!carregando}
+        />
 
-      <TouchableOpacity
-        style={styles.forgotPasswordButton}
-        onPress={() => router.push('/esqueci-senha')}
-      >
-        <Text style={styles.forgotPasswordText}>
-          Esqueci minha senha
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.botao,
+            carregando &&
+              styles.botaoDesativado,
+          ]}
+          onPress={handleLogin}
+          disabled={carregando}
+        >
+          {carregando ? (
+            <ActivityIndicator
+              size="small"
+              color="#fff"
+            />
+          ) : (
+            <Text style={styles.botaoTexto}>
+              Entrar
+            </Text>
+          )}
+        </TouchableOpacity>
 
-
+        <TouchableOpacity
+          style={
+            styles.forgotPasswordButton
+          }
+          onPress={() =>
+            router.push(
+              "/esqueci-senha"
+            )
+          }
+          disabled={carregando}
+        >
+          <Text
+            style={
+              styles.forgotPasswordText
+            }
+          >
+            Esqueci minha senha
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
-
   );
-
 }
 
 const styles = StyleSheet.create({
-  container:{
-    flex:1,
-    justifyContent:"center",
-    padding:25,
-    backgroundColor:"#fff",
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 25,
+    backgroundColor: "#fff",
   },
-  titulo:{
-    fontSize:34,
-    fontWeight:"900",
-    textAlign:"center",
-    color:"#000",
-    marginBottom:10,
+
+  logo: {
+    fontSize: 52,
+    fontWeight: "900",
+    textAlign: "center",
+    color: "#000",
+    marginBottom: 8,
+    letterSpacing: 2,
   },
-  subtitulo:{
-    textAlign:"center",
-    color:"#666",
-    marginBottom:40,
-    fontSize:16,
+
+  subtitulo: {
+    textAlign: "center",
+    color: "#666",
+    fontSize: 17,
+    marginBottom: 45,
   },
-  input:{
-    backgroundColor:"#eeeeee",
-    padding:15,
-    borderRadius:12,
-    marginBottom:15,
-    fontSize:16,
-    color:"#000",
+
+  card: {
+    width: "100%",
   },
-  botao:{
-    backgroundColor:"#000",
-    padding:16,
-    borderRadius:12,
-    marginTop:10,
+
+  titulo: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#000",
+    textAlign: "center",
+    marginBottom: 25,
   },
-  botaoTexto:{
-    color:"#fff",
-    textAlign:"center",
-    fontSize:16,
-    fontWeight:"700",
+
+  input: {
+    backgroundColor: "#eeeeee",
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
+    fontSize: 16,
+    color: "#000",
   },
+
+  botao: {
+    backgroundColor: "#000",
+    padding: 18,
+    borderRadius: 12,
+    marginTop: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 56,
+  },
+
+  botaoDesativado: {
+    opacity: 0.6,
+  },
+
+  botaoTexto: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+
   forgotPasswordButton: {
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
+
   forgotPasswordText: {
-    color: '#666',
+    color: "#666",
     fontSize: 14,
-    textDecorationLine: 'underline',
-  },
-  backButton: {
-    marginTop: 25,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#666',
-    fontSize: 15,
-    fontWeight: '500',
+    textDecorationLine: "underline",
   },
 });

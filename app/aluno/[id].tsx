@@ -6,13 +6,13 @@ import { useProfessores } from '@/components/context/ProfessorContext';
 import { useTreinos } from '@/components/context/TreinoContext';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
-    Alert,
-    Image,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 
 export default function PerfilAluno() {

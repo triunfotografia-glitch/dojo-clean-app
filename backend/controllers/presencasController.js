@@ -13,8 +13,8 @@ export async function listPresencas(req, res) {
 export async function createPresenca(req, res) {
   try {
     const presenca = req.body;
-    const alunoId = presenca?.alunoId || presenca?.aluno;
-    const treinoId = presenca?.treinoId || presenca?.treino;
+    const alunoId = presenca?.aluno_id || presenca?.alunoId || presenca?.aluno;
+    const treinoId = presenca?.treino_id || presenca?.treinoId || presenca?.treino;
     const status = presenca?.status;
     const data = presenca?.data;
 
@@ -37,8 +37,8 @@ export async function createPresenca(req, res) {
     }
 
     const novaPresenca = await addPresenca({
-      alunoId: alunoId.trim(),
-      treinoId: treinoId.trim(),
+      aluno_id: alunoId.trim(),
+      treino_id: treinoId.trim(),
       data: data.trim(),
       status: status.trim(),
     });

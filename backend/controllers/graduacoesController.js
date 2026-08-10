@@ -13,7 +13,7 @@ export async function listGraduacoes(req, res) {
 export async function createGraduacao(req, res) {
   try {
     const graduacao = req.body;
-    const alunoId = graduacao?.alunoId || graduacao?.aluno;
+    const alunoId = graduacao?.aluno_id || graduacao?.alunoId || graduacao?.aluno;
     const faixa = graduacao?.faixa;
     const data = graduacao?.data;
     const professor = graduacao?.professor;
@@ -33,7 +33,7 @@ export async function createGraduacao(req, res) {
     }
 
     const novaGraduacao = await addGraduacao({
-      alunoId: alunoId.trim(),
+      aluno_id: alunoId.trim(),
       faixa: faixa.trim(),
       data: data.trim(),
       professor: typeof professor === 'string' ? professor.trim() : '',

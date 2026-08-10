@@ -1,4 +1,10 @@
-import { addAluno, getAlunos, updateAluno as updateAlunoRecord, deleteAluno as deleteAlunoRecord } from '../services/storageService.js';
+import bcrypt from 'bcrypt';
+import {
+  addAluno,
+  deleteAluno as deleteAlunoRecord,
+  getAlunos,
+  updateAluno as updateAlunoRecord,
+} from '../services/storageService.js';
 
 export async function listAlunos(req, res) {
   try {
@@ -14,11 +20,27 @@ export async function createAluno(req, res) {
   try {
     const aluno = req.body;
 
-    if (!aluno || typeof aluno !== 'object' || !aluno.nome || typeof aluno.nome !== 'string' || !aluno.nome.trim()) {
+    if (
+      !aluno ||
+      typeof aluno !== 'object' ||
+      !aluno.nome ||
+      typeof aluno.nome !== 'string' ||
+      !aluno.nome.trim() ||
+      !aluno.email ||
+      !aluno.senha
+    ) {
       return res.status(400).json({ error: 'Dados de aluno inválidos.' });
     }
 
-    const novoAluno = await addAluno({ ...aluno, nome: aluno.nome.trim() });
+    // HASH DA SENHA
+    const senhaHash = await bcrypt.hash(aluno.senha, 10);
+
+    const novoAluno = await addAluno({
+      ...aluno,
+      nome: aluno.nome.trim(),
+      senha: senhaHash,
+    });
+
     res.status(201).json(novoAluno);
   } catch (error) {
     console.error(error);
@@ -39,7 +61,14 @@ export async function updateAluno(req, res) {
       return res.status(400).json({ error: 'Dados de aluno inválidos.' });
     }
 
-    const atualizado = await updateAlunoRecord(id, aluno);
+    const dadosAtualizados = { ...aluno };
+
+    // Se vier uma nova senha, faz hash antes de atualizar
+    if (aluno.senha) {
+      dadosAtualizados.senha = await bcrypt.hash(aluno.senha, 10);
+    }
+
+    const atualizado = await updateAlunoRecord(id, dadosAtualizados);
 
     if (!atualizado) {
       return res.status(404).json({ error: 'Aluno não encontrado.' });

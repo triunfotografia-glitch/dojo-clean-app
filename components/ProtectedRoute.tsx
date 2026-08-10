@@ -13,18 +13,20 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
 
     const isPublicRoute =
-      segments.length === 0 ||
       segments.includes("login") ||
       segments.includes("esqueci-senha");
 
     if (userLogado) {
-        if (isPublicRoute) {
-          router.replace({ pathname: "/treinos" });
-          return;
-        }
-    } else if (!isPublicRoute) {
-      router.replace({ pathname: "/" });
+      if (isPublicRoute) {
+        router.replace("/treinos");
+      }
+      return;
     }
+
+    if (!userLogado && !isPublicRoute) {
+      router.replace("/professor/login");
+    }
+
   }, [userLogado, segments, router, carregado]);
 
   return <>{children}</>;

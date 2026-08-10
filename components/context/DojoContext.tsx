@@ -1,22 +1,30 @@
+// 🔥 DOJO CONTEXT - JWT + POSTGRESQL + NORMALIZAÇÃO DOS DADOS
+
+import {
+  getAlunos,
+  loginProfessor,
+  postAluno,
+} from "@/services/api";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import React, {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useState,
+  createContext,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
-import { useProfessores } from "./ProfessorContext";
-import { getAlunos, postAluno } from "@/services/api";
 
 // ==============================
-// 🔐 USER
+// TYPES
 // ==============================
+
 export interface UserLogado {
   id: string;
   nome: string;
   tipo: "professor";
 }
+
 export interface Graduacao {
   id: string;
   faixa: string;
@@ -42,7 +50,6 @@ export interface Aluno {
   nome: string;
   email: string;
   telefone: string;
-  senha?: string;
   foto: string;
   dataNascimento: string;
   faixa: string;
@@ -62,388 +69,565 @@ export interface Aluno {
 }
 
 // ==============================
+// CONTEXT
+// ==============================
 
 interface DojoContextData {
   alunos: Aluno[];
   userLogado: UserLogado | null;
   carregado: boolean;
-  setUserLogado: (user: UserLogado | null) => void;
 
-  login: (nome: string, senha: string) => UserLogado | null;
+  login: (
+    nome: string,
+    senha: string
+  ) => Promise<UserLogado | null>;
+
   logout: () => void;
 
-  adicionarAluno: (aluno: Aluno) => Promise<void>;
-  removerAluno: (id: string) => void;
-  buscarAluno: (id: string) => Aluno | undefined;
-  editarAluno: (alunoAtualizado: Aluno) => void;
+  adicionarAluno: (
+    aluno: Aluno
+  ) => Promise<void>;
 
-  adicionarCobranca: (alunoId: string, cobranca: Cobranca) => void;
-  removerCobranca: (alunoId: string, cobrancaId: string) => void;
-
-  registrarPagamento: (
-    alunoId: string,
-    cobrancaId: string,
-    pagoEm: string,
-    formaPagamento: string
+  removerAluno: (
+    id: string
   ) => void;
 
-  marcarCobrancaComoPaga: (
-    alunoId: string,
-    cobrancaId: string
+  editarAluno: (
+    aluno: Aluno
   ) => void;
-
-  gerarMensalidadesMes: (competencia: string) => number;
-
-  executarCobrancasAutomaticas: () => number;
-
-  desvincularProfessorDeAlunos: (professorId: string) => void;
 }
 
 // ==============================
+// CONTEXT
+// ==============================
 
-const DojoContext = createContext<DojoContextData>({
-  alunos: [],
-  userLogado: null,
-  carregado: false,
-  setUserLogado: () => {},
-  login: () => null,
-  logout: () => {},
-  adicionarAluno: async () => {},
-  removerAluno: () => {},
-  buscarAluno: () => undefined,
-  editarAluno: () => {},
-  adicionarCobranca: () => {},
-  removerCobranca: () => {},
-  registrarPagamento: () => {},
-  marcarCobrancaComoPaga: () => {},
-  gerarMensalidadesMes: () => 0,
-  executarCobrancasAutomaticas: () => 0,
-  desvincularProfessorDeAlunos: () => {},
-});
+const DojoContext =
+  createContext<DojoContextData>({} as DojoContextData);
+
+// ==============================
+// STORAGE
+// ==============================
 
 const STORAGE_KEY = "@dojo_alunos";
+const USER_STORAGE_KEY = "@dojo_user";
 
+// ==============================
+// NORMALIZAR ALUNO
+// ==============================
+
+function normalizarAluno(
+  aluno: any
+): Aluno {
+  return {
+    ...aluno,
+
+    id:
+      aluno?.id !== undefined &&
+      aluno?.id !== null
+        ? String(aluno.id)
+        : "",
+
+    nome:
+      typeof aluno?.nome === "string"
+        ? aluno.nome
+        : "",
+
+    email:
+      typeof aluno?.email === "string"
+        ? aluno.email
+        : "",
+
+    telefone:
+      typeof aluno?.telefone === "string"
+        ? aluno.telefone
+        : "",
+
+    foto:
+      typeof aluno?.foto === "string"
+        ? aluno.foto
+        : "",
+
+    dataNascimento:
+      typeof aluno?.dataNascimento === "string"
+        ? aluno.dataNascimento
+        : "",
+
+    faixa:
+      typeof aluno?.faixa === "string"
+        ? aluno.faixa
+        : "Branca",
+
+    graus:
+      typeof aluno?.graus === "number"
+        ? aluno.graus
+        : 0,
+
+    historicoGraduacao:
+      Array.isArray(aluno?.historicoGraduacao)
+        ? aluno.historicoGraduacao
+        : [],
+
+    turma:
+      typeof aluno?.turma === "string"
+        ? aluno.turma
+        : "",
+
+    professorId:
+      aluno?.professorId !== undefined &&
+      aluno?.professorId !== null
+        ? String(aluno.professorId)
+        : undefined,
+
+    dataEntrada:
+      typeof aluno?.dataEntrada === "string"
+        ? aluno.dataEntrada
+        : "",
+
+    ativo:
+      typeof aluno?.ativo === "boolean"
+        ? aluno.ativo
+        : true,
+
+    mensalidade:
+      typeof aluno?.mensalidade === "string"
+        ? aluno.mensalidade
+        : "",
+
+    valorMensalidade:
+      typeof aluno?.valorMensalidade === "string"
+        ? aluno.valorMensalidade
+        : "",
+
+    diaVencimento:
+      typeof aluno?.diaVencimento === "number"
+        ? aluno.diaVencimento
+        : 10,
+
+    proximaCobranca:
+      typeof aluno?.proximaCobranca === "string"
+        ? aluno.proximaCobranca
+        : "",
+
+    // 🔥 CORREÇÃO PRINCIPAL
+    // O backend atualmente pode não retornar cobrancas.
+    // Nunca deixaremos cobrancas como undefined.
+    cobrancas:
+      Array.isArray(aluno?.cobrancas)
+        ? aluno.cobrancas
+        : [],
+
+    observacao:
+      typeof aluno?.observacao === "string"
+        ? aluno.observacao
+        : "",
+
+    criadoEm:
+      typeof aluno?.criadoEm === "string"
+        ? aluno.criadoEm
+        : "",
+  };
+}
+
+// ==============================
+// NORMALIZAR LISTA
+// ==============================
+
+function normalizarAlunos(
+  lista: any
+): Aluno[] {
+  if (!Array.isArray(lista)) {
+    return [];
+  }
+
+  return lista.map(
+    (aluno) => normalizarAluno(aluno)
+  );
+}
+
+// ==============================
+// PROVIDER
 // ==============================
 
 export function DojoProvider({
   children,
 }: {
   children: React.ReactNode;
-}) {  
-  const { professores } = useProfessores();
-  const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [userLogado, setUserLogado] = useState<UserLogado | null>(null);
-  const [carregado, setCarregado] = useState(false);
+}) {
 
-  const executarCobrancasAutomaticas = useCallback(() => {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    let geradas = 0;
+  const [alunos, setAlunos] =
+    useState<Aluno[]>([]);
 
-    setAlunos((lista) => {
-      const novaLista = lista.map((aluno) => {
-        if (
-          !aluno.ativo ||
-          aluno.mensalidade === "Isento" ||
-          !aluno.proximaCobranca
-        ) {
-          return aluno;
-        }
+  const [userLogado, setUserLogado] =
+    useState<UserLogado | null>(null);
 
-        const dataProximaCobranca = new Date(aluno.proximaCobranca);
-        if (hoje < dataProximaCobranca) return aluno;
-
-        const competencia = aluno.proximaCobranca.slice(0, 7);
-        const [ano, mes] = competencia.split("-").map(Number);
-
-        const valor = Number(
-          aluno.valorMensalidade
-            .replace(/\s/g, "")
-            .replace("R$", "")
-            .replace(/\./g, "")
-            .replace(",", ".")
-        );
-
-        if (!valor || valor <= 0) return aluno;
-
-        const dia = Math.min(
-          aluno.diaVencimento || 10,
-          new Date(ano, mes, 0).getDate()
-        );
-
-        const vencimento = `${ano}-${String(mes).padStart(2, "0")}-${String(
-          dia
-        ).padStart(2, "0")}`;
-
-        const proximaData = new Date(ano, mes, dia);
-        proximaData.setMonth(proximaData.getMonth() + 1);
-
-        geradas++;
-
-        return {
-          ...aluno,
-          cobrancas: [
-            ...aluno.cobrancas,
-            { id: `${aluno.id}-${competencia}`, descricao: `Mensalidade ${competencia}`, valor, vencimento, competencia, status: "pendente" as const },
-          ],
-          proximaCobranca: proximaData.toISOString().slice(0, 10),
-        };
-      });
-      return novaLista;
-    });
-    return geradas;
-  }, []);
+  const [carregado, setCarregado] =
+    useState(false);
 
   // ==============================
-  // LOAD
+  // LOAD INICIAL
   // ==============================
+
   useEffect(() => {
+
     async function carregar() {
+
       try {
-        const alunosApi = await getAlunos();
 
-        if (Array.isArray(alunosApi)) {
-          const alunosValidosApi = alunosApi
-            .map((aluno: Partial<Aluno>): Aluno => {
-              return {
-                ...aluno,
-                id: aluno.id || Date.now().toString(),
-                nome: aluno.nome || "Nome Inválido",
-                historicoGraduacao: aluno.historicoGraduacao || [],
-                cobrancas: aluno.cobrancas || [],
-              } as Aluno;
-            })
-            .filter((aluno) => aluno.nome !== "Nome Inválido");
+        // ==========================
+        // CARREGAR USUÁRIO
+        // ==========================
 
-          setAlunos(alunosValidosApi);
-          setCarregado(true);
-          return;
+        const user =
+          await AsyncStorage.getItem(
+            USER_STORAGE_KEY
+          );
+
+        if (user) {
+
+          try {
+
+            const usuario =
+              JSON.parse(user);
+
+            if (
+              usuario &&
+              usuario.id &&
+              usuario.nome &&
+              usuario.tipo === "professor"
+            ) {
+
+              setUserLogado({
+                id: String(usuario.id),
+                nome: String(usuario.nome),
+                tipo: "professor",
+              });
+
+            }
+
+          } catch (error) {
+
+            console.warn(
+              "Erro ao interpretar usuário salvo:",
+              error
+            );
+
+            await AsyncStorage.removeItem(
+              USER_STORAGE_KEY
+            );
+
+          }
+
         }
+
+        // ==========================
+        // CARREGAR ALUNOS DA API
+        // ==========================
+
+        try {
+
+          const apiAlunos =
+            await getAlunos();
+
+          const alunosNormalizados =
+            normalizarAlunos(
+              apiAlunos
+            );
+
+          setAlunos(
+            alunosNormalizados
+          );
+
+        } catch (error) {
+
+          console.warn(
+            "Erro ao carregar alunos da API:",
+            error
+          );
+
+          // ========================
+          // FALLBACK LOCAL
+          // ========================
+
+          const local =
+            await AsyncStorage.getItem(
+              STORAGE_KEY
+            );
+
+          if (local) {
+
+            try {
+
+              const alunosLocais =
+                JSON.parse(local);
+
+              setAlunos(
+                normalizarAlunos(
+                  alunosLocais
+                )
+              );
+
+            } catch (error) {
+
+              console.warn(
+                "Erro ao carregar alunos locais:",
+                error
+              );
+
+              setAlunos([]);
+
+            }
+
+          } else {
+
+            setAlunos([]);
+
+          }
+
+        }
+
       } catch (error) {
-        console.warn("Falha ao carregar alunos do backend:", error);
+
+        console.warn(
+          "Erro ao carregar DojoContext:",
+          error
+        );
+
+        setAlunos([]);
+
+      } finally {
+
+        setCarregado(true);
+
       }
 
-      const dados = await AsyncStorage.getItem(STORAGE_KEY);
-
-      if (dados) {
-        const listaSalva = JSON.parse(dados) as any[];
-
-        // Validação para garantir a integridade dos dados carregados
-        const alunosValidos = listaSalva.map((aluno: Partial<Aluno>): Aluno => {
-          return {
-            ...aluno,
-            id: aluno.id || Date.now().toString(), // Garante um ID
-            nome: aluno.nome || 'Nome Inválido',
-            historicoGraduacao: aluno.historicoGraduacao || [], // Garante que historicoGraduacao exista
-            cobrancas: aluno.cobrancas || [], // Garante que arrays existam
-          } as Aluno;
-        }).filter(aluno => aluno.nome !== 'Nome Inválido'); // Remove registros corrompidos
-
-        setAlunos(alunosValidos);
-      }
-
-      setCarregado(true);
     }
 
     carregar();
+
   }, []);
 
   // ==============================
-  // SAVE
+  // SALVAR ALUNOS LOCALMENTE
   // ==============================
+
   useEffect(() => {
-    if (carregado) {
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(alunos));
+
+    if (!carregado) {
+      return;
     }
-  }, [alunos, carregado]);
 
-  // ==============================
-  // FUNÇÕES
-  // ==============================
+    AsyncStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(alunos)
+    ).catch((error) => {
 
-  async function adicionarAluno(aluno: Aluno) {
-    const { id, ...alunoPayload } = aluno;
+      console.warn(
+        "Erro ao salvar alunos localmente:",
+        error
+      );
 
-    const novoAlunoApi = await postAluno({
-      ...alunoPayload,
-      nome: aluno.nome.trim(),
     });
 
-    const novoAlunoFinal: Aluno = {
-      ...novoAlunoApi,
-      id: String(novoAlunoApi.id),
-      cobrancas: novoAlunoApi.cobrancas || [],
-      historicoGraduacao: novoAlunoApi.historicoGraduacao || [],
-      ativo: novoAlunoApi.ativo ?? true,
-      proximaCobranca: novoAlunoApi.proximaCobranca || new Date().toISOString().slice(0, 10),
-    } as Aluno;
+  }, [
+    alunos,
+    carregado,
+  ]);
 
-    setAlunos((lista) => [
-      ...lista,
-      novoAlunoFinal,
-    ]);
+  // ==============================
+  // LOGIN
+  // ==============================
+
+  async function login(
+    nome: string,
+    senha: string
+  ): Promise<UserLogado | null> {
+
+    try {
+
+      const res =
+        await loginProfessor(
+          nome,
+          senha
+        );
+
+      if (
+        !res ||
+        !res.sucesso ||
+        !res.token ||
+        !res.professor
+      ) {
+
+        return null;
+
+      }
+
+      const user: UserLogado = {
+
+        id:
+          String(
+            res.professor.id
+          ),
+
+        nome:
+          res.professor.nome,
+
+        tipo:
+          "professor",
+
+      };
+
+      // ==========================
+      // ESTADO
+      // ==========================
+
+      setUserLogado(user);
+
+      // ==========================
+      // STORAGE
+      // ==========================
+
+      await AsyncStorage.setItem(
+        USER_STORAGE_KEY,
+        JSON.stringify(user)
+      );
+
+      return user;
+
+    } catch (error) {
+
+      console.error(
+        "Erro login:",
+        error
+      );
+
+      return null;
+
+    }
+
   }
 
-  function removerAluno(id: string) {
-    setAlunos((lista) => lista.filter((a) => a.id !== id));
-  }
+  // ==============================
+  // LOGOUT
+  // ==============================
 
-  function buscarAluno(id: string) {
-    return alunos.find((a) => a.id === id);
-  }
+  async function logout() {
 
-  function editarAluno(alunoAtualizado: Aluno) {
-    setAlunos((lista) =>
-      lista.map((a) =>
-        a.id === alunoAtualizado.id ? alunoAtualizado : a
-      )
-    );
-  }
-
-  function desvincularProfessorDeAlunos(professorId: string) {
-    setAlunos(lista =>
-      lista.map(aluno => {
-        if (aluno.professorId === professorId) {
-          return { ...aluno, professorId: undefined };
-        }
-        return aluno;
-      })
-    );
-  }
-
-  function adicionarCobranca(alunoId: string, cobranca: Cobranca) {
-    setAlunos((lista) =>
-      lista.map((a) =>
-        a.id === alunoId
-          ? { ...a, cobrancas: [...a.cobrancas, cobranca] }
-          : a
-      )
-    );
-  }
-
-  function removerCobranca(alunoId: string, cobrancaId: string) {
-    setAlunos((lista) =>
-      lista.map((a) =>
-        a.id === alunoId
-          ? {
-              ...a,
-              cobrancas: a.cobrancas.filter((c) => c.id !== cobrancaId),
-            }
-          : a
-      )
-    );
-  }
-
-  function registrarPagamento(
-    alunoId: string,
-    cobrancaId: string,
-    pagoEm: string,
-    formaPagamento: string
-  ) {
-    setAlunos((lista) =>
-      lista.map((a) =>
-        a.id === alunoId
-          ? {
-              ...a,
-              cobrancas: a.cobrancas.map((c) =>
-                c.id === cobrancaId
-                  ? { ...c, pagoEm, formaPagamento, status: "pago" }
-                  : c
-              ),
-            }
-          : a
-      )
-    );
-  }
-
-  function marcarCobrancaComoPaga(
-    alunoId: string,
-    cobrancaId: string
-  ) {
-    const hoje = new Date().toISOString().slice(0, 10);
-
-    setAlunos((lista) =>
-      lista.map((a) =>
-        a.id === alunoId
-          ? {
-              ...a,
-              cobrancas: a.cobrancas.map((c) =>
-                c.id === cobrancaId
-                  ? { ...c, pagoEm: hoje, status: "pago" }
-                  : c
-              ),
-            }
-          : a
-      )
-    );
-  }
-
-  function gerarMensalidadesMes() {
-    return 0;
-  }
-
-  // ✅ LOGIN SEM ERRO
-function login(nome: string, senha: string): UserLogado | null {
-
-  // 1. Acesso Admin do proprietário
-  if (nome.toLowerCase() === "gabriel triunfo" && senha === "418221") {
-    const adminUser: UserLogado = {
-      id: "admin",
-      nome: "Gabriel Triunfo",
-      tipo: "professor",
-    };
-    setUserLogado(adminUser);
-    return adminUser;
-  }
-
-  // 2. Acesso Professor
-  const professorEncontrado = professores.find(
-    (p) => p.nome.toLowerCase() === nome.toLowerCase() && p.senha === senha
-  );
-  if (professorEncontrado) {
-    const user: UserLogado = {
-      id: professorEncontrado.id,
-      nome: professorEncontrado.nome,
-      tipo: "professor",
-    };
-    setUserLogado(user);
-    return user;
-  }
-
-  return null;
-}
-
-  function logout() {
     setUserLogado(null);
+
+    await AsyncStorage.removeItem(
+      USER_STORAGE_KEY
+    );
+
   }
+
+  // ==============================
+  // ADICIONAR ALUNO
+  // ==============================
+
+  async function adicionarAluno(
+    aluno: Aluno
+  ) {
+
+    const novo =
+      await postAluno(aluno);
+
+    const alunoNormalizado =
+      normalizarAluno(novo);
+
+    setAlunos(
+      (prev) => [
+        ...prev,
+        alunoNormalizado,
+      ]
+    );
+
+  }
+
+  // ==============================
+  // REMOVER ALUNO
+  // ==============================
+
+  function removerAluno(
+    id: string
+  ) {
+
+    setAlunos(
+      (prev) =>
+        prev.filter(
+          (aluno) =>
+            aluno.id !== String(id)
+        )
+    );
+
+  }
+
+  // ==============================
+  // EDITAR ALUNO
+  // ==============================
+
+  function editarAluno(
+    aluno: Aluno
+  ) {
+
+    const alunoNormalizado =
+      normalizarAluno(aluno);
+
+    setAlunos(
+      (prev) =>
+        prev.map(
+          (item) =>
+            item.id ===
+            alunoNormalizado.id
+              ? alunoNormalizado
+              : item
+        )
+    );
+
+  }
+
+  // ==============================
+  // AGUARDAR CARREGAMENTO
+  // ==============================
+
+  if (!carregado) {
+    return null;
+  }
+
+  // ==============================
+  // PROVIDER
+  // ==============================
 
   return (
+
     <DojoContext.Provider
       value={{
         alunos,
         userLogado,
         carregado,
-        setUserLogado,
         login,
         logout,
         adicionarAluno,
         removerAluno,
-        buscarAluno,
         editarAluno,
-        adicionarCobranca,
-        removerCobranca,
-        registrarPagamento,
-        marcarCobrancaComoPaga,
-        gerarMensalidadesMes,
-        executarCobrancasAutomaticas,
-        desvincularProfessorDeAlunos,
       }}
     >
+
       {children}
+
     </DojoContext.Provider>
+
   );
+
 }
 
+// ==============================
+// HOOK
+// ==============================
+
 export function useDojo() {
-  return useContext(DojoContext);
+
+  return useContext(
+    DojoContext
+  );
+
 }
