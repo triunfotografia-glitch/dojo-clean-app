@@ -569,6 +569,31 @@ export async function getTreinos() {
   return result.rows;
 }
 
+/* =========================================================
+BUSCAR TREINO POR ID
+========================================================= */
+
+export async function getTreino(
+  id
+) {
+  const result = await query(
+    `SELECT *
+     FROM treinos
+     WHERE id = $1
+     LIMIT 1`,
+    [id]
+  );
+
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  return result.rows[0];
+}
+
+/* =========================================================
+CRIAR TREINO
+========================================================= */
 
 export async function addTreino(
   treino
@@ -580,7 +605,9 @@ export async function addTreino(
        dia,
        horario,
        turma,
-       professor
+       turma_id,
+       professor,
+       professor_id
      )
      VALUES
      (
@@ -588,22 +615,85 @@ export async function addTreino(
        $2,
        $3,
        $4,
-       $5
+       $5,
+       $6,
+       $7
      )
      RETURNING *`,
     [
       treino.nome,
-      treino.dia,
-      treino.horario,
-      treino.turma,
-      treino.professor,
+      treino.dia || null,
+      treino.horario || null,
+      treino.turma || null,
+      treino.turma_id || null,
+      treino.professor || null,
+      treino.professor_id || null,
     ]
   );
 
   return result.rows[0];
 }
 
+/* =========================================================
+ATUALIZAR TREINO
+========================================================= */
 
+export async function updateTreino(
+  id,
+  treino
+) {
+  const result = await query(
+    `UPDATE treinos
+     SET
+       nome = COALESCE($1, nome),
+       dia = COALESCE($2, dia),
+       horario = COALESCE($3, horario),
+       turma = COALESCE($4, turma),
+       turma_id = COALESCE($5, turma_id),
+       professor = COALESCE($6, professor),
+       professor_id = COALESCE($7, professor_id),
+       atualizado_em = NOW()
+     WHERE id = $8
+     RETURNING *`,
+    [
+      treino.nome ?? null,
+      treino.dia ?? null,
+      treino.horario ?? null,
+      treino.turma ?? null,
+      treino.turma_id ?? null,
+      treino.professor ?? null,
+      treino.professor_id ?? null,
+      id,
+    ]
+  );
+
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  return result.rows[0];
+}
+
+/* =========================================================
+DELETAR TREINO
+========================================================= */
+
+export async function deleteTreino(
+  id
+) {
+  const result = await query(
+    `DELETE FROM treinos
+     WHERE id = $1
+     RETURNING *`,
+    [id]
+  );
+
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  return result.rows[0];
+}
 /* =========================
    PRESENÇAS
 ========================= */

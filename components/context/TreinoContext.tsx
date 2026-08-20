@@ -1,18 +1,169 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 
-export interface Treino { id: string; nome: string; dia: string; horario: string; turma: string; professor: string; turmaId?: string; professorId?: string; }
-interface TreinoContextData { treinos: Treino[]; adicionarTreino: (treino: Treino) => void; editarTreino: (treino: Treino) => void; excluirTreino: (id: string) => void; buscarTreino: (id: string) => Treino | undefined; }
-const STORAGE_KEY = '@dojo_treinos';
-const TreinoContext = createContext<TreinoContextData>({} as TreinoContextData);
-export function TreinoProvider({ children }: { children: ReactNode }) {
-  const [treinos, setTreinos] = useState<Treino[]>([]); const [carregado, setCarregado] = useState(false);
-  useEffect(() => { async function carregar() { try { const dados = await AsyncStorage.getItem(STORAGE_KEY); if (dados) setTreinos(JSON.parse(dados)); } finally { setCarregado(true); } } void carregar(); }, []);
-  useEffect(() => { if (carregado) void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(treinos)); }, [carregado, treinos]);
-  function adicionarTreino(treino: Treino) { setTreinos((lista) => [...lista, treino]); }
-  function editarTreino(treino: Treino) { setTreinos((lista) => lista.map((item) => item.id === treino.id ? treino : item)); }
-  function excluirTreino(id: string) { setTreinos((lista) => lista.filter((item) => item.id !== id)); }
-  function buscarTreino(id: string) { return treinos.find((item) => item.id === id); }
-  return <TreinoContext.Provider value={{ treinos, adicionarTreino, editarTreino, excluirTreino, buscarTreino }}>{children}</TreinoContext.Provider>;
+import {
+  deleteTreino,
+  getTreinos,
+  postTreino,
+  putTreino,
+} from '@/services/api';
+
+export interface Treino {
+  id: string;
+  nome: string;
+  dia: string;
+  horario: string;
+  turma: string;
+  professor: string;
+  turmaId?: string;
+  professorId?: string;
 }
-export function useTreinos() { return useContext(TreinoContext); }
+
+interface TreinoContextData {
+  treinos: Treino[];
+  adicionarTreino: (treino: Treino) => Promise<void>;
+  editarTreino: (treino: Treino) => Promise<void>;
+  excluirTreino: (id: string) => Promise<void>;
+  buscarTreino: (id: string) => Treino | undefined;
+}
+
+const TreinoContext = createContext<TreinoContextData>(
+  {} as TreinoContextData,
+);
+
+function normalizarTreino(treino: any): Treino {
+  return {
+    ...treino,
+    id: String(treino.id),
+  } as Treino;
+}
+
+export function TreinoProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [treinos, setTreinos] = useState<Treino[]>([]);
+
+  useEffect(() => {
+    async function carregarTreinos() {
+      try {
+        const dados = await getTreinos();
+
+        setTreinos(
+          Array.isArray(dados)
+            ? dados.map(normalizarTreino)
+            : [],
+        );
+      } catch (error) {
+        console.error(
+          'Erro ao carregar treinos:',
+          error,
+        );
+      }
+    }
+
+    void carregarTreinos();
+  }, []);
+
+  async function adicionarTreino(
+    treino: Treino,
+  ) {
+    try {
+      const novoTreino = await postTreino(
+        treino,
+      );
+
+      setTreinos((lista) => [
+        normalizarTreino(novoTreino),
+        ...lista,
+      ]);
+    } catch (error) {
+      console.error(
+        'Erro ao adicionar treino:',
+        error,
+      );
+
+      throw error;
+    }
+  }
+
+  async function editarTreino(
+    treino: Treino,
+  ) {
+    try {
+      const atualizado =
+        await putTreino(
+          treino.id,
+          treino,
+        );
+
+      setTreinos((lista) =>
+        lista.map((item) =>
+          item.id === treino.id
+            ? normalizarTreino(atualizado)
+            : item,
+        ),
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao editar treino:',
+        error,
+      );
+
+      throw error;
+    }
+  }
+
+  async function excluirTreino(
+    id: string,
+  ) {
+    try {
+      await deleteTreino(id);
+
+      setTreinos((lista) =>
+        lista.filter(
+          (item) => item.id !== String(id),
+        ),
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao excluir treino:',
+        error,
+      );
+
+      throw error;
+    }
+  }
+
+  function buscarTreino(
+    id: string,
+  ) {
+    return treinos.find(
+      (item) => item.id === String(id),
+    );
+  }
+
+  return (
+    <TreinoContext.Provider
+      value={{
+        treinos,
+        adicionarTreino,
+        editarTreino,
+        excluirTreino,
+        buscarTreino,
+      }}
+    >
+      {children}
+    </TreinoContext.Provider>
+  );
+}
+
+export function useTreinos() {
+  return useContext(TreinoContext);
+}
