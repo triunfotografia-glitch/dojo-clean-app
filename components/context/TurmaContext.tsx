@@ -1,5 +1,15 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import {
+  deleteTurma,
+  getTurmas,
+  postTurma,
+} from '@/services/api';
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 
 export interface Turma {
   id: string;
@@ -10,43 +20,113 @@ export interface Turma {
 
 interface TurmaContextData {
   turmas: Turma[];
-  adicionarTurma: (turma: Turma) => void;
-  excluirTurma: (id: string) => void;
+  adicionarTurma: (turma: Omit<Turma, 'id'>) => Promise<Turma>;
+  excluirTurma: (id: string) => Promise<void>;
 }
 
-const STORAGE_KEY = '@dojo_turmas';
-const TurmaContext = createContext<TurmaContextData>({} as TurmaContextData);
+const TurmaContext =
+  createContext<TurmaContextData>(
+    {} as TurmaContextData
+  );
 
-export function TurmaProvider({ children }: { children: ReactNode }) {
-  const [turmas, setTurmas] = useState<Turma[]>([]);
-  const [carregado, setCarregado] = useState(false);
+function normalizarTurma(turma: any): Turma {
+  return {
+    id: String(turma.id),
+    nome: String(turma.nome ?? ''),
+    professorId: String(
+      turma.professor_id ??
+      turma.professorId ??
+      ''
+    ),
+    alunoIds: Array.isArray(turma.alunos)
+      ? turma.alunos.map((id: any) => String(id))
+      : Array.isArray(turma.aluno_ids)
+        ? turma.aluno_ids.map((id: any) => String(id))
+        : Array.isArray(turma.alunoIds)
+          ? turma.alunoIds.map((id: any) => String(id))
+          : [],
+  };
+}
+
+export function TurmaProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [turmas, setTurmas] =
+    useState<Turma[]>([]);
 
   useEffect(() => {
+    let ativo = true;
+
     async function carregar() {
       try {
-        const dados = await AsyncStorage.getItem(STORAGE_KEY);
-        if (dados) setTurmas(JSON.parse(dados));
-      } finally {
-        setCarregado(true);
+        const dados = await getTurmas();
+
+        if (!ativo) return;
+
+        setTurmas(
+          Array.isArray(dados)
+            ? dados.map(normalizarTurma)
+            : []
+        );
+      } catch (error) {
+        console.error(
+          'Erro ao carregar turmas:',
+          error
+        );
       }
     }
+
     void carregar();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
-  useEffect(() => {
-    if (carregado) void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(turmas));
-  }, [carregado, turmas]);
+  async function adicionarTurma(
+    turma: Omit<Turma, 'id'>
+  ): Promise<Turma> {
+    const criada = await postTurma({
+      nome: turma.nome,
+      professorId:
+        turma.professorId || null,
+      alunoIds: turma.alunoIds || [],
+    });
 
-  function adicionarTurma(turma: Turma) {
-    setTurmas((lista) => [...lista, turma]);
+    const turmaNormalizada =
+      normalizarTurma(criada);
+
+    setTurmas((lista) => [
+      turmaNormalizada,
+      ...lista,
+    ]);
+
+    return turmaNormalizada;
   }
 
-  function excluirTurma(id: string) {
-    setTurmas((lista) => lista.filter((turma) => turma.id !== id));
+  async function excluirTurma(
+    id: string
+  ): Promise<void> {
+    await deleteTurma(id);
+
+    setTurmas((lista) =>
+      lista.filter(
+        (turma) =>
+          String(turma.id) !== String(id)
+      )
+    );
   }
 
   return (
-    <TurmaContext.Provider value={{ turmas, adicionarTurma, excluirTurma }}>
+    <TurmaContext.Provider
+      value={{
+        turmas,
+        adicionarTurma,
+        excluirTurma,
+      }}
+    >
       {children}
     </TurmaContext.Provider>
   );

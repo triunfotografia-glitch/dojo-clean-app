@@ -248,15 +248,19 @@ async function request<T>(
   }
 
   // ============================
-  // JWT
+  // JWT OBRIGATÓRIO
   // ============================
 
-  if (token) {
+  if (!token) {
 
-    headers.Authorization =
-      `Bearer ${token}`;
+    throw new Error(
+      "Token de autenticação não informado."
+    );
 
   }
+
+  headers.Authorization =
+    `Bearer ${token}`;
 
   const response =
     await fetch(
@@ -336,12 +340,12 @@ export async function loginProfessor(
   // ============================
 
   console.log(
-    "🔐 RESPOSTA LOGIN:",
+    "RESPOSTA LOGIN:",
     data
   );
 
   console.log(
-    "🔐 TOKEN RECEBIDO:",
+    "TOKEN RECEBIDO:",
     data?.token
   );
 
@@ -391,7 +395,7 @@ export async function loginProfessor(
   );
 
   console.log(
-    "🔐 JWT salvo com sucesso."
+    "JWT salvo com sucesso."
   );
 
   return data as LoginResponse;
@@ -476,58 +480,13 @@ export async function deleteAluno(
   id: string
 ): Promise<void> {
 
-  const token =
-    await getToken();
-
-  const headers: Record<
-    string,
-    string
-  > = {};
-
-  if (token) {
-
-    headers.Authorization =
-      `Bearer ${token}`;
-
-  }
-
-  const response =
-    await fetch(
-      `${API_URL}/alunos/${id}`,
-      {
-        method: "DELETE",
-        headers,
-      }
-    );
-
-  if (
-    response.status === 401
-  ) {
-
-    await removeToken();
-
-  }
-
-  if (!response.ok) {
-
-    const text =
-      await response.text();
-
-    let data: any = null;
-
-    try {
-      data =
-        text
-          ? JSON.parse(text)
-          : null;
-    } catch {}
-
-    throw new Error(
-      data?.error ||
-      `API request failed ${response.status}`
-    );
-
-  }
+  await request<void>(
+    `${API_URL}/alunos/${id}`,
+    {
+      method: "DELETE",
+      headers: jsonHeaders(),
+    }
+  );
 
 }
 
@@ -600,58 +559,13 @@ export async function deleteCobranca(
   id: string
 ): Promise<void> {
 
-  const token =
-    await getToken();
-
-  const headers: Record<
-    string,
-    string
-  > = {};
-
-  if (token) {
-
-    headers.Authorization =
-      `Bearer ${token}`;
-
-  }
-
-  const response =
-    await fetch(
-      `${API_URL}/cobrancas/${id}`,
-      {
-        method: "DELETE",
-        headers,
-      }
-    );
-
-  if (
-    response.status === 401
-  ) {
-
-    await removeToken();
-
-  }
-
-  if (!response.ok) {
-
-    const text =
-      await response.text();
-
-    let data: any = null;
-
-    try {
-      data =
-        text
-          ? JSON.parse(text)
-          : null;
-    } catch {}
-
-    throw new Error(
-      data?.error ||
-      `API request failed ${response.status}`
-    );
-
-  }
+  await request<void>(
+    `${API_URL}/cobrancas/${id}`,
+    {
+      method: "DELETE",
+      headers: jsonHeaders(),
+    }
+  );
 
 }
 
@@ -666,6 +580,10 @@ export async function getProfessores(): Promise<Professor[]> {
   );
 
 }
+
+// ==============================
+// CRIAR PROFESSOR
+// ==============================
 
 export async function postProfessor(
   professor: Omit<Professor, "id">
@@ -692,6 +610,10 @@ export async function postProfessor(
   );
 
 }
+
+// ==============================
+// ATUALIZAR PROFESSOR
+// ==============================
 
 export async function updateProfessor(
   id: string,
@@ -721,6 +643,24 @@ export async function updateProfessor(
 }
 
 // ==============================
+// DELETAR PROFESSOR
+// ==============================
+
+export async function deleteProfessor(
+  id: string
+): Promise<void> {
+
+  await request<void>(
+    `${API_URL}/professores/${id}`,
+    {
+      method: "DELETE",
+      headers: jsonHeaders(),
+    }
+  );
+
+}
+
+// ==============================
 // TURMAS
 // ==============================
 
@@ -732,7 +672,20 @@ export async function getTurmas(): Promise<any[]> {
 
 }
 
-export async function postTurma(
+
+export async function deleteTurma(
+  id: string
+): Promise<void> {
+
+  await request<void>(
+    `${API_URL}/turmas/${id}`,
+    {
+      method: "DELETE",
+      headers: jsonHeaders(),
+    }
+  );
+
+}export async function postTurma(
   turma: any
 ): Promise<any> {
 
@@ -797,6 +750,56 @@ export async function postTreino(
 }
 
 // ==============================
+
+export async function getTreino(
+  id: string | number
+): Promise<any> {
+
+  return request<any>(
+    `${API_URL}/treinos/${id}`
+  );
+
+}
+
+export async function putTreino(
+  id: string | number,
+  treino: any
+): Promise<any> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      treino
+    );
+
+  return request<any>(
+    `${API_URL}/treinos/${id}`,
+    {
+      method: "PUT",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
+
+export async function deleteTreino(
+  id: string | number
+): Promise<void> {
+
+  await request<any>(
+    `${API_URL}/treinos/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+}
 // PRESENÇAS
 // ==============================
 

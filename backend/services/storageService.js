@@ -97,12 +97,12 @@ function prepareFields(data) {
 ========================= */
 
 /**
- * Colunas públicas da tabela alunos.
+ * Colunas pÃƒÂºblicas da tabela alunos.
  *
  * IMPORTANTE:
- * senha NÃO está aqui.
+ * senha NÃƒÆ’O estÃƒÂ¡ aqui.
  *
- * Assim a senha nunca é retornada
+ * Assim a senha nunca ÃƒÂ© retornada
  * pela API de alunos.
  */
 const ALUNO_PUBLIC_COLUMNS = `
@@ -157,11 +157,36 @@ export async function getAlunos() {
  * Cria um novo aluno.
  *
  * A senha pode ser recebida aqui porque
- * o controller já deve fazer o hash bcrypt.
+ * o controller jÃƒÂ¡ deve fazer o hash bcrypt.
  *
- * Porém a resposta enviada ao frontend
- * nunca contém a senha.
+ * PorÃƒÂ©m a resposta enviada ao frontend
+ * nunca contÃƒÂ©m a senha.
  */
+export async function getAluno(
+  id
+) {
+  const result = await query(
+    `SELECT
+       ${ALUNO_PUBLIC_COLUMNS}
+     FROM alunos
+     WHERE id = $1`,
+    [id]
+  );
+
+  const row = result.rows[0];
+
+  if (!row) {
+    return undefined;
+  }
+
+  return parseDatabaseFields(
+    row,
+    [
+      'historico_graduacao',
+      'cobrancas',
+    ]
+  );
+}
 export async function addAluno(
   aluno
 ) {
@@ -173,7 +198,7 @@ export async function addAluno(
 
   if (!fields.length) {
     throw new Error(
-      'Dados de aluno inválidos.'
+      'Dados de aluno invÃƒÂ¡lidos.'
     );
   }
 
@@ -229,7 +254,7 @@ export async function addAluno(
  * Atualiza aluno.
  *
  * A senha pode ser atualizada normalmente,
- * mas nunca será devolvida na resposta.
+ * mas nunca serÃƒÂ¡ devolvida na resposta.
  */
 export async function updateAluno(
   id,
@@ -243,7 +268,7 @@ export async function updateAluno(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo válido para atualizar.'
+      'Nenhum campo vÃƒÂ¡lido para atualizar.'
     );
   }
 
@@ -297,7 +322,7 @@ export async function updateAluno(
 /**
  * Exclui aluno.
  *
- * A resposta também não retorna senha.
+ * A resposta tambÃƒÂ©m nÃƒÂ£o retorna senha.
  */
 export async function deleteAluno(
   id
@@ -315,7 +340,7 @@ export async function deleteAluno(
 
 
 /* =========================
-   COBRANÇAS
+   COBRANÃƒâ€¡AS
 ========================= */
 
 export async function getCobrancas() {
@@ -343,7 +368,7 @@ export async function addCobranca(
    * FK:
    *
    * cobrancas.aluno_id
-   *        ↓
+   *        Ã¢â€ â€œ
    * alunos.id
    */
 
@@ -355,7 +380,7 @@ export async function addCobranca(
     mappedCobranca.aluno_id === ''
   ) {
     throw new Error(
-      'aluno_id é obrigatório para criar uma cobrança.'
+      'aluno_id ÃƒÂ© obrigatÃƒÂ³rio para criar uma cobranÃƒÂ§a.'
     );
   }
 
@@ -366,7 +391,7 @@ export async function addCobranca(
 
   if (!fields.length) {
     throw new Error(
-      'Dados de cobrança inválidos.'
+      'Dados de cobranÃƒÂ§a invÃƒÂ¡lidos.'
     );
   }
 
@@ -398,6 +423,61 @@ export async function addCobranca(
 }
 
 
+
+export async function updateCobranca(
+  id,
+  cobranca
+) {
+  const mappedCobranca =
+    mapObjectKeys(cobranca);
+
+  const fields =
+    prepareFields(mappedCobranca);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo vÃƒÂ¡lido para atualizar.'
+    );
+  }
+
+  const columns =
+    fields.map(
+      ([key], i) =>
+        `${key} = $${i + 1}`
+    );
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `UPDATE cobrancas
+     SET
+       ${columns.join(', ')}
+     WHERE id = $${values.length + 1}
+     RETURNING *`,
+    [
+      ...values,
+      id,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+export async function deleteCobranca(
+  id
+) {
+  const result = await query(
+    `DELETE FROM cobrancas
+     WHERE id = $1
+     RETURNING *`,
+    [id]
+  );
+
+  return result.rows[0];
+}
 /* =========================
    PROFESSORES
 ========================= */
@@ -470,7 +550,7 @@ export async function updateProfessor(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo válido para atualizar.'
+      'Nenhum campo vÃƒÂ¡lido para atualizar.'
     );
   }
 
@@ -501,15 +581,32 @@ export async function updateProfessor(
 }
 
 
+
+export async function deleteProfessor(
+  id
+) {
+  const result = await query(
+    `DELETE FROM professores
+     WHERE id = $1
+     RETURNING *`,
+    [id]
+  );
+
+  return result.rows[0];
+}
 /* =========================
    TURMAS
 ========================= */
 
 export async function getTurmas() {
   const result = await query(
-    `SELECT *
-     FROM turmas
-     ORDER BY id DESC`
+    `SELECT
+       t.*,
+       COALESCE(p.nome, t.professor) AS professor
+     FROM turmas t
+     LEFT JOIN professores p
+       ON p.id = t.professor_id
+     ORDER BY t.id DESC`
   );
 
   return result.rows.map(
@@ -520,8 +617,6 @@ export async function getTurmas() {
       )
   );
 }
-
-
 export async function addTurma(
   turma
 ) {
@@ -530,18 +625,21 @@ export async function addTurma(
      (
        nome,
        professor,
+       professor_id,
        alunos
      )
      VALUES
      (
        $1,
        $2,
-       $3
+       $3,
+       $4
      )
      RETURNING *`,
     [
       turma.nome,
-      turma.professor,
+      turma.professor || null,
+      turma.professor_id || null,
       JSON.stringify(
         turma.alunos || []
       ),
@@ -553,12 +651,101 @@ export async function addTurma(
     ['alunos']
   );
 }
-
-
 /* =========================
    TREINOS
 ========================= */
 
+/* =========================================================
+   BUSCAR TURMA POR ID
+========================================================= */
+
+export async function getTurma(
+  id
+) {
+  const result = await query(
+    `SELECT
+       t.*,
+       COALESCE(p.nome, t.professor) AS professor
+     FROM turmas t
+     LEFT JOIN professores p
+       ON p.id = t.professor_id
+     WHERE t.id = $1
+     LIMIT 1`,
+    [id]
+  );
+
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  return parseDatabaseFields(
+    result.rows[0],
+    ['alunos']
+  );
+}
+
+/* =========================================================
+   ATUALIZAR TURMA
+========================================================= */
+
+export async function updateTurma(
+  id,
+  turma
+) {
+  const result = await query(
+    `UPDATE turmas
+     SET
+       nome = COALESCE($1, nome),
+       professor = COALESCE($2, professor),
+       professor_id = COALESCE($3, professor_id),
+       alunos = COALESCE($4, alunos),
+       atualizado_em = NOW()
+     WHERE id = $5
+     RETURNING *`,
+    [
+      turma.nome ?? null,
+      turma.professor ?? null,
+      turma.professor_id ?? null,
+      turma.alunos !== undefined
+        ? JSON.stringify(turma.alunos)
+        : null,
+      id,
+    ]
+  );
+
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  return parseDatabaseFields(
+    result.rows[0],
+    ['alunos']
+  );
+}
+
+/* =========================================================
+   DELETAR TURMA
+========================================================= */
+
+export async function deleteTurma(
+  id
+) {
+  const result = await query(
+    `DELETE FROM turmas
+     WHERE id = $1
+     RETURNING *`,
+    [id]
+  );
+
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  return parseDatabaseFields(
+    result.rows[0],
+    ['alunos']
+  );
+}
 export async function getTreinos() {
   const result = await query(
     `SELECT *
@@ -741,7 +928,7 @@ export async function addPresenca(
 
 
 /* =========================
-   GRADUAÇÕES
+   GRADUAÃƒâ€¡Ãƒâ€¢ES
 ========================= */
 
 export async function getGraduacoes() {
@@ -783,6 +970,60 @@ export async function addGraduacao(
       graduacao.professor,
       graduacao.observacao,
     ]
+  );
+
+  return result.rows[0];
+}
+export async function updateGraduacao(
+  id,
+  graduacao
+) {
+  const mappedGraduacao =
+    mapObjectKeys(graduacao);
+
+  const fields =
+    prepareFields(mappedGraduacao);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo vÃƒÂ¡lido para atualizar.'
+    );
+  }
+
+  const columns =
+    fields.map(
+      ([key], i) =>
+        `${key} = $${i + 1}`
+    );
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `UPDATE graduacoes
+     SET
+       ${columns.join(', ')}
+     WHERE id = $${values.length + 1}
+     RETURNING *`,
+    [
+      ...values,
+      id,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+export async function deleteGraduacao(
+  id
+) {
+  const result = await query(
+    `DELETE FROM graduacoes
+     WHERE id = $1
+     RETURNING *`,
+    [id]
   );
 
   return result.rows[0];
