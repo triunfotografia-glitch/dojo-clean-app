@@ -30,12 +30,17 @@ export default function EditarTreino() {
     if (turma?.professorId) setProfessorId(turma.professorId);
   }
 
-  function salvar() {
+  async function salvar() {
     if (!treino || !nome.trim() || !dia || !horario.trim()) { Alert.alert('Atenção', 'Informe nome, dia e horário do treino.'); return; }
     const turma = turmas.find((item) => item.id === turmaId);
     const professor = professores.find((item) => item.id === professorId);
-    editarTreino({ ...treino, nome: nome.trim(), dia, horario: horario.trim(), turma: turma?.nome || treino.turma, professor: professor?.nome || treino.professor, turmaId: turmaId || undefined, professorId: professorId || undefined });
-    Alert.alert('Sucesso', 'Treino atualizado!'); router.back();
+    try {
+      await editarTreino({ ...treino, nome: nome.trim(), dia, horario: horario.trim(), turma: turma?.nome || treino.turma, professor: professor?.nome || treino.professor, turmaId: turmaId || undefined, professorId: professorId || undefined });
+      Alert.alert('Sucesso', 'Treino atualizado!'); router.back();
+    } catch (error) {
+      console.error('Erro ao editar treino:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar o treino. Tente novamente.');
+    }
   }
 
   if (!treino) return <View style={styles.container}><Text style={styles.title}>Treino não encontrado</Text></View>;

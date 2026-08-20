@@ -39,6 +39,13 @@ export async function connectDatabase() {
 
     console.log('✅ PostgreSQL conectado:', result.rows[0]);
 
+    await pool.query(`
+      ALTER TABLE treinos
+        ADD COLUMN IF NOT EXISTS turma_id INTEGER REFERENCES turmas(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS professor_id INTEGER REFERENCES professores(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT NOW()
+    `);
+
   } catch (error) {
     console.error(
       '❌ Falha na conexão com PostgreSQL:',
