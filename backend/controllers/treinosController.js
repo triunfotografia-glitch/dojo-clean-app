@@ -6,6 +6,42 @@ import {
   updateTreino as updateTreinoRecord,
 } from '../services/storageService.js';
 
+const MAX_POSTGRES_INTEGER = 2147483647;
+
+function normalizarIdRelacionamento(valor) {
+  if (!/^\d+$/.test(String(valor))) {
+    return undefined;
+  }
+
+  const id = Number(valor);
+
+  return Number.isSafeInteger(id) &&
+    id > 0 &&
+    id <= MAX_POSTGRES_INTEGER
+    ? id
+    : undefined;
+}
+
+function normalizarRelacionamentos(treino) {
+  const dados = { ...treino };
+
+  for (const campo of ['turma_id', 'professor_id']) {
+    if (dados[campo] === undefined) {
+      continue;
+    }
+
+    const id = normalizarIdRelacionamento(dados[campo]);
+
+    if (id === undefined) {
+      delete dados[campo];
+    } else {
+      dados[campo] = id;
+    }
+  }
+
+  return dados;
+}
+
 /* =========================================================
    LISTAR TREINOS
 ========================================================= */
@@ -83,10 +119,10 @@ export async function createTreino(req, res) {
       });
     }
 
-    const novoTreino = await addTreino({
+    const novoTreino = await addTreino(normalizarRelacionamentos({
       ...treino,
       nome: treino.nome.trim(),
-    });
+    }));
 
     return res.status(201).json(novoTreino);
   } catch (error) {
@@ -129,9 +165,7 @@ export async function updateTreino(req, res) {
       });
     }
 
-    const dadosAtualizados = {
-      ...treino,
-    };
+    const dadosAtualizados = normalizarRelacionamentos(treino);
 
     if (
       dadosAtualizados.nome !== undefined
