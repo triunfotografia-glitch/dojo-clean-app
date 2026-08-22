@@ -2,7 +2,10 @@ import { Router } from 'express';
 
 import {
     createPresenca,
+    deletePresenca,
     listPresencas,
+    listPresencasPorTreino,
+    updatePresenca,
 } from '../controllers/presencasController.js';
 
 const router = Router();
@@ -23,12 +26,42 @@ router.get(
 
 
 /*
+ * GET /presencas/treino/:treinoId
+ * Lista presenças de um treino específico
+ */
+router.get(
+  '/treino/:treinoId',
+  listPresencasPorTreino
+);
+
+
+/*
  * POST /presencas
  * Registra uma presença
  */
 router.post(
   '/',
   createPresenca
+);
+
+
+/*
+ * PUT /presencas/:id
+ * Atualiza uma presença
+ */
+router.put(
+  '/:id',
+  updatePresenca
+);
+
+
+/*
+ * DELETE /presencas/:id
+ * Exclui uma presença
+ */
+router.delete(
+  '/:id',
+  deletePresenca
 );
 
 export default router;

@@ -7,8 +7,12 @@
 } from 'react';
 
 import {
+  deletePresenca,
   getPresencas,
+  getPresencasPorTreino,
+  getToken,
   postPresenca,
+  putPresenca,
 } from '@/services/api';
 
 export type StatusPresenca =
@@ -17,6 +21,7 @@ export type StatusPresenca =
   'justificado';
 
 export interface Presenca {
+  id: string;
   treinoId: string;
   alunoId: string;
   data: string;
@@ -25,8 +30,19 @@ export interface Presenca {
 
 interface PresencaContextData {
   presencas: Presenca[];
+  carregarPresencasPorTreino: (
+    treinoId: string | number,
+    data?: string
+  ) => Promise<void>;
   registrarPresenca: (
-    presenca: Presenca
+    presenca: Omit<Presenca, 'id'>
+  ) => Promise<void>;
+  editarPresenca: (
+    id: string,
+    dados: Partial<Presenca>
+  ) => Promise<void>;
+  excluirPresenca: (
+    id: string
   ) => Promise<void>;
 }
 
@@ -39,6 +55,11 @@ function normalizarPresenca(
   item: any
 ): Presenca {
   return {
+    id: String(
+      item?.id ??
+      item?.ID ??
+      ''
+    ),
     treinoId: String(
       item?.treinoId ??
       item?.treino_id ??
@@ -77,6 +98,12 @@ export function PresencaProvider({
     let ativo = true;
 
     async function carregar() {
+      const token = await getToken();
+
+      if (!token || !ativo) {
+        return;
+      }
+
       try {
         const dados =
           await getPresencas();
@@ -115,7 +142,7 @@ export function PresencaProvider({
   // ==========================================================
 
   async function registrarPresenca(
-    presenca: Presenca
+    presenca: Omit<Presenca, 'id'>
   ) {
     const resposta =
       await postPresenca(
@@ -145,9 +172,9 @@ export function PresencaProvider({
             (item) =>
               item.treinoId ===
                   novaPresenca.treinoId &&
-              item.alunoId ===
+                item.alunoId ===
                   novaPresenca.alunoId &&
-              item.data ===
+                item.data ===
                   novaPresenca.data
                 ? novaPresenca
                 : item
@@ -163,6 +190,86 @@ export function PresencaProvider({
   }
 
   // ==========================================================
+  // CARREGAR PRESENÇAS POR TREINO
+  // ==========================================================
+
+  async function carregarPresencasPorTreino(
+    treinoId: string | number,
+    data?: string
+  ) {
+    try {
+      const dados =
+        await getPresencasPorTreino(
+          treinoId,
+          data
+        );
+
+      const normalizadas =
+        Array.isArray(dados)
+          ? dados.map(normalizarPresenca)
+          : [];
+
+      setPresencas(
+        normalizadas
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao carregar presenças por treino:',
+        error
+      );
+    }
+  }
+
+  // ==========================================================
+  // EDITAR PRESENÇA
+  // ==========================================================
+
+  async function editarPresenca(
+    id: string,
+    dados: Partial<Presenca>
+  ) {
+    const atualizada =
+      await putPresenca(
+        id,
+        dados
+      );
+
+    const presencaNormalizada =
+      normalizarPresenca(
+        atualizada
+      );
+
+    setPresencas(
+      (lista) =>
+        lista.map(
+          (item) =>
+            item.id === presencaNormalizada.id
+              ? presencaNormalizada
+              : item
+        )
+    );
+  }
+
+  // ==========================================================
+  // EXCLUIR PRESENÇA
+  // ==========================================================
+
+  async function excluirPresenca(
+    id: string
+  ) {
+    await deletePresenca(
+      id
+    );
+
+    setPresencas(
+      (lista) =>
+        lista.filter(
+          (item) => item.id !== id
+        )
+    );
+  }
+
+  // ==========================================================
   // CONTEXTO
   // ==========================================================
 
@@ -170,7 +277,10 @@ export function PresencaProvider({
     <PresencaContext.Provider
       value={{
         presencas,
+        carregarPresencasPorTreino,
         registrarPresenca,
+        editarPresenca,
+        excluirPresenca,
       }}
     >
       {children}

@@ -8,6 +8,7 @@ import {
 
 import {
   deleteTreino,
+  getToken,
   getTreinos,
   postTreino,
   putTreino,
@@ -51,9 +52,19 @@ export function TreinoProvider({
   const [treinos, setTreinos] = useState<Treino[]>([]);
 
   useEffect(() => {
+    let ativo = true;
+
     async function carregarTreinos() {
+      const token = await getToken();
+
+      if (!token || !ativo) {
+        return;
+      }
+
       try {
         const dados = await getTreinos();
+
+        if (!ativo) return;
 
         setTreinos(
           Array.isArray(dados)
@@ -69,6 +80,10 @@ export function TreinoProvider({
     }
 
     void carregarTreinos();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   async function adicionarTreino(

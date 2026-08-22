@@ -22,6 +22,11 @@ const FALLBACK_API_URL_DEV = "http://192.168.15.64:3000";
 export const API_URL =
   process.env.EXPO_PUBLIC_API_URL ?? FALLBACK_API_URL_DEV;
 
+console.log(
+  '[API] API_URL efetiva:',
+  API_URL
+);
+
 if (__DEV__ && !process.env.EXPO_PUBLIC_API_URL) {
   console.warn(
     "[api] EXPO_PUBLIC_API_URL não definida — usando fallback local:",
@@ -875,6 +880,107 @@ export async function postPresenca(
         ),
     }
   );
+
+}
+
+export async function getPresencasPorTreino(
+  treinoId: string | number,
+  data?: string
+): Promise<any[]> {
+
+  const base =
+    `${API_URL}/presencas/treino/${treinoId}`;
+
+  const url =
+    data
+      ? `${base}?data=${encodeURIComponent(data)}`
+      : base;
+
+  return request<any[]>(
+    url
+  );
+
+}
+
+export async function putPresenca(
+  id: string | number,
+  dados: any
+): Promise<any> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      dados
+    );
+
+  return request<any>(
+    `${API_URL}/presencas/${id}`,
+    {
+      method: "PUT",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
+
+export async function deletePresenca(
+  id: string | number
+): Promise<void> {
+
+  const token =
+    await getToken();
+
+  if (!token) {
+    throw new Error(
+      "Token de autenticação não informado."
+    );
+  }
+
+  const response =
+    await fetch(
+      `${API_URL}/presencas/${id}`,
+      {
+        method: "DELETE",
+
+        headers: {
+          ...jsonHeaders(),
+
+          Authorization:
+            `Bearer ${token}`,
+        },
+      }
+    );
+
+  if (!response.ok) {
+    const text =
+      await response.text();
+
+    let errorMessage =
+      `Erro ao excluir presença. (status: ${response.status})`;
+
+    try {
+      const json =
+        JSON.parse(
+          text
+        );
+
+      errorMessage =
+        json.error || errorMessage;
+    } catch {
+      errorMessage =
+        text || errorMessage;
+    }
+
+    throw new Error(
+      errorMessage
+    );
+  }
 
 }
 

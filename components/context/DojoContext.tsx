@@ -1,6 +1,7 @@
 // 🔥 DOJO CONTEXT - JWT + POSTGRESQL + NORMALIZAÇÃO DOS DADOS
 
 import {
+  deleteAluno,
   deleteCobranca,
   getAlunos,
   getToken,
@@ -8,6 +9,7 @@ import {
   postAluno,
   postCobranca,
   removeToken,
+  updateAluno,
   updateCobranca,
 } from "@/services/api";
 
@@ -99,11 +101,11 @@ interface DojoContextData {
 
   removerAluno: (
     id: string
-  ) => void;
+  ) => Promise<void>;
 
   editarAluno: (
     aluno: Aluno
-  ) => void;
+  ) => Promise<void>;
 
   buscarAluno: (
     id: string
@@ -710,17 +712,34 @@ export function DojoProvider({
   // REMOVER ALUNO
   // ==============================
 
-  function removerAluno(
+  async function removerAluno(
     id: string
-  ) {
+  ): Promise<void> {
 
-    setAlunos(
-      (prev) =>
-        prev.filter(
-          (aluno) =>
-            aluno.id !== String(id)
-        )
-    );
+    try {
+
+      await deleteAluno(
+        id
+      );
+
+      setAlunos(
+        (prev) =>
+          prev.filter(
+            (aluno) =>
+              aluno.id !== String(id)
+          )
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Erro ao excluir aluno:",
+        error
+      );
+
+      throw error;
+
+    }
 
   }
 
@@ -728,20 +747,31 @@ export function DojoProvider({
   // EDITAR ALUNO
   // ==============================
 
-  function editarAluno(
+  async function editarAluno(
     aluno: Aluno
-  ) {
+  ): Promise<void> {
 
     const alunoNormalizado =
       normalizarAluno(aluno);
+
+    const atualizado =
+      await updateAluno(
+        alunoNormalizado.id,
+        alunoNormalizado
+      );
+
+    const alunoAtualizado =
+      normalizarAluno(
+        atualizado
+      );
 
     setAlunos(
       (prev) =>
         prev.map(
           (item) =>
             item.id ===
-            alunoNormalizado.id
-              ? alunoNormalizado
+            alunoAtualizado.id
+              ? alunoAtualizado
               : item
         )
     );

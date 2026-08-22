@@ -1,6 +1,7 @@
 import { COLORS } from "@/components/Colors";
 import { Aluno, Graduacao, useDojo } from "@/components/context/DojoContext";
 import { useProfessores } from "@/components/context/ProfessorContext";
+import { postGraduacao } from "@/services/api";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -102,27 +103,79 @@ export default function EditarAluno() {
     }
   }
 
-  function salvarAlteracoes() {
+  function formatarDataParaApi(data: string): string | null {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      return data;
+    }
+
+    const partes = data.split('.');
+    if (partes.length !== 3) return null;
+
+    const [dia, mes, ano] = partes;
+    if (!dia || !mes || !ano || !/^\d{2}$/.test(dia) || !/^\d{2}$/.test(mes) || !/^\d{4}$/.test(ano)) {
+      return null;
+    }
+
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  async function salvarAlteracoes() {
     if (!alunoEditavel) {
       return;
     }
 
-    // Lógica para adicionar nova graduação ao histórico se a data mudou e for diferente da última
-    const alunoParaSalvar = { ...alunoEditavel }; // Cria uma cópia mutável
+    const alunoParaSalvar = { ...alunoEditavel };
     const ultimaGraduacaoHistorico = alunoParaSalvar.historicoGraduacao?.slice(-1)[0];
 
     if (dataGraduacaoInput && dataGraduacaoInput !== ultimaGraduacaoHistorico?.data) {
-      const novaGraduacao: Graduacao = {
-        id: Date.now().toString(),
-        faixa: alunoParaSalvar.faixa,
-        data: dataGraduacaoInput, // Usa o valor do novo estado
-        professor: "Não informado", // Pode ser melhorado no futuro
-        observacao: "Graduação atualizada via edição",
-      };
-      alunoParaSalvar.historicoGraduacao = [...(alunoParaSalvar.historicoGraduacao || []), novaGraduacao];
+      const dataFormatada = formatarDataParaApi(dataGraduacaoInput);
+
+      if (!dataFormatada) {
+        Alert.alert(
+          'Data inválida',
+          'Informe a data no formato dd.mm.aaaa.'
+        );
+        return;
+      }
+
+      try {
+
+        const criada = await postGraduacao({
+          aluno_id: Number(alunoEditavel.id),
+          faixa: alunoEditavel.faixa,
+          data: dataFormatada,
+          professor: "Não informado",
+          observacao: "Graduação atualizada via edição",
+        });
+
+        const novaGraduacao: Graduacao = {
+          id: String(criada.id),
+          faixa: criada.faixa,
+          data: criada.data,
+          professor: criada.professor || '',
+          observacao: criada.observacao || '',
+        };
+
+        alunoParaSalvar.historicoGraduacao = [
+          ...(alunoParaSalvar.historicoGraduacao || []),
+          novaGraduacao,
+        ];
+
+      } catch (error) {
+
+        console.error(error);
+
+        Alert.alert(
+          'Erro',
+          'Não foi possível salvar a graduação. Tente novamente.'
+        );
+
+        return;
+
+      }
     }
 
-    editarAluno(alunoParaSalvar); // Passa a cópia modificada
+    editarAluno(alunoParaSalvar);
     Alert.alert("Sucesso", "Aluno atualizado!");
     router.back();
   }

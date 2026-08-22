@@ -1,5 +1,6 @@
 import {
   deleteTurma,
+  getToken,
   getTurmas,
   postTurma,
   updateTurma,
@@ -65,6 +66,12 @@ export function TurmaProvider({
     let ativo = true;
 
     async function carregar() {
+      const token = await getToken();
+
+      if (!token || !ativo) {
+        return;
+      }
+
       try {
         const dados = await getTurmas();
 

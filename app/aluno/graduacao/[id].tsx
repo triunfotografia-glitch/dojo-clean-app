@@ -1,5 +1,6 @@
 import { COLORS } from '@/components/Colors';
 import { Graduacao, useDojo } from '@/components/context/DojoContext';
+import { postGraduacao } from '@/services/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
@@ -16,15 +17,48 @@ export default function NovaGraduacao() {
   if (!aluno) return null;
   const alunoAtual = aluno;
 
-  function salvar() {
+  async function salvar() {
     if (!faixa.trim() || !data.trim()) { Alert.alert('Atenção', 'Informe a faixa e a data.'); return; }
-    const graduacao: Graduacao = { id: Date.now().toString(), faixa: faixa.trim(), data: data.trim(), professor: professor.trim(), observacao: observacao.trim() };
-    editarAluno({
-      ...alunoAtual,
-      faixa: graduacao.faixa,
-      historicoGraduacao: [...(alunoAtual.historicoGraduacao || []), graduacao],
-    });
-    router.back();
+
+    try {
+
+      const criada = await postGraduacao({
+        aluno_id: Number(aluno!.id),
+        faixa: faixa.trim(),
+        data: data.trim(),
+        professor: professor.trim() || null,
+        observacao: observacao.trim() || null,
+      });
+
+      const novaGraduacao: Graduacao = {
+        id: String(criada.id),
+        faixa: criada.faixa,
+        data: criada.data,
+        professor: criada.professor || '',
+        observacao: criada.observacao || '',
+      };
+
+      editarAluno({
+        ...alunoAtual,
+        faixa: novaGraduacao.faixa,
+        historicoGraduacao: [
+          ...(alunoAtual.historicoGraduacao || []),
+          novaGraduacao,
+        ],
+      });
+
+      router.back();
+
+    } catch (error) {
+
+      console.error(error);
+
+      Alert.alert(
+        'Erro',
+        'Não foi possível salvar a graduação. Tente novamente.'
+      );
+
+    }
   }
 
   return <ScrollView contentContainerStyle={styles.container}><Text style={styles.title}>Nova graduação</Text><TextInput style={styles.input} placeholder="Nova faixa" placeholderTextColor={COLORS.muted} value={faixa} onChangeText={setFaixa} /><TextInput style={styles.input} placeholder="Data (dd/mm/aaaa)" placeholderTextColor={COLORS.muted} value={data} onChangeText={setData} /><TextInput style={styles.input} placeholder="Professor (opcional)" placeholderTextColor={COLORS.muted} value={professor} onChangeText={setProfessor} /><TextInput style={[styles.input, styles.textArea]} placeholder="Observação (opcional)" placeholderTextColor={COLORS.muted} value={observacao} onChangeText={setObservacao} multiline /><Pressable style={styles.button} onPress={salvar}><Text style={styles.buttonText}>Salvar graduação</Text></Pressable></ScrollView>;

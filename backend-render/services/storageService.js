@@ -936,19 +936,19 @@ export async function addPresenca(
 ) {
   const result = await query(
     `INSERT INTO presencas
-     (
-       aluno_id,
-       treino_id,
-       data,
-       status
-     )
+      (
+        aluno_id,
+        treino_id,
+        data,
+        status
+      )
      VALUES
-     (
-       $1,
-       $2,
-       $3,
-       $4
-     )
+      (
+        $1,
+        $2,
+        $3,
+        $4
+      )
      RETURNING *`,
     [
       presenca.aluno_id,
@@ -959,6 +959,91 @@ export async function addPresenca(
   );
 
   return result.rows[0];
+}
+
+
+export async function getPresencasPorTreino(
+  treinoId,
+  data
+) {
+  const params = [treinoId];
+  let sql =
+    `SELECT *
+     FROM presencas
+     WHERE treino_id = $1`;
+
+  if (data) {
+    sql +=
+      ` AND data = $2`;
+    params.push(data);
+  }
+
+  sql +=
+    ` ORDER BY aluno_id ASC`;
+
+  const result = await query(
+    sql,
+    params
+  );
+
+  return result.rows;
+}
+
+
+export async function updatePresenca(
+  id,
+  dados
+) {
+  const mapped =
+    mapObjectKeys(dados);
+
+  const fields =
+    prepareFields(mapped);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo válido para atualizar.'
+    );
+  }
+
+  const columns =
+    fields.map(
+      ([key], i) =>
+        `${key} = $${i + 1}`
+    );
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `UPDATE presencas
+     SET
+       ${columns.join(', ')}
+     WHERE id = $${values.length + 1}
+     RETURNING *`,
+    [
+      ...values,
+      id,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+
+export async function deletePresenca(
+  id
+) {
+  const result = await query(
+    `DELETE FROM presencas
+     WHERE id = $1
+     RETURNING *`,
+    [id]
+  );
+
+  return result.rows[0] || null;
 }
 
 
