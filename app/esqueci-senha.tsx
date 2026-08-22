@@ -15,6 +15,8 @@ import {
 export default function EsqueciSenha() {
   const { professores, editarProfessor } = useProfessores();
   const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [professorEncontrado, setProfessorEncontrado] = useState<Professor | null>(null);
 
   function redefinirSenha(usuario: Professor) {
     promptText(
@@ -28,7 +30,7 @@ export default function EsqueciSenha() {
           return;
         }
 
-        editarProfessor({ ...usuario, senha: novaSenha.trim() });
+        editarProfessor({ ...usuario, senha: novaSenha });
 
         Alert.alert("Sucesso!", "Sua senha foi redefinida. Você já pode fazer o login.", [
           { text: "OK", onPress: () => router.back() },
@@ -45,15 +47,36 @@ export default function EsqueciSenha() {
     }
 
     const nomeBusca = nome.trim().toLowerCase();
-    const professorEncontrado = professores.find(
+    const encontrado = professores.find(
       (p) => p.nome.toLowerCase() === nomeBusca
     );
-    if (professorEncontrado) {
-      redefinirSenha(professorEncontrado);
+    if (encontrado) {
+      setProfessorEncontrado(encontrado);
+      setEmail("");
       return;
     }
 
+    setProfessorEncontrado(null);
     Alert.alert("Usuário não encontrado", "Não encontramos nenhum professor com este nome.");
+  }
+
+  function confirmarEmail() {
+    if (!professorEncontrado) return;
+
+    if (!email.trim()) {
+      Alert.alert("Atenção", "Por favor, informe o e-mail cadastrado.");
+      return;
+    }
+
+    const emailNormalizado = email.trim().toLowerCase();
+    const emailCadastrado = professorEncontrado.email.trim().toLowerCase();
+
+    if (emailNormalizado !== emailCadastrado) {
+      Alert.alert("Erro", "E-mail não confere. Verifique o e-mail cadastrado e tente novamente.");
+      return;
+    }
+
+    redefinirSenha(professorEncontrado);
   }
 
   return (
@@ -64,7 +87,9 @@ export default function EsqueciSenha() {
 
       <Text style={styles.title}>Redefinir Senha</Text>
       <Text style={styles.subtitle}>
-        Digite seu nome completo para localizar seu cadastro e criar uma nova senha.
+        {professorEncontrado
+          ? "Confirme o e-mail cadastrado para continuar."
+          : "Digite seu nome completo para localizar seu cadastro."}
       </Text>
 
       <TextInput
@@ -76,8 +101,22 @@ export default function EsqueciSenha() {
         autoCapitalize="words"
       />
 
-      <Pressable style={styles.button} onPress={buscarUsuario}>
-        <Text style={styles.buttonText}>Buscar Cadastro</Text>
+      {professorEncontrado && (
+        <TextInput
+          style={styles.input}
+          placeholder="E-mail cadastrado"
+          placeholderTextColor={COLORS.muted}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+      )}
+
+      <Pressable style={styles.button} onPress={professorEncontrado ? confirmarEmail : buscarUsuario}>
+        <Text style={styles.buttonText}>
+          {professorEncontrado ? "Confirmar E-mail" : "Buscar Cadastro"}
+        </Text>
       </Pressable>
     </View>
   );

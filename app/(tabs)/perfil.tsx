@@ -172,7 +172,7 @@ export default function Perfil() {
       </View>
 
       {/* Card visível apenas para o administrador principal */}
-      {userLogado?.id === 'admin' && userLogado?.tipo === 'professor' && (
+      {userLogado?.tipo === 'professor' && userLogado?.administrador === true && (
         <View style={styles.card}>
           <Text style={styles.section}>
             Gerenciar Acessos
@@ -292,3 +292,4 @@ const styles = StyleSheet.create({
   },
 
 });
+

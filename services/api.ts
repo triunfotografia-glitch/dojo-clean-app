@@ -13,8 +13,22 @@ import type {
 // BACKEND POSTGRESQL
 // ==============================
 
+// Prioridade: EXPO_PUBLIC_API_URL (definida em .env ou nas envs do build/EAS)
+// Fallback: IP da rede local, só para dev quando a env não está definida.
+// Isso evita que o app quebre ao trocar de rede ou ao gerar build de produção
+// sem configurar a variável — mas o ideal é sempre definir EXPO_PUBLIC_API_URL.
+const FALLBACK_API_URL_DEV = "http://192.168.15.64:3000";
+
 export const API_URL =
-  "https://dojo-backend-ofn6.onrender.com";
+  process.env.EXPO_PUBLIC_API_URL ?? FALLBACK_API_URL_DEV;
+
+if (__DEV__ && !process.env.EXPO_PUBLIC_API_URL) {
+  console.warn(
+    "[api] EXPO_PUBLIC_API_URL não definida — usando fallback local:",
+    FALLBACK_API_URL_DEV,
+    "\nDefina EXPO_PUBLIC_API_URL no arquivo .env para evitar isso."
+  );
+}
 
 // ==============================
 // JWT
@@ -336,20 +350,6 @@ export async function loginProfessor(
     );
 
   // ============================
-  // DEBUG SOMENTE DO LOGIN
-  // ============================
-
-  console.log(
-    "RESPOSTA LOGIN:",
-    data
-  );
-
-  console.log(
-    "TOKEN RECEBIDO:",
-    data?.token
-  );
-
-  // ============================
   // VALIDAR RESPOSTA
   // ============================
 
@@ -620,10 +620,20 @@ export async function updateProfessor(
   professor: Partial<Professor>
 ): Promise<Professor> {
 
+  console.log('[FRONTEND updateProfessor] id:', id);
+  console.log('[FRONTEND updateProfessor] professor keys:', Object.keys(professor));
+  console.log('[FRONTEND updateProfessor] senha recebida:', typeof professor.senha === 'string' ? 'SIM' : 'NAO');
+  console.log('[FRONTEND updateProfessor] senha length:', typeof professor.senha === 'string' ? professor.senha.length : 'N/A');
+
   const payload =
     convertKeysToSnakeCase(
       professor
     );
+
+  console.log('[FRONTEND updateProfessor] payload keys:', Object.keys(payload));
+  console.log('[FRONTEND updateProfessor] payload.senha existe:', 'senha' in payload);
+  console.log('[FRONTEND updateProfessor] payload.senha length:', typeof payload.senha === 'string' ? payload.senha.length : 'N/A');
+  console.log('[FRONTEND updateProfessor] URL:', `${API_URL}/professores/${id}`);
 
   return request<Professor>(
     `${API_URL}/professores/${id}`,
@@ -711,6 +721,37 @@ export async function deleteTurma(
 
 }
 
+
+// ==============================
+// ATUALIZAR TURMA
+// ==============================
+
+export async function updateTurma(
+  id: string,
+  turma: any
+): Promise<any> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      turma
+    );
+
+  return request<any>(
+    `${API_URL}/turmas/${id}`,
+    {
+      method: "PUT",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+
+}
 // ==============================
 // TREINOS
 // ==============================

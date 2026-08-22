@@ -61,14 +61,25 @@ export default function Financeiro() {
       `Deseja executar a rotina de cobranças automáticas? O sistema irá gerar mensalidades para alunos ativos cuja data de próxima cobrança já passou.`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Gerar agora', onPress: () => {
-          const quantidade = executarCobrancasAutomaticas();
-          if (quantidade > 0) {
-            Alert.alert('Mensalidades geradas', `${quantidade} cobrança(s) criada(s) com sucesso.`);
-          } else {
-            Alert.alert('Nenhuma cobrança gerada', 'Todos os alunos ativos estão com as cobranças em dia.');
-          }
-        } },
+        {
+  text: 'Gerar agora',
+  onPress: async () => {
+    const quantidade =
+      await executarCobrancasAutomaticas();
+
+    if (quantidade > 0) {
+      Alert.alert(
+        'Mensalidades geradas',
+        `${quantidade} cobrança(s) criada(s) com sucesso.`
+      );
+    } else {
+      Alert.alert(
+        'Nenhuma cobrança gerada',
+        'Todos os alunos ativos estão com as cobranças em dia.'
+      );
+    }
+  },
+},
       ],
     );
   }

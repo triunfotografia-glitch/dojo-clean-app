@@ -1,7 +1,20 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+﻿import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 
-export type StatusPresenca = 'presente' | 'falta' | 'justificado';
+import {
+  getPresencas,
+  postPresenca,
+} from '@/services/api';
+
+export type StatusPresenca =
+  'presente' |
+  'falta' |
+  'justificado';
 
 export interface Presenca {
   treinoId: string;
@@ -12,50 +25,161 @@ export interface Presenca {
 
 interface PresencaContextData {
   presencas: Presenca[];
-  registrarPresenca: (presenca: Presenca) => void;
+  registrarPresenca: (
+    presenca: Presenca
+  ) => Promise<void>;
 }
 
-const STORAGE_KEY = '@dojo_presencas';
-const PresencaContext = createContext<PresencaContextData>({} as PresencaContextData);
+const PresencaContext =
+  createContext<PresencaContextData>(
+    {} as PresencaContextData
+  );
 
-export function PresencaProvider({ children }: { children: ReactNode }) {
-  const [presencas, setPresencas] = useState<Presenca[]>([]);
-  const [carregado, setCarregado] = useState(false);
+function normalizarPresenca(
+  item: any
+): Presenca {
+  return {
+    treinoId: String(
+      item?.treinoId ??
+      item?.treino_id ??
+      ''
+    ),
+    alunoId: String(
+      item?.alunoId ??
+      item?.aluno_id ??
+      ''
+    ),
+    data: String(
+      item?.data ??
+      ''
+    ),
+    status:
+      item?.status as StatusPresenca,
+  };
+}
+
+export function PresencaProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [presencas, setPresencas] =
+    useState<Presenca[]>([]);
+
+  const [carregado, setCarregado] =
+    useState(false);
+
+  // ==========================================================
+  // CARREGAR PRESENÇAS DO POSTGRESQL
+  // ==========================================================
 
   useEffect(() => {
+    let ativo = true;
+
     async function carregar() {
       try {
-        const dados = await AsyncStorage.getItem(STORAGE_KEY);
-        if (dados) setPresencas(JSON.parse(dados));
+        const dados =
+          await getPresencas();
+
+        if (!ativo) return;
+
+        const normalizadas =
+          Array.isArray(dados)
+            ? dados.map(normalizarPresenca)
+            : [];
+
+        setPresencas(
+          normalizadas
+        );
+      } catch (error) {
+        console.error(
+          'Erro ao carregar presenças:',
+          error
+        );
       } finally {
-        setCarregado(true);
+        if (ativo) {
+          setCarregado(true);
+        }
       }
     }
+
     void carregar();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
-  useEffect(() => {
-    if (carregado) void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(presencas));
-  }, [carregado, presencas]);
+  // ==========================================================
+  // REGISTRAR PRESENÇA NO POSTGRESQL
+  // ==========================================================
 
-  function registrarPresenca(presenca: Presenca) {
-    setPresencas((lista) => {
-      const existe = lista.some((item) =>
-        item.treinoId === presenca.treinoId && item.alunoId === presenca.alunoId && item.data === presenca.data,
+  async function registrarPresenca(
+    presenca: Presenca
+  ) {
+    const resposta =
+      await postPresenca(
+        presenca
       );
-      return existe
-        ? lista.map((item) =>
-            item.treinoId === presenca.treinoId && item.alunoId === presenca.alunoId && item.data === presenca.data
-              ? presenca
-              : item,
-          )
-        : [...lista, presenca];
-    });
+
+    const novaPresenca =
+      normalizarPresenca(
+        resposta
+      );
+
+    setPresencas(
+      (lista) => {
+        const existe =
+          lista.some(
+            (item) =>
+              item.treinoId ===
+                novaPresenca.treinoId &&
+              item.alunoId ===
+                novaPresenca.alunoId &&
+              item.data ===
+                novaPresenca.data
+          );
+
+        if (existe) {
+          return lista.map(
+            (item) =>
+              item.treinoId ===
+                  novaPresenca.treinoId &&
+              item.alunoId ===
+                  novaPresenca.alunoId &&
+              item.data ===
+                  novaPresenca.data
+                ? novaPresenca
+                : item
+          );
+        }
+
+        return [
+          ...lista,
+          novaPresenca,
+        ];
+      }
+    );
   }
 
-  return <PresencaContext.Provider value={{ presencas, registrarPresenca }}>{children}</PresencaContext.Provider>;
+  // ==========================================================
+  // CONTEXTO
+  // ==========================================================
+
+  return (
+    <PresencaContext.Provider
+      value={{
+        presencas,
+        registrarPresenca,
+      }}
+    >
+      {children}
+    </PresencaContext.Provider>
+  );
 }
 
 export function usePresencas() {
-  return useContext(PresencaContext);
+  return useContext(
+    PresencaContext
+  );
 }

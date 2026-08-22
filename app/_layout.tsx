@@ -7,6 +7,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 
 import 'react-native-reanimated';
 
@@ -18,6 +19,7 @@ import { TreinoProvider } from '@/components/context/TreinoContext';
 import { TurmaProvider } from '@/components/context/TurmaContext';
 import { PromptProvider } from '@/components/Prompt';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { GlobalBackButton } from '@/components/GlobalBackButton';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -52,35 +54,41 @@ export default function RootLayout() {
     <TreinoProvider>
       <PresencaProvider>
         <TurmaProvider>
-          <ProfessorProvider>
-            <PixProvider>
-              <DojoProvider>
+          <DojoProvider>
+            <ProfessorProvider>
+              <PixProvider>
                 <ThemeProvider value={DarkTheme}>
                   <PromptProvider>
                     <ProtectedRoute>
-                      <Stack screenOptions={{ headerShown: false }}>
+                      <View style={{ flex: 1 }}>
+                        <GlobalBackButton />
 
-                        {/* APP PRINCIPAL */}
-                        <Stack.Screen
-                        name="(tabs)"
-                        options={{
-                        headerShown:false
- }}
- />
+                        <Stack screenOptions={{ headerShown: false }}>
 
-                        {/* MODAL */}
-                        <Stack.Screen
-                          name="modal"
-                          options={{ presentation: 'modal' }}
-                        />
+                          {/* APP PRINCIPAL */}
+                          <Stack.Screen
+                            name="(tabs)"
+                            options={{
+                              headerShown: false,
+                            }}
+                          />
 
-                      </Stack>
+                          {/* MODAL */}
+                          <Stack.Screen
+                            name="modal"
+                            options={{
+                              presentation: 'modal',
+                            }}
+                          />
+
+                        </Stack>
+                      </View>
                     </ProtectedRoute>
                   </PromptProvider>
                 </ThemeProvider>
-              </DojoProvider>
-            </PixProvider>
-          </ProfessorProvider>
+              </PixProvider>
+            </ProfessorProvider>
+          </DojoProvider>
         </TurmaProvider>
       </PresencaProvider>
     </TreinoProvider>

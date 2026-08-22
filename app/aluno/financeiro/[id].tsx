@@ -126,10 +126,6 @@ function gerarPixCopiaECola(
 
   const chavePix = chave.trim();
 
-  console.log("CHAVE PIX GERADA:", chavePix);
-console.log("NOME:", nome);
-console.log("CIDADE:", cidade);
-
 
   const merchantAccount =
     campo(
@@ -495,10 +491,33 @@ export default function FinanceiroAluno(){
         {
           text: 'Remover',
           style: 'destructive',
-          onPress: () => {
-            removerCobranca(aluno.id, cobranca.id);
-            Alert.alert('Sucesso', 'A cobrança foi removida.');
-          },
+onPress: async () => {
+  try {
+    await removerCobranca(
+      aluno.id,
+      cobranca.id
+    );
+
+    Alert.alert(
+      'Sucesso',
+      'A cobrança foi removida.'
+    );
+
+  } catch (error) {
+
+    console.error(
+      'Erro ao remover cobrança:',
+      error
+    );
+
+    Alert.alert(
+      'Erro',
+      error instanceof Error
+        ? error.message
+        : 'Não foi possível remover a cobrança.'
+    );
+  }
+},
         },
       ]
     );

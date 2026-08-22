@@ -1,9 +1,14 @@
 // 🔥 DOJO CONTEXT - JWT + POSTGRESQL + NORMALIZAÇÃO DOS DADOS
 
 import {
+  deleteCobranca,
   getAlunos,
+  getToken,
   loginProfessor,
   postAluno,
+  postCobranca,
+  removeToken,
+  updateCobranca,
 } from "@/services/api";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -23,6 +28,7 @@ export interface UserLogado {
   id: string;
   nome: string;
   tipo: "professor";
+  administrador: boolean;
 }
 
 export interface Graduacao {
@@ -66,6 +72,9 @@ export interface Aluno {
   cobrancas: Cobranca[];
   observacao: string;
   criadoEm: string;
+
+  
+  
 }
 
 // ==============================
@@ -95,6 +104,43 @@ interface DojoContextData {
   editarAluno: (
     aluno: Aluno
   ) => void;
+
+  buscarAluno: (
+    id: string
+  ) => Aluno | undefined;
+
+  adicionarCobranca: (
+    alunoId: string,
+    cobranca: Omit<Cobranca, "id">
+  ) => Promise<void>;
+
+  // Compatível com:
+  // registrarPagamento(cobrancaId, dados)
+  // registrarPagamento(alunoId, cobrancaId, data, forma)
+  registrarPagamento: (
+    primeiroId: string,
+    segundo?: string | Partial<Cobranca>,
+    pagoEm?: string,
+    formaPagamento?: string
+  ) => Promise<void>;
+
+  // Compatível com:
+  // removerCobranca(cobrancaId)
+  // removerCobranca(alunoId, cobrancaId)
+  removerCobranca: (
+    primeiroId: string,
+    cobrancaId?: string
+  ) => Promise<void>;
+
+  // Compatível com:
+  // marcarCobrancaComoPaga(cobrancaId)
+  // marcarCobrancaComoPaga(alunoId, cobrancaId)
+  marcarCobrancaComoPaga: (
+    primeiroId: string,
+    cobrancaId?: string
+  ) => Promise<void>;
+
+  executarCobrancasAutomaticas: () => Promise<number>;
 }
 
 // ==============================
@@ -102,7 +148,9 @@ interface DojoContextData {
 // ==============================
 
 const DojoContext =
-  createContext<DojoContextData>({} as DojoContextData);
+  createContext<DojoContextData>(
+    {} as DojoContextData
+  );
 
 // ==============================
 // STORAGE
@@ -163,7 +211,9 @@ function normalizarAluno(
         : 0,
 
     historicoGraduacao:
-      Array.isArray(aluno?.historicoGraduacao)
+      Array.isArray(
+        aluno?.historicoGraduacao
+      )
         ? aluno.historicoGraduacao
         : [],
 
@@ -208,9 +258,6 @@ function normalizarAluno(
         ? aluno.proximaCobranca
         : "",
 
-    // 🔥 CORREÇÃO PRINCIPAL
-    // O backend atualmente pode não retornar cobrancas.
-    // Nunca deixaremos cobrancas como undefined.
     cobrancas:
       Array.isArray(aluno?.cobrancas)
         ? aluno.cobrancas
@@ -225,7 +272,7 @@ function normalizarAluno(
       typeof aluno?.criadoEm === "string"
         ? aluno.criadoEm
         : "",
-  };
+};
 }
 
 // ==============================
@@ -240,7 +287,8 @@ function normalizarAlunos(
   }
 
   return lista.map(
-    (aluno) => normalizarAluno(aluno)
+    (aluno) =>
+      normalizarAluno(aluno)
   );
 }
 
@@ -274,6 +322,27 @@ export function DojoProvider({
       try {
 
         // ==========================
+        // VERIFICAR JWT
+        // ==========================
+
+        const token =
+          await getToken();
+
+        // Sem JWT, não existe sessão
+        // válida para acessar a API.
+        if (!token) {
+
+          await AsyncStorage.removeItem(
+            USER_STORAGE_KEY
+          );
+
+          setUserLogado(null);
+          setAlunos([]);
+
+          return;
+        }
+
+        // ==========================
         // CARREGAR USUÁRIO
         // ==========================
 
@@ -282,41 +351,66 @@ export function DojoProvider({
             USER_STORAGE_KEY
           );
 
-        if (user) {
+        if (!user) {
 
-          try {
+          // Existe JWT, mas não existe
+          // usuário local. Limpa a sessão.
+          await AsyncStorage.removeItem(
+            USER_STORAGE_KEY
+          );
 
-            const usuario =
-              JSON.parse(user);
+          setUserLogado(null);
+          setAlunos([]);
 
-            if (
-              usuario &&
-              usuario.id &&
-              usuario.nome &&
-              usuario.tipo === "professor"
-            ) {
+          return;
+        }
 
-              setUserLogado({
-                id: String(usuario.id),
-                nome: String(usuario.nome),
-                tipo: "professor",
-              });
+        try {
 
-            }
+          const usuario =
+            JSON.parse(user);
 
-          } catch (error) {
+          if (
+            usuario &&
+            usuario.id &&
+            usuario.nome &&
+            usuario.tipo === "professor"
+          ) {
 
-            console.warn(
-              "Erro ao interpretar usuário salvo:",
-              error
-            );
+            setUserLogado({
+              id: String(usuario.id),
+              nome: String(usuario.nome),
+              tipo: "professor",
+            administrador: usuario.administrador === true,
+            });
+
+          } else {
 
             await AsyncStorage.removeItem(
               USER_STORAGE_KEY
             );
 
+            setUserLogado(null);
+            setAlunos([]);
+
+            return;
           }
 
+        } catch (error) {
+
+          console.warn(
+            "Erro ao interpretar usuário salvo:",
+            error
+          );
+
+          await AsyncStorage.removeItem(
+            USER_STORAGE_KEY
+          );
+
+          setUserLogado(null);
+          setAlunos([]);
+
+          return;
         }
 
         // ==========================
@@ -343,6 +437,37 @@ export function DojoProvider({
             "Erro ao carregar alunos da API:",
             error
           );
+
+          const mensagem =
+            error instanceof Error
+              ? error.message
+              : String(error);
+
+          // ========================
+          // TOKEN INVÁLIDO
+          // ========================
+
+          if (
+            mensagem.includes(
+              "Token inválido"
+            ) ||
+            mensagem.includes(
+              "Token de autenticação"
+            ) ||
+            mensagem.includes(
+              "401"
+            )
+          ) {
+
+            await AsyncStorage.removeItem(
+              USER_STORAGE_KEY
+            );
+
+            setUserLogado(null);
+            setAlunos([]);
+
+            return;
+          }
 
           // ========================
           // FALLBACK LOCAL
@@ -382,7 +507,6 @@ export function DojoProvider({
             setAlunos([]);
 
           }
-
         }
 
       } catch (error) {
@@ -392,14 +516,18 @@ export function DojoProvider({
           error
         );
 
+        setUserLogado(null);
         setAlunos([]);
+
+        await AsyncStorage.removeItem(
+          USER_STORAGE_KEY
+        );
 
       } finally {
 
         setCarregado(true);
 
       }
-
     }
 
     carregar();
@@ -458,7 +586,6 @@ export function DojoProvider({
       ) {
 
         return null;
-
       }
 
       const user: UserLogado = {
@@ -474,22 +601,41 @@ export function DojoProvider({
         tipo:
           "professor",
 
+      administrador:
+        res.professor.administrador === true,
+
       };
 
-      // ==========================
-      // ESTADO
-      // ==========================
-
       setUserLogado(user);
-
-      // ==========================
-      // STORAGE
-      // ==========================
 
       await AsyncStorage.setItem(
         USER_STORAGE_KEY,
         JSON.stringify(user)
       );
+
+      // ==========================
+      // CARREGAR ALUNOS APÓS LOGIN
+      // ==========================
+
+      try {
+
+        const apiAlunos =
+          await getAlunos();
+
+        setAlunos(
+          normalizarAlunos(
+            apiAlunos
+          )
+        );
+
+      } catch (error) {
+
+        console.warn(
+          "Erro ao carregar alunos após login:",
+          error
+        );
+
+      }
 
       return user;
 
@@ -501,9 +647,7 @@ export function DojoProvider({
       );
 
       return null;
-
     }
-
   }
 
   // ==============================
@@ -514,8 +658,27 @@ export function DojoProvider({
 
     setUserLogado(null);
 
+    setAlunos([]);
+
     await AsyncStorage.removeItem(
       USER_STORAGE_KEY
+    );
+
+    await removeToken();
+
+  }
+
+  // ==============================
+  // BUSCAR ALUNO
+  // ==============================
+
+  function buscarAluno(
+    id: string
+  ): Aluno | undefined {
+
+    return alunos.find(
+      (aluno) =>
+        aluno.id === String(id)
     );
 
   }
@@ -525,8 +688,8 @@ export function DojoProvider({
   // ==============================
 
   async function adicionarAluno(
-    aluno: Aluno
-  ) {
+  aluno: Omit<Aluno, "id">
+): Promise<void> {
 
     const novo =
       await postAluno(aluno);
@@ -586,6 +749,326 @@ export function DojoProvider({
   }
 
   // ==============================
+  // ADICIONAR COBRANÇA
+  // ==============================
+
+  async function adicionarCobranca(
+    alunoId: string,
+    cobranca: Omit<Cobranca, "id">
+  ): Promise<void> {
+
+    const novaCobranca =
+      await postCobranca({
+        ...cobranca,
+        alunoId,
+      } as Omit<
+        Cobranca,
+        "id"
+      >);
+
+    setAlunos(
+      (prev) =>
+        prev.map(
+          (aluno) =>
+            aluno.id ===
+            String(alunoId)
+              ? {
+                  ...aluno,
+
+                  cobrancas: [
+                    novaCobranca,
+                    ...(aluno.cobrancas ||
+                      []),
+                  ],
+                }
+              : aluno
+        )
+    );
+
+  }
+
+  // ==============================
+  // REGISTRAR PAGAMENTO
+  // ==============================
+
+  async function registrarPagamento(
+    primeiroId: string,
+    segundo?: string | Partial<Cobranca>,
+    pagoEm?: string,
+    formaPagamento?: string
+  ): Promise<void> {
+
+    let cobrancaId =
+      String(primeiroId);
+
+    let dados:
+      | Partial<Cobranca>
+      | undefined;
+
+    // ==========================
+    // FORMATO ANTIGO
+    // ==========================
+
+    if (
+      typeof segundo === "string"
+    ) {
+
+      cobrancaId =
+        String(segundo);
+
+      dados = {
+
+        pagoEm:
+          pagoEm ||
+          new Date()
+            .toISOString()
+            .slice(0, 10),
+
+        formaPagamento:
+          formaPagamento,
+
+      };
+
+    }
+
+    // ==========================
+    // FORMATO NOVO
+    // ==========================
+
+    else {
+
+      dados =
+        segundo;
+
+    }
+
+    const dataPagamento =
+      dados?.pagoEm ||
+      new Date()
+        .toISOString()
+        .slice(0, 10);
+
+    const dadosPagamento:
+      Partial<Cobranca> = {
+
+      ...(dados || {}),
+
+      status:
+        "pago",
+
+      pagoEm:
+        dataPagamento,
+
+    };
+
+    await updateCobranca(
+      cobrancaId,
+      dadosPagamento
+    );
+
+    setAlunos(
+      (prev) =>
+        prev.map(
+          (aluno) => ({
+
+            ...aluno,
+
+            cobrancas:
+              (
+                aluno.cobrancas ||
+                []
+              ).map(
+                (cobranca) =>
+                  cobranca.id ===
+                  cobrancaId
+                    ? {
+                        ...cobranca,
+                        ...dadosPagamento,
+                      }
+                    : cobranca
+              ),
+
+          })
+        )
+    );
+
+  }
+
+  // ==============================
+  // REMOVER COBRANÇA
+  // ==============================
+
+  async function removerCobranca(
+    primeiroId: string,
+    segundoId?: string
+  ): Promise<void> {
+
+    const cobrancaId =
+      String(
+        segundoId ||
+        primeiroId
+      );
+
+    await deleteCobranca(
+      cobrancaId
+    );
+
+    setAlunos(
+      (prev) =>
+        prev.map(
+          (aluno) => ({
+
+            ...aluno,
+
+            cobrancas:
+              (
+                aluno.cobrancas ||
+                []
+              ).filter(
+                (cobranca) =>
+                  cobranca.id !==
+                  cobrancaId
+              ),
+
+          })
+        )
+    );
+
+  }
+
+  // ==============================
+  // MARCAR COBRANÇA COMO PAGA
+  // ==============================
+
+  async function marcarCobrancaComoPaga(
+    primeiroId: string,
+    segundoId?: string
+  ): Promise<void> {
+
+    const cobrancaId =
+      String(
+        segundoId ||
+        primeiroId
+      );
+
+    await registrarPagamento(
+      cobrancaId,
+      {
+        status:
+          "pago",
+
+        pagoEm:
+          new Date()
+            .toISOString()
+            .slice(0, 10),
+      }
+    );
+
+  }
+
+  // ==============================
+  // COBRANÇAS AUTOMÁTICAS
+  // ==============================
+
+  async function executarCobrancasAutomaticas(): Promise<number> {
+
+    const hoje =
+      new Date()
+        .toISOString()
+        .slice(0, 10);
+
+    const alunosAtivos =
+      alunos.filter(
+        (aluno) =>
+          aluno.ativo
+      );
+
+    let quantidadeGerada =
+      0;
+
+    for (
+      const aluno
+      of alunosAtivos
+    ) {
+
+      const cobrancas =
+        aluno.cobrancas || [];
+
+      const possuiPendente =
+        cobrancas.some(
+          (cobranca) =>
+            cobranca.status ===
+              "pendente" ||
+            cobranca.status ===
+              "atrasado"
+        );
+
+      if (possuiPendente) {
+        continue;
+      }
+
+      if (
+        !aluno.valorMensalidade ||
+        Number(
+          aluno.valorMensalidade
+        ) <= 0
+      ) {
+        continue;
+      }
+
+      const novaCobranca =
+        await postCobranca({
+
+          descricao:
+            `Mensalidade - ${aluno.nome}`,
+
+          valor:
+            Number(
+              aluno.valorMensalidade
+            ),
+
+          vencimento:
+            aluno.proximaCobranca ||
+            hoje,
+
+          status:
+            "pendente",
+
+          alunoId:
+            aluno.id,
+
+        } as Omit<
+          Cobranca,
+          "id"
+        >);
+
+      quantidadeGerada++;
+
+      setAlunos(
+        (prev) =>
+          prev.map(
+            (item) =>
+              item.id ===
+              aluno.id
+                ? {
+                    ...item,
+
+                    cobrancas: [
+                      novaCobranca,
+                      ...(item.cobrancas ||
+                        []),
+                    ],
+                  }
+                : item
+          )
+      );
+
+    }
+
+    return quantidadeGerada;
+  }
+
+  // ==============================
   // AGUARDAR CARREGAMENTO
   // ==============================
 
@@ -601,14 +1084,25 @@ export function DojoProvider({
 
     <DojoContext.Provider
       value={{
+
         alunos,
         userLogado,
         carregado,
+
         login,
         logout,
+
         adicionarAluno,
         removerAluno,
         editarAluno,
+        buscarAluno,
+
+        adicionarCobranca,
+        registrarPagamento,
+        removerCobranca,
+        marcarCobrancaComoPaga,
+        executarCobrancasAutomaticas,
+
       }}
     >
 
@@ -631,3 +1125,6 @@ export function useDojo() {
   );
 
 }
+
+
+

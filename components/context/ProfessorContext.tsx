@@ -1,8 +1,11 @@
 import {
+  deleteProfessor,
   getProfessores,
   postProfessor,
   updateProfessor,
 } from "@/services/api";
+
+import { useDojo } from "@/components/context/DojoContext";
 
 import {
   createContext,
@@ -13,19 +16,29 @@ import {
 } from "react";
 
 
+// ==============================
+// PROFESSOR
+// ==============================
+
 export interface Professor {
   id: string;
   nome: string;
   email: string;
   senha?: string;
+  temSenha?: boolean;
   telefone?: string;
   faixa: string;
   graus?: number;
   especialidade: string;
   ativo: boolean;
+  administrador?: boolean;
   alunoId?: string;
 }
 
+
+// ==============================
+// CONTEXT DATA
+// ==============================
 
 interface ProfessorContextData {
 
@@ -34,6 +47,9 @@ interface ProfessorContextData {
   adicionarProfessor:
     (professor: Professor) => Promise<void>;
 
+  recarregarProfessores:
+    () => Promise<void>;
+
   editarProfessor:
     (professor: Professor) => Promise<void>;
 
@@ -41,7 +57,7 @@ interface ProfessorContextData {
     (id: string) => void;
 
   excluirProfessor:
-    (id: string) => void;
+    (id: string) => Promise<void>;
 
   buscarProfessor:
     (id: string) => Professor | undefined;
@@ -52,27 +68,42 @@ interface ProfessorContextData {
 }
 
 
+// ==============================
+// CONTEXT
+// ==============================
 
 const ProfessorContext =
   createContext<ProfessorContextData>({
-    
+
     professores: [],
 
-    adicionarProfessor: async () => {},
+    adicionarProfessor:
+      async () => {},
 
-    editarProfessor: async () => {},
+    recarregarProfessores:
+      async () => {},
 
-    removerProfessor: () => {},
+    editarProfessor:
+      async () => {},
 
-    excluirProfessor: () => {},
+    removerProfessor:
+      () => {},
 
-    buscarProfessor: () => undefined,
+    excluirProfessor:
+      async () => {},
 
-    desvincularProfessor: () => {},
+    buscarProfessor:
+      () => undefined,
+
+    desvincularProfessor:
+      () => {},
 
   });
 
 
+// ==============================
+// PROVIDER
+// ==============================
 
 export function ProfessorProvider({
   children,
@@ -80,103 +111,116 @@ export function ProfessorProvider({
   children: ReactNode;
 }) {
 
+  const [
+    professores,
+    setProfessores,
+  ] = useState<Professor[]>([]);
 
-  const [professores, setProfessores] =
-    useState<Professor[]>([]);
-
-
-
-  /*
-  ================================
-  CARREGAR PROFESSORES DO POSTGRESQL
-  ================================
-  */
+  const { userLogado } =
+    useDojo();
 
 
-  useEffect(() => {
+  // ==============================
+  // RECARREGAR PROFESSORES
+  // ==============================
 
-    async function carregar(){
+  async function recarregarProfessores() {
 
-      try {
+    try {
 
-        const lista =
-          await getProfessores();
+      const lista =
+        await getProfessores();
 
+      const professoresNormalizados =
+        lista.map((p) => ({
 
-        setProfessores(
-          lista.map((p)=>({
-            ...p,
-            id:String(p.id),
-          }))
-        );
+          ...p,
 
+          id:
+            String(p.id),
 
-      } catch(error){
+        }));
 
-        console.warn(
-          "Erro ao carregar professores:",
-          error
-        );
+      setProfessores(
+        professoresNormalizados
+      );
 
-      }
+    } catch (error) {
+
+      console.warn(
+        "Erro ao carregar professores:",
+        error
+      );
 
     }
 
-
-    carregar();
-
-  },[]);
+  }
 
 
+  // ==============================
+  // CARREGAR AO INICIAR
+  // ==============================
 
-  /*
-  ================================
-  CRIAR PROFESSOR
-  ================================
-  */
+  useEffect(() => {
 
+    if (!userLogado) {
+
+      return;
+
+    }
+
+    recarregarProfessores();
+
+  }, [userLogado]);
+
+
+  // ==============================
+  // CRIAR PROFESSOR
+  // ==============================
 
   async function adicionarProfessor(
     professor: Professor
-  ){
+  ): Promise<void> {
 
     const {
       id,
       ...dados
     } = professor;
 
-
     const criado =
       await postProfessor(
         dados
       );
 
-
     setProfessores(
-      lista=>[
+      (lista) => [
+
         ...lista,
+
         {
+
           ...criado,
-          id:String(criado.id)
-        }
+
+          id:
+            String(
+              criado.id
+            ),
+
+        },
+
       ]
     );
 
   }
 
 
-
-
-  /*
-  ================================
-  EDITAR PROFESSOR
-  ================================
-  */
-
+  // ==============================
+  // EDITAR PROFESSOR
+  // ==============================
 
   async function editarProfessor(
     professor: Professor
-  ){
+  ): Promise<void> {
 
     const atualizado =
       await updateProfessor(
@@ -184,107 +228,155 @@ export function ProfessorProvider({
         professor
       );
 
-
     setProfessores(
-      lista=>
+      (lista) =>
+
         lista.map(
-          item=>
+          (item) =>
+
             item.id === professor.id
-            ? atualizado
-            : item
+
+              ? {
+
+                  ...atualizado,
+
+                  id:
+                    String(
+                      atualizado.id
+                    ),
+
+                }
+
+              : item
         )
     );
 
   }
 
 
-
-
-
-  /*
-  ================================
-  REMOVER LOCAL
-  ================================
-
-  Mantido assim porque ainda
-  não existe DELETE no backend.
-  */
+  // ==============================
+  // REMOVER LOCAL
+  // ==============================
 
   function removerProfessor(
-    id:string
-  ){
+    id: string
+  ): void {
 
     setProfessores(
-      lista=>
+      (lista) =>
+
         lista.filter(
-          item=>item.id !== id
+          (item) =>
+            item.id !== id
         )
     );
 
   }
 
 
+  // ==============================
+  // EXCLUIR PROFESSOR
+  // ==============================
+  //
+  // EXCLUSÃO REAL NO POSTGRESQL
+  //
+  // Primeiro exclui no backend.
+  // Somente depois remove da lista
+  // local.
+  // ==============================
 
-  function excluirProfessor(
-    id:string
-  ){
+  async function excluirProfessor(
+    id: string
+  ): Promise<void> {
 
-    removerProfessor(id);
+    try {
+
+      // ==========================
+      // EXCLUIR NO POSTGRESQL
+      // ==========================
+
+      await deleteProfessor(id);
+
+      // ==========================
+      // REMOVER DA MEMÓRIA LOCAL
+      // ==========================
+
+      setProfessores(
+        (lista) =>
+          lista.filter(
+            (item) =>
+              item.id !== id
+          )
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Erro ao excluir professor:",
+        error
+      );
+
+      // Mantém o professor na lista
+      // caso a exclusão no backend falhe.
+
+      throw error;
+
+    }
 
   }
 
 
-
-
-  /*
-  ================================
-  BUSCAR
-  ================================
-  */
-
+  // ==============================
+  // BUSCAR PROFESSOR
+  // ==============================
 
   function buscarProfessor(
-    id:string
-  ){
+    id: string
+  ): Professor | undefined {
 
     return professores.find(
-      item=>item.id === id
+      (item) =>
+        item.id === id
     );
 
   }
 
 
-
-
-
-  /*
-  ================================
-  DESVINCULAR
-  ================================
-  */
-
+  // ==============================
+  // DESVINCULAR PROFESSOR
+  // ==============================
 
   function desvincularProfessor(
-    professorId:string
-  ){
+    professorId: string
+  ): void {
 
     setProfessores(
-      lista=>
+      (lista) =>
+
         lista.map(
-          professor=>
+          (professor) =>
+
             professor.id === professorId
-            ? {
-                ...professor,
-                alunoId:undefined
-              }
-            : professor
+
+              ? {
+
+                  ...professor,
+
+                  alunoId:
+                    undefined,
+
+                }
+
+              : professor
         )
     );
 
   }
 
 
-
+  // ==============================
+  // PROVIDER
+  // ==============================
 
   return (
 
@@ -295,6 +387,8 @@ export function ProfessorProvider({
         professores,
 
         adicionarProfessor,
+
+        recarregarProfessores,
 
         editarProfessor,
 
@@ -319,9 +413,11 @@ export function ProfessorProvider({
 }
 
 
+// ==============================
+// HOOK
+// ==============================
 
-
-export function useProfessores(){
+export function useProfessores() {
 
   return useContext(
     ProfessorContext

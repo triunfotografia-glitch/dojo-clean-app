@@ -11,10 +11,32 @@ export default function Turmas() {
   const { alunos } = useDojo();
 
   function excluir(id: string, nome: string) {
-    Alert.alert('Excluir turma', `Deseja excluir a turma ${nome}? Os alunos não serão removidos.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: () => excluirTurma(id) },
-    ]);
+    Alert.alert(
+      'Excluir turma',
+      `Deseja excluir a turma ${nome}? Os alunos não serão removidos.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await excluirTurma(id);
+            } catch (error) {
+              console.error(
+                'Erro ao excluir turma:',
+                error
+              );
+
+              Alert.alert(
+                'Erro',
+                'Não foi possível excluir a turma. Tente novamente.'
+              );
+            }
+          },
+        },
+      ]
+    );
   }
 
   return (
@@ -35,7 +57,18 @@ export default function Turmas() {
               <Text style={styles.name}>{item.nome}</Text>
               <Text style={styles.info}>Professor: {professor?.nome || 'Não definido'}</Text>
               <Text style={styles.info}>{quantidade} aluno(s) associado(s)</Text>
-              <Pressable style={styles.deleteButton} onPress={() => excluir(item.id, item.nome)}>
+              <Pressable
+              style={styles.editButton}
+              onPress={() =>
+                router.push({
+                  pathname: '/turma/nova',
+                  params: { id: item.id },
+                })
+              }
+            >
+              <Text style={styles.editText}>Editar turma</Text>
+            </Pressable>
+            <Pressable style={styles.deleteButton} onPress={() => excluir(item.id, item.nome)}>
                 <Text style={styles.deleteText}>Excluir turma</Text>
               </Pressable>
             </View>
@@ -54,7 +87,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 16, borderWidth: 1, marginBottom: 12, padding: 18 },
   name: { color: COLORS.white, fontSize: 19, fontWeight: 'bold' },
   info: { color: COLORS.textSecondary, marginTop: 7 },
-  deleteButton: { alignItems: 'center', borderColor: '#E53935', borderRadius: 10, borderWidth: 1, marginTop: 16, padding: 11 },
+  editButton: { alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 10, marginTop: 16, padding: 11 },
+  editText: { color: COLORS.white, fontWeight: 'bold' },  deleteButton: { alignItems: 'center', borderColor: '#E53935', borderRadius: 10, borderWidth: 1, marginTop: 16, padding: 11 },
   deleteText: { color: '#FF6B6B', fontWeight: 'bold' },
   empty: { color: COLORS.muted, marginTop: 30, textAlign: 'center' },
 });

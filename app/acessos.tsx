@@ -14,27 +14,43 @@ import {
 export default function GerenciarAcessos() {
   const { professores, editarProfessor } = useProfessores();
 
-  function editarSenha(usuario: Professor) {
-    promptText(
-      `Alterar senha de ${usuario.nome}`,
-      "Digite a nova senha. Deixe em branco para remover o acesso.",
-      (novaSenha) => {
-        if (novaSenha === null) return; // Cancelado
+  async function editarSenha(usuario: Professor) {
+  promptText(
+    `Alterar senha de ${usuario.nome}`,
+    "Digite a nova senha. Deixe em branco para remover o acesso.",
+    async (novaSenha) => {
+      if (novaSenha === null) return;
 
-        editarProfessor({ ...usuario, senha: novaSenha.trim() });
+      try {
+        await editarProfessor({
+          ...usuario,
+          senha: novaSenha,
+        });
 
-        Alert.alert("Sucesso", "Senha alterada com sucesso!");
-      },
-      "secure-text",
-      usuario.senha || ""
-    );
-  }
+        Alert.alert(
+          "Sucesso",
+          novaSenha.trim()
+            ? "Senha alterada com sucesso."
+            : "Acesso removido com sucesso."
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao alterar senha:",
+          error
+        );
 
-  return (
+        Alert.alert(
+          "Erro",
+          "Não foi possível alterar a senha. Verifique a conexão com o servidor."
+        );
+      }
+    },
+    "secure-text",
+    ""
+  );
+}
+return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Pressable onPress={() => router.back()}>
-        <Text style={styles.back}>â€¹ Voltar</Text>
-      </Pressable>
 
       <Text style={styles.title}>Gerenciar Acessos</Text>
       <Text style={styles.subtitle}>
@@ -47,7 +63,7 @@ export default function GerenciarAcessos() {
             <View style={{ flex: 1 }}>
               <Text style={styles.userName}>{p.nome}</Text>
               <Text style={styles.userStatus}>
-                {p.senha ? "Acesso configurado" : "Sem acesso"}
+                {p.temSenha ? "Acesso configurado" : "Sem acesso"}
               </Text>
             </View>
             <Pressable
@@ -141,3 +157,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
+

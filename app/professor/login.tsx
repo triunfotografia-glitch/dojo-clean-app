@@ -1,4 +1,5 @@
 import { useDojo } from "@/components/context/DojoContext";
+import { useProfessores } from "@/components/context/ProfessorContext";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -13,6 +14,7 @@ import {
 
 export default function Login() {
   const { login } = useDojo();
+  const { recarregarProfessores } = useProfessores();
 
   const [nome, setNome] = useState("");
   const [senha, setSenha] = useState("");
@@ -20,7 +22,7 @@ export default function Login() {
 
   async function handleLogin() {
     const nomeDigitado = nome.trim();
-    const senhaDigitada = senha.trim();
+    const senhaDigitada = senha;
 
     // ==============================
     // VALIDAÇÃO
@@ -66,11 +68,9 @@ export default function Login() {
         return;
       }
 
-      // ==============================
       // LOGIN APROVADO
-      // ==============================
 
-     router.replace("/");
+router.replace("/(tabs)");
     
     } catch (error) {
       console.error(

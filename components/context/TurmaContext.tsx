@@ -2,6 +2,7 @@ import {
   deleteTurma,
   getTurmas,
   postTurma,
+  updateTurma,
 } from '@/services/api';
 import {
   createContext,
@@ -22,6 +23,10 @@ interface TurmaContextData {
   turmas: Turma[];
   adicionarTurma: (turma: Omit<Turma, 'id'>) => Promise<Turma>;
   excluirTurma: (id: string) => Promise<void>;
+  atualizarTurma: (
+    id: string,
+    turma: Omit<Turma, 'id'>
+  ) => Promise<Turma>;
 }
 
 const TurmaContext =
@@ -106,6 +111,30 @@ export function TurmaProvider({
     return turmaNormalizada;
   }
 
+  async function atualizarTurma(
+    id: string,
+    turma: Omit<Turma, 'id'>
+  ): Promise<Turma> {
+    const atualizada = await updateTurma(id, {
+      nome: turma.nome,
+      professorId:
+        turma.professorId || null,
+      alunoIds: turma.alunoIds || [],
+    });
+
+    const turmaNormalizada =
+      normalizarTurma(atualizada);
+
+    setTurmas((lista) =>
+      lista.map((item) =>
+        String(item.id) === String(id)
+          ? turmaNormalizada
+          : item
+      )
+    );
+
+    return turmaNormalizada;
+  }
   async function excluirTurma(
     id: string
   ): Promise<void> {
@@ -125,6 +154,7 @@ export function TurmaProvider({
         turmas,
         adicionarTurma,
         excluirTurma,
+      atualizarTurma,
       }}
     >
       {children}
