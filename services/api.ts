@@ -1060,3 +1060,9 @@ export async function updatePixConfig(
     }
   );
 }
+
+export async function getCampeonatos(): Promise<any[]> {
+  return request<any[]>(
+    `${API_URL}/campeonatos`
+  );
+}

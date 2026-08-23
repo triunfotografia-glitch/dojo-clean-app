@@ -1,0 +1,53 @@
+[
+  {
+    "id": "soucomp-p2716-circuito-jundiai-2026",
+    "nome": "Circuito Estadual de Jiu-Jitsu",
+    "dataInicio": "2026-08-23",
+    "dataFim": "2026-08-23",
+    "cidade": "Jundiaí",
+    "estado": "SP",
+    "local": "Jundiaí - SP",
+    "organizacao": "SouCompetidor",
+    "url": "https://soucompetidor.com.br/pt-br/eventos/todos-os-eventos/novos/",
+    "fonte": "SouCompetidor",
+    "codigoFonte": "P2716"
+  },
+  {
+    "id": "soucomp-p2641-internacional-sp-open-2026",
+    "nome": "Internacional SP Open CBJJE",
+    "dataInicio": "2026-08-29",
+    "dataFim": "2026-08-30",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "local": "Ginásio do Ibirapuera",
+    "organizacao": "CBJJE",
+    "url": "https://cbjje.soucompetidor.com.br/pt-br/eventos/todos-os-eventos/novos/?page=2",
+    "fonte": "SouCompetidor",
+    "codigoFonte": "P2641"
+  },
+  {
+    "id": "cbjj-bjj-internacional-2026",
+    "nome": "BJJ Internacional CBJJE",
+    "dataInicio": "2026-10-23",
+    "dataFim": "2026-10-25",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "local": "São Paulo - SP",
+    "organizacao": "CBJJE",
+    "url": "https://cbjje.com.br/",
+    "fonte": "CBJJ"
+  },
+  {
+    "id": "soucomp-p2613-mundial-cbjje-2026",
+    "nome": "Mundial CBJJE - Juvenil / Adulto / Master",
+    "dataInicio": "2026-11-26",
+    "dataFim": "2026-11-29",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "local": "São Paulo - SP",
+    "organizacao": "CBJJE",
+    "url": "https://cbjje.soucompetidor.com.br/pt-br/eventos/todos-os-eventos/novos/",
+    "fonte": "SouCompetidor",
+    "codigoFonte": "P2613"
+  }
+]

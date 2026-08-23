@@ -1,9 +1,11 @@
 import { COLORS } from "@/components/Colors";
 import { promptText } from "@/components/Prompt";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getCampeonatos } from "@/services/api";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +24,19 @@ interface Aviso {
   texto: string;
 }
 
+interface Campeonato {
+  id: string;
+  nome: string;
+  dataInicio: string;
+  dataFim: string;
+  cidade: string;
+  estado: string;
+  local: string;
+  organizacao: string;
+  url: string;
+  fonte: string;
+}
+
 const ANOTACOES_STORAGE_KEY = "@dojo_anotacoes_agenda";
 const AVISOS_STORAGE_KEY = "@dojo_avisos_agenda";
 
@@ -32,6 +47,9 @@ export default function Agenda() {
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [novoAviso, setNovoAviso] = useState("");
   const [carregado, setCarregado] = useState(false);
+  const [campeonatos, setCampeonatos] = useState<Campeonato[]>([]);
+  const [carregandoCampeonatos, setCarregandoCampeonatos] = useState(false);
+  const [erroCampeonatos, setErroCampeonatos] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -77,6 +95,25 @@ export default function Agenda() {
     return () => {
       clearInterval(timer);
     };
+  }, []);
+
+  useEffect(() => {
+    async function carregarCampeonatos() {
+      setCarregandoCampeonatos(true);
+      setErroCampeonatos(null);
+
+      try {
+        const dados = await getCampeonatos();
+        setCampeonatos(Array.isArray(dados) ? dados : []);
+      } catch (error) {
+        console.error('Erro ao carregar campeonatos:', error);
+        setErroCampeonatos('Não foi possível atualizar os campeonatos no momento.');
+      } finally {
+        setCarregandoCampeonatos(false);
+      }
+    }
+
+    void carregarCampeonatos();
   }, []);
 
   const formattedTime = currentDate.toLocaleTimeString("pt-BR", {
@@ -166,6 +203,24 @@ export default function Agenda() {
     );
   }
 
+  function formatarData(dataInicio: string, dataFim: string) {
+    if (!dataInicio) return '';
+    if (dataInicio === dataFim || !dataFim) {
+      const [ano, mes, dia] = dataInicio.split('-');
+      return `${dia}/${mes}/${ano}`;
+    }
+    const [anoI, mesI, diaI] = dataInicio.split('-');
+    const [anoF, mesF, diaF] = dataFim.split('-');
+    return `${diaI}/${mesI}/${anoI} - ${diaF}/${mesF}/${anoF}`;
+  }
+
+  function abrirUrl(url: string) {
+    if (!url) return;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Erro', 'Não foi possível abrir o link do campeonato.');
+    });
+  }
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Agenda</Text>
@@ -231,6 +286,34 @@ export default function Agenda() {
               <View style={styles.actionsContainer}>
                 <Pressable onPress={() => removerAnotacao(anotacao.id)}><Text style={styles.removeButtonText}>✕</Text></Pressable>
               </View>
+            </View>
+          ))
+        )}
+      </View>
+
+      {/* CAMPEONATOS */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>🏆 Próximos Campeonatos</Text>
+
+        {carregandoCampeonatos ? (
+          <Text style={styles.emptyText}>Buscando próximos campeonatos...</Text>
+        ) : erroCampeonatos ? (
+          <Text style={styles.errorText}>{erroCampeonatos}</Text>
+        ) : campeonatos.length === 0 ? (
+          <Text style={styles.emptyText}>Nenhum campeonato próximo encontrado no momento.</Text>
+        ) : (
+          campeonatos.map((campeonato) => (
+            <View key={campeonato.id} style={styles.championshipCard}>
+              <Text style={styles.championshipName}>{campeonato.nome}</Text>
+              <Text style={styles.championshipInfo}>📅 {formatarData(campeonato.dataInicio, campeonato.dataFim)}</Text>
+              <Text style={styles.championshipInfo}>📍 {campeonato.cidade} - {campeonato.estado}</Text>
+              {campeonato.local ? <Text style={styles.championshipInfo}>🏢 {campeonato.local}</Text> : null}
+              {campeonato.organizacao ? <Text style={styles.championshipSource}>🏆 {campeonato.organizacao}</Text> : null}
+              {campeonato.url ? (
+                <Pressable style={styles.detailsButton} onPress={() => abrirUrl(campeonato.url)}>
+                  <Text style={styles.detailsButtonText}>Ver detalhes</Text>
+                </Pressable>
+              ) : null}
             </View>
           ))
         )}
@@ -347,5 +430,49 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     textAlign: "center",
     marginTop: 10,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  championshipCard: {
+    backgroundColor: COLORS.background,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  championshipName: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 6,
+  },
+  championshipInfo: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  championshipSource: {
+    color: COLORS.primary,
+    fontSize: 13,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  detailsButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  detailsButtonText: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: "bold",
   },
 });

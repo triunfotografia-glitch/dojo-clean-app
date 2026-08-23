@@ -9,6 +9,7 @@ import { authMiddleware } from './middleware/authMiddleware.js';
 // Rotas
 import alunosRoutes from './routes/alunos.js';
 import authRoutes from './routes/auth.js';
+import campeonatosRoutes from './routes/campeonatos.js';
 import cobrancasRoutes from './routes/cobrancas.js';
 import graduacoesRoutes from './routes/graduacoes.js';
 import pixRoutes from './routes/pix.js';
@@ -157,6 +158,12 @@ app.use(
   '/pix',
   authMiddleware,
   pixRoutes
+);
+
+app.use(
+  '/campeonatos',
+  authMiddleware,
+  campeonatosRoutes
 );
 
 // ==============================
