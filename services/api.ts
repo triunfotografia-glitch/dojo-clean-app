@@ -1017,7 +1017,46 @@ export async function postGraduacao(
         JSON.stringify(
           payload
         ),
+
     }
   );
 
+}
+
+// ==============================
+// PIX
+// ==============================
+
+export async function getPixConfig(): Promise<any> {
+
+  return request<any>(
+    `${API_URL}/pix`
+  );
+
+}
+
+export async function updatePixConfig(
+  dados: any
+): Promise<any> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      dados
+    );
+
+  return request<any>(
+    `${API_URL}/pix`,
+    {
+      method: "PUT",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+
+    }
+  );
 }

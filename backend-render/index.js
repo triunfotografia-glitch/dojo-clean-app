@@ -11,6 +11,7 @@ import alunosRoutes from './routes/alunos.js';
 import authRoutes from './routes/auth.js';
 import cobrancasRoutes from './routes/cobrancas.js';
 import graduacoesRoutes from './routes/graduacoes.js';
+import pixRoutes from './routes/pix.js';
 import presencasRoutes from './routes/presencas.js';
 import professoresRoutes from './routes/professores.js';
 import treinosRoutes from './routes/treinos.js';
@@ -150,6 +151,12 @@ app.use(
   '/graduacoes',
   authMiddleware,
   graduacoesRoutes
+);
+
+app.use(
+  '/pix',
+  authMiddleware,
+  pixRoutes
 );
 
 // ==============================

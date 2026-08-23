@@ -1148,3 +1148,128 @@ export async function deleteGraduacao(
 
   return result.rows[0];
 }
+
+
+/* =========================
+   PIX CONFIG
+========================= */
+
+export async function getPixConfig() {
+  const result = await query(
+    `SELECT
+       id,
+       chave_pix,
+       nome_recebedor,
+       cidade_recebedor,
+       criado_em,
+       atualizado_em
+     FROM pix_config
+     ORDER BY id ASC
+     LIMIT 1`
+  );
+
+  return result.rows[0] || null;
+}
+
+
+export async function updatePixConfig(
+  id,
+  dados
+) {
+  const mapped =
+    mapObjectKeys(dados);
+
+  const fields =
+    prepareFields(mapped);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo válido para atualizar.'
+    );
+  }
+
+  const columns =
+    fields.map(
+      ([key], i) =>
+        `${key} = $${i + 1}`
+    );
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `UPDATE pix_config
+     SET
+       ${columns.join(', ')}
+     WHERE id = $${values.length + 1}
+     RETURNING *`,
+    [
+      ...values,
+      id,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+
+export async function updateFirstPixConfig(
+  dados
+) {
+  const mapped =
+    mapObjectKeys(dados);
+
+  const fields =
+    prepareFields(mapped);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo válido para atualizar.'
+    );
+  }
+
+  const columns =
+    fields.map(
+      ([key], i) =>
+        `${key} = $${i + 1}`
+    );
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `UPDATE pix_config
+     SET
+       ${columns.join(', ')}
+     WHERE id = (
+       SELECT id FROM pix_config
+       ORDER BY id ASC
+       LIMIT 1
+     )
+     RETURNING *`,
+    values
+  );
+
+  if (result.rows.length > 0) {
+    return result.rows[0];
+  }
+
+  const insertResult = await query(
+    `INSERT INTO pix_config
+      (chave_pix, nome_recebedor, cidade_recebedor)
+     VALUES
+      ($1, $2, $3)
+     RETURNING *`,
+    [
+      dados.chave_pix || '',
+      dados.nome_recebedor || 'DOJO LB',
+      dados.cidade_recebedor || 'SAO PAULO',
+    ]
+  );
+
+  return insertResult.rows[0];
+}

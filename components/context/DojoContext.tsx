@@ -165,6 +165,68 @@ const USER_STORAGE_KEY = "@dojo_user";
 // NORMALIZAR ALUNO
 // ==============================
 
+function normalizarCobranca(
+  cobranca: any
+): Cobranca {
+  return {
+    id: String(
+      cobranca?.id ??
+      cobranca?.ID ??
+      ''
+    ),
+    descricao:
+      typeof cobranca?.descricao === 'string'
+        ? cobranca.descricao
+        : '',
+    valor:
+      typeof cobranca?.valor === 'number'
+        ? cobranca.valor
+        : Number(cobranca?.valor || 0),
+    vencimento:
+      typeof cobranca?.vencimento === 'string'
+        ? cobranca.vencimento
+        : '',
+    competencia:
+      typeof cobranca?.competencia === 'string'
+        ? cobranca.competencia
+        : undefined,
+    status:
+      cobranca?.status === 'pago' ||
+      cobranca?.status === 'atrasado'
+        ? cobranca.status
+        : 'pendente',
+    pagoEm:
+      typeof cobranca?.pagoEm === 'string'
+        ? cobranca.pagoEm
+        : typeof cobranca?.pago_em === 'string'
+          ? cobranca.pago_em
+          : undefined,
+    formaPagamento:
+      typeof cobranca?.formaPagamento === 'string'
+        ? cobranca.formaPagamento
+        : typeof cobranca?.forma_pagamento === 'string'
+          ? cobranca.forma_pagamento
+          : undefined,
+    observacao:
+      typeof cobranca?.observacao === 'string'
+        ? cobranca.observacao
+        : undefined,
+  };
+}
+
+function normalizarCobrancas(
+  lista: any
+): Cobranca[] {
+  if (!Array.isArray(lista)) {
+    return [];
+  }
+
+  return lista.map(
+    (cobranca) =>
+      normalizarCobranca(cobranca)
+  );
+}
+
 function normalizarAluno(
   aluno: any
 ): Aluno {
@@ -261,9 +323,9 @@ function normalizarAluno(
         : "",
 
     cobrancas:
-      Array.isArray(aluno?.cobrancas)
-        ? aluno.cobrancas
-        : [],
+      normalizarCobrancas(
+        aluno?.cobrancas
+      ),
 
     observacao:
       typeof aluno?.observacao === "string"
@@ -796,6 +858,11 @@ export function DojoProvider({
         "id"
       >);
 
+    const cobrancaNormalizada =
+      normalizarCobranca(
+        novaCobranca
+      );
+
     setAlunos(
       (prev) =>
         prev.map(
@@ -806,7 +873,7 @@ export function DojoProvider({
                   ...aluno,
 
                   cobrancas: [
-                    novaCobranca,
+                    cobrancaNormalizada,
                     ...(aluno.cobrancas ||
                       []),
                   ],
@@ -840,7 +907,8 @@ export function DojoProvider({
     // ==========================
 
     if (
-      typeof segundo === "string"
+      typeof segundo === "string" ||
+      typeof segundo === "number"
     ) {
 
       cobrancaId =
@@ -911,10 +979,12 @@ export function DojoProvider({
                 (cobranca) =>
                   cobranca.id ===
                   cobrancaId
-                    ? {
-                        ...cobranca,
-                        ...dadosPagamento,
-                      }
+                    ? normalizarCobranca(
+                        {
+                          ...cobranca,
+                          ...dadosPagamento,
+                        }
+                      )
                     : cobranca
               ),
 
@@ -1072,6 +1142,11 @@ export function DojoProvider({
           "id"
         >);
 
+      const cobrancaNormalizada =
+        normalizarCobranca(
+          novaCobranca
+        );
+
       quantidadeGerada++;
 
       setAlunos(
@@ -1084,7 +1159,7 @@ export function DojoProvider({
                     ...item,
 
                     cobrancas: [
-                      novaCobranca,
+                      cobrancaNormalizada,
                       ...(item.cobrancas ||
                         []),
                     ],

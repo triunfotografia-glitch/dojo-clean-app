@@ -1,12 +1,19 @@
 import { COLORS } from '@/components/Colors';
 import { Aluno, Cobranca, useDojo } from '@/components/context/DojoContext';
-import { enviarCobrancasWhatsApp } from '@/components/whatsapp';
+import { enviarCobrancaWhatsApp, enviarCobrancasWhatsApp } from '@/components/whatsapp';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 function competenciaAtual() {
   return new Date().toISOString().slice(0, 7);
+}
+
+function competenciaDe(data: string | undefined | null) {
+  if (!data || typeof data !== 'string') return null;
+  const partes = data.split('-');
+  if (partes.length < 2) return null;
+  return `${partes[0]}-${partes[1]}`;
 }
 
 function moeda(valor: number) {
@@ -48,8 +55,8 @@ export default function Financeiro() {
 
   const resumo = useMemo(() => {
     const cobrancas = alunos.flatMap((aluno) => aluno.cobrancas.map((cobranca) => ({ ...cobranca, aluno })));
-    const recebidos = cobrancas.filter((cobranca) => cobranca.pagoEm?.startsWith(competencia)).reduce((total, cobranca) => total + cobranca.valor, 0);
-    const pendentes = cobrancas.filter((cobranca) => !cobranca.pagoEm);
+    const recebidos = cobrancas.filter((cobranca) => cobranca.status === 'pago' && competenciaDe(cobranca.pagoEm) === competencia).reduce((total, cobranca) => total + cobranca.valor, 0);
+    const pendentes = cobrancas.filter((cobranca) => cobranca.status !== 'pago');
     const emAberto = pendentes.reduce((total, cobranca) => total + cobranca.valor, 0);
     const atrasadas = pendentes.filter((cobranca) => new Date(cobranca.vencimento) < new Date(new Date().setHours(0, 0, 0, 0)));
     return { recebidos, emAberto, atrasadas, pendentes };
@@ -122,6 +129,29 @@ export default function Financeiro() {
     );
   }
 
+  function enviarCobrancaAluno(aluno: Aluno) {
+    const cobrancaPendente = aluno.cobrancas.find(c => c.status === 'pendente' || c.status === 'atrasado');
+
+    if (!cobrancaPendente) {
+      Alert.alert('Sem cobrança pendente', 'Este aluno não possui cobranças pendentes ou atrasadas no momento.');
+      return;
+    }
+
+    const telefone = aluno.telefone?.trim();
+
+    if (!telefone) {
+      Alert.alert('Telefone não cadastrado', 'Este aluno não possui telefone/WhatsApp cadastrado. Cadastre o telefone no perfil do aluno para enviar a cobrança.');
+      return;
+    }
+
+    enviarCobrancaWhatsApp(
+      telefone,
+      aluno.nome,
+      cobrancaPendente.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      formatarData(cobrancaPendente.vencimento)
+    );
+  }
+
   return <ScrollView contentContainerStyle={styles.container}>
     <Text style={styles.title}>Financeiro</Text>
     <Text style={styles.subtitle}>Resumo de {competencia}</Text>
@@ -177,7 +207,16 @@ export default function Financeiro() {
             <Text style={styles.studentName} numberOfLines={1}>{aluno.nome}</Text>
             <Text style={styles.studentInfo}>Próxima cobrança: {formatarData(aluno.proximaCobranca)}</Text>
           </View>
-          {cobrancaPendente && (<Pressable style={styles.payButton} onPress={() => confirmarPagamento(aluno, cobrancaPendente)}><Text style={styles.payButtonText}>Registrar Pagamento</Text></Pressable>)}
+          {cobrancaPendente && (
+            <>
+              <Pressable style={styles.payButton} onPress={() => confirmarPagamento(aluno, cobrancaPendente)}>
+                <Text style={styles.payButtonText}>Registrar Pagamento</Text>
+              </Pressable>
+              <Pressable style={styles.studentWhatsAppButton} onPress={() => enviarCobrancaAluno(aluno)}>
+                <Text style={styles.studentWhatsAppButtonText}>WhatsApp</Text>
+              </Pressable>
+            </>
+          )}
         </Pressable>
         )
       })
@@ -234,4 +273,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   payButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 12 },
+  studentWhatsAppButton: {
+    backgroundColor: '#128C7E',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  studentWhatsAppButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 12 },
 });

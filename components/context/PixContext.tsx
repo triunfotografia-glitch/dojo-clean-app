@@ -6,6 +6,11 @@ import {
   useState,
 } from "react";
 
+import {
+  getPixConfig,
+  updatePixConfig,
+} from "@/services/api";
+
 interface PixContextData {
   chavePix: string;
   nomeRecebedor: string;
@@ -16,7 +21,7 @@ interface PixContextData {
     chave: string,
     nome: string,
     cidade: string
-  ) => void;
+  ) => Promise<void>;
 }
 
 const PixContext = createContext<PixContextData>(
@@ -24,7 +29,6 @@ const PixContext = createContext<PixContextData>(
 );
 
 const STORAGE_KEY = "@dojo_pix";
-
 
 export function PixProvider({
   children,
@@ -50,40 +54,59 @@ export function PixProvider({
 
       try {
 
-        const dados =
-          await AsyncStorage.getItem(STORAGE_KEY);
+        const config =
+          await getPixConfig();
 
+        if (config) {
+          setChavePix(
+            config.chave_pix || ""
+          );
 
-        if (!dados) return;
+          setNomeRecebedor(
+            config.nome_recebedor || "DOJO LB"
+          );
 
+          setCidadeRecebedor(
+            config.cidade_recebedor || "SAO PAULO"
+          );
+        }
 
-        const configuracao =
-          JSON.parse(dados);
+      } catch {
 
+        try {
 
-        setChavePix(
-          configuracao.chavePix || ""
-        );
+          const dados =
+            await AsyncStorage.getItem(
+              STORAGE_KEY
+            );
 
+          if (!dados) return;
 
-        setNomeRecebedor(
-          configuracao.nomeRecebedor ||
-          "DOJO LB"
-        );
+          const configuracao =
+            JSON.parse(dados);
 
+          setChavePix(
+            configuracao.chavePix || ""
+          );
 
-        setCidadeRecebedor(
-          configuracao.cidadeRecebedor ||
-          "SAO PAULO"
-        );
+          setNomeRecebedor(
+            configuracao.nomeRecebedor ||
+            "DOJO LB"
+          );
 
+          setCidadeRecebedor(
+            configuracao.cidadeRecebedor ||
+            "SAO PAULO"
+          );
 
-      } catch(error){
+        } catch (error) {
 
-        console.log(
-          "Erro carregar PIX",
-          error
-        );
+          console.log(
+            "Erro carregar PIX",
+            error
+          );
+
+        }
 
       }
 
@@ -93,7 +116,6 @@ export function PixProvider({
     carregar();
 
   }, []);
-
 
 
   async function salvarConfiguracaoPix(
@@ -130,33 +152,53 @@ export function PixProvider({
       configuracao.cidadeRecebedor
     );
 
+    try {
 
-    await AsyncStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(configuracao)
-    );
+      await updatePixConfig({
+        chave_pix: configuracao.chavePix,
+        nome_recebedor: configuracao.nomeRecebedor,
+        cidade_recebedor: configuracao.cidadeRecebedor,
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Erro ao salvar PIX no backend:",
+        error
+      );
+
+    } finally {
+
+      await AsyncStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(configuracao)
+      );
+
+    }
 
   }
-
 
 
   return (
 
     <PixContext.Provider
 
-      value={{
+      value={
 
-        chavePix,
+        {
+          chavePix,
 
-        nomeRecebedor,
+          nomeRecebedor,
 
-        cidadeRecebedor,
+          cidadeRecebedor,
 
-        pixConfigurado,
+          pixConfigurado,
 
-        salvarConfiguracaoPix,
+          salvarConfiguracaoPix,
 
-      }}
+        }
+
+      }
 
     >
 

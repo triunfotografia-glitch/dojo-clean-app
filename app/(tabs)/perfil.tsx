@@ -46,7 +46,7 @@ export default function Perfil() {
 
 
 
-  function salvar() {
+  async function salvar() {
 
     if (!chave.trim()) {
 
@@ -60,7 +60,7 @@ export default function Perfil() {
     }
 
 
-    salvarConfiguracaoPix(
+    await salvarConfiguracaoPix(
       chave,
       nome || 'DOJO LB',
       cidade || 'SAO PAULO'
