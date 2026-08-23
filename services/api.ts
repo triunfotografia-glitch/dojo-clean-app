@@ -625,20 +625,12 @@ export async function updateProfessor(
   professor: Partial<Professor>
 ): Promise<Professor> {
 
-  console.log('[FRONTEND updateProfessor] id:', id);
-  console.log('[FRONTEND updateProfessor] professor keys:', Object.keys(professor));
-  console.log('[FRONTEND updateProfessor] senha recebida:', typeof professor.senha === 'string' ? 'SIM' : 'NAO');
-  console.log('[FRONTEND updateProfessor] senha length:', typeof professor.senha === 'string' ? professor.senha.length : 'N/A');
+  const { temSenha, ...rest } = professor;
 
   const payload =
     convertKeysToSnakeCase(
-      professor
+      rest
     );
-
-  console.log('[FRONTEND updateProfessor] payload keys:', Object.keys(payload));
-  console.log('[FRONTEND updateProfessor] payload.senha existe:', 'senha' in payload);
-  console.log('[FRONTEND updateProfessor] payload.senha length:', typeof payload.senha === 'string' ? payload.senha.length : 'N/A');
-  console.log('[FRONTEND updateProfessor] URL:', `${API_URL}/professores/${id}`);
 
   return request<Professor>(
     `${API_URL}/professores/${id}`,
@@ -652,6 +644,7 @@ export async function updateProfessor(
         JSON.stringify(
           payload
         ),
+
     }
   );
 

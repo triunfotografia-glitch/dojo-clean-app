@@ -128,42 +128,19 @@ export async function createProfessor(req, res) {
 
 export async function updateProfessor(req, res) {
   try {
-    const { id } =
-      req.params;
+    const { id } = req.params;
 
-    const professor =
-      req.body;
+    const professor = req.body;
 
-    console.log('[BACKEND updateProfessor] id:', id);
-    console.log('[BACKEND updateProfessor] req.body keys:', Object.keys(professor || {}));
-    console.log('[BACKEND updateProfessor] req.body.senha existe:', typeof professor?.senha === 'string');
-    console.log('[BACKEND updateProfessor] req.body.senha length:', typeof professor?.senha === 'string' ? professor.senha.length : 'N/A');
-
-    // =========================
-    // VALIDAR ID
-    // =========================
-
-    if (
-      !id ||
-      !/^[0-9]+$/.test(id)
-    ) {
+    if (!id || !/^[0-9]+$/.test(id)) {
       return res.status(400).json({
-        error:
-          'ID de professor inválido.',
+        error: 'ID de professor inválido.',
       });
     }
 
-    // =========================
-    // VALIDAR DADOS
-    // =========================
-
-    if (
-      !professor ||
-      typeof professor !== 'object'
-    ) {
+    if (!professor || typeof professor !== 'object') {
       return res.status(400).json({
-        error:
-          'Dados de professor inválidos.',
+        error: 'Dados de professor inválidos.',
       });
     }
 
@@ -171,53 +148,26 @@ export async function updateProfessor(req, res) {
       ...professor,
     };
 
-    // =========================
-    // SENHA
-    // =========================
-    //
-    // Só cria um novo hash quando
-    // uma nova senha foi enviada.
-    //
-
-    if (
-      professor.senha &&
-      typeof professor.senha === 'string'
-    ) {
-      console.log('[BACKEND updateProfessor] bcrypt executado: SIM');
+    if (professor.senha && typeof professor.senha === 'string') {
       const hash = await bcrypt.hash(
         professor.senha,
         10
       );
-      console.log('[BACKEND updateProfessor] hash produzido length:', hash.length);
-      dadosAtualizados.senha =
-        hash;
+      dadosAtualizados.senha = hash;
     } else {
-      console.log('[BACKEND updateProfessor] bcrypt executado: NAO');
-      // Nunca enviar senha vazia
-      // para o storage.
       delete dadosAtualizados.senha;
     }
 
-    // =========================
-    // ATUALIZAR
-    // =========================
-
-    const atualizado =
-      await updateProfessorRecord(
-        id,
-        dadosAtualizados
-      );
+    const atualizado = await updateProfessorRecord(
+      id,
+      dadosAtualizados
+    );
 
     if (!atualizado) {
       return res.status(404).json({
-        error:
-          'Professor não encontrado.',
+        error: 'Professor não encontrado.',
       });
     }
-
-    // =========================
-    // NUNCA DEVOLVER HASH
-    // =========================
 
     return res.json(
       professorSeguro(
@@ -232,8 +182,7 @@ export async function updateProfessor(req, res) {
     );
 
     return res.status(500).json({
-      error:
-        'Erro ao atualizar professor.',
+      error: 'Erro ao atualizar professor.',
     });
   }
 }

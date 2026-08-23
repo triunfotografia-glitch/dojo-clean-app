@@ -1,4 +1,4 @@
-import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
 
 export type PromptType = "plain-text" | "secure-text" | "login-password";
@@ -20,13 +20,13 @@ export function promptText(
   type: PromptType = "plain-text",
   defaultValue = ""
 ) {
-  if (typeof (Alert as any).prompt === "function") {
+if (typeof (Alert as any).prompt === "function") {
     (Alert as any).prompt(title, message, callback, type, defaultValue);
     return;
   }
 
   if (promptHandler) {
-    promptHandler({ title, message, callback, type, defaultValue });
+promptHandler({ title, message, callback, type, defaultValue });
     return;
   }
 
@@ -42,12 +42,12 @@ export function PromptProvider({ children }: { children: React.ReactNode }) {
   const [value, setValue] = useState("");
 
   const showPrompt = useCallback((options: PromptOptions) => {
-    setValue(options.defaultValue ?? "");
+setValue(options.defaultValue ?? "");
     setPrompt(options);
   }, []);
 
   useEffect(() => {
-    promptHandler = showPrompt;
+promptHandler = showPrompt;
     return () => {
       if (promptHandler === showPrompt) {
         promptHandler = null;
@@ -65,27 +65,20 @@ export function PromptProvider({ children }: { children: React.ReactNode }) {
     },
     [prompt]
   );
-
-  return (
+return (
     <>
       {children}
-      <Modal
-        visible={prompt !== null}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => closePrompt(null)}
-      >
+      {prompt !== null && (
         <View style={styles.overlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.title}>{prompt?.title}</Text>
-            <Text style={styles.message}>{prompt?.message}</Text>
+            <Text style={styles.title}>{prompt.title}</Text>
+            <Text style={styles.message}>{prompt.message}</Text>
             <TextInput
               style={styles.input}
               value={value}
               onChangeText={setValue}
-              secureTextEntry={prompt?.type === "secure-text"}
-              placeholder={prompt?.type === "secure-text" ? "Nova senha" : "Digite seu texto"}
+              secureTextEntry={prompt.type === "secure-text"}
+              placeholder={prompt.type === "secure-text" ? "Nova senha" : "Digite seu texto"}
               placeholderTextColor="#888"
               autoCapitalize="none"
               autoCorrect={false}
@@ -101,18 +94,23 @@ export function PromptProvider({ children }: { children: React.ReactNode }) {
             </View>
           </View>
         </View>
-      </Modal>
+      )}
     </>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    zIndex: 9999,
   },
   modalContainer: {
     width: "100%",
