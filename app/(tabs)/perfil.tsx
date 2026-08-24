@@ -59,18 +59,29 @@ export default function Perfil() {
 
     }
 
+    try {
 
-    await salvarConfiguracaoPix(
-      chave,
-      nome || 'DOJO LB',
-      cidade || 'SAO PAULO'
-    );
+      await salvarConfiguracaoPix(
+        chave,
+        nome || 'DOJO LB',
+        cidade || 'SAO PAULO'
+      );
 
+      Alert.alert(
+        'PIX configurado',
+        'Agora os alunos poderão gerar pagamentos PIX pelo financeiro.'
+      );
 
-    Alert.alert(
-      'PIX configurado',
-      'Agora os alunos poderão gerar pagamentos PIX pelo financeiro.'
-    );
+    } catch (error) {
+
+      console.error(error);
+
+      Alert.alert(
+        'Erro',
+        'Não foi possível salvar a configuração PIX.'
+      );
+
+    }
 
   }
 
@@ -83,8 +94,8 @@ export default function Perfil() {
         {
           text: "Sair",
           style: "destructive",
-          onPress: () => {
-            logout();
+          onPress: async () => {
+            await logout();
             router.replace("/");
           },
         },

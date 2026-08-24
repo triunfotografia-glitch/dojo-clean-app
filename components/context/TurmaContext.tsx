@@ -2,6 +2,7 @@ import {
   deleteTurma,
   getToken,
   getTurmas,
+  onAuthLost,
   postTurma,
   updateTurma,
 } from '@/services/api';
@@ -41,16 +42,20 @@ function normalizarTurma(turma: any): Turma {
     nome: String(turma.nome ?? ''),
     professorId: String(
       turma.professor_id ??
-      turma.professorId ??
-      ''
+        turma.professorId ??
+        ''
     ),
-    alunoIds: Array.isArray(turma.alunos)
-      ? turma.alunos.map((id: any) => String(id))
+    alunoIds: Array.isArray(turma.alunoIds)
+      ? turma.alunoIds.map((id: any) => String(id))
       : Array.isArray(turma.aluno_ids)
         ? turma.aluno_ids.map((id: any) => String(id))
-        : Array.isArray(turma.alunoIds)
-          ? turma.alunoIds.map((id: any) => String(id))
-          : [],
+        : Array.isArray(turma.turma_alunos)
+          ? turma.turma_alunos
+              .map((item: any) => String(item.aluno_id ?? item.alunoId ?? item.id ?? ''))
+              .filter((id: string) => id !== '')
+          : Array.isArray(turma.alunos)
+            ? turma.alunos.map((id: any) => String(id))
+            : [],
   };
 }
 
@@ -97,62 +102,101 @@ export function TurmaProvider({
     };
   }, []);
 
+  // ==============================
+  // AUTH LOSS LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthLost(() => {
+      setTurmas([]);
+    });
+
+    return cleanup;
+  }, []);
+
   async function adicionarTurma(
     turma: Omit<Turma, 'id'>
   ): Promise<Turma> {
-    const criada = await postTurma({
-      nome: turma.nome,
-      professorId:
-        turma.professorId || null,
-      alunoIds: turma.alunoIds || [],
-    });
+    try {
+      const criada = await postTurma({
+        nome: turma.nome,
+        professorId:
+          turma.professorId || '',
+        alunoIds: turma.alunoIds || [],
+      });
 
-    const turmaNormalizada =
-      normalizarTurma(criada);
+      const turmaNormalizada =
+        normalizarTurma(criada);
 
-    setTurmas((lista) => [
-      turmaNormalizada,
-      ...lista,
-    ]);
+      setTurmas((lista) => [
+        turmaNormalizada,
+        ...lista,
+      ]);
 
-    return turmaNormalizada;
+      return turmaNormalizada;
+    } catch (error) {
+      console.error(
+        'Erro ao adicionar turma:',
+        error
+      );
+
+      throw error;
+    }
   }
 
   async function atualizarTurma(
     id: string,
     turma: Omit<Turma, 'id'>
   ): Promise<Turma> {
-    const atualizada = await updateTurma(id, {
-      nome: turma.nome,
-      professorId:
-        turma.professorId || null,
-      alunoIds: turma.alunoIds || [],
-    });
+    try {
+      const atualizada = await updateTurma(id, {
+        nome: turma.nome,
+        professorId:
+          turma.professorId || '',
+        alunoIds: turma.alunoIds || [],
+      });
 
-    const turmaNormalizada =
-      normalizarTurma(atualizada);
+      const turmaNormalizada =
+        normalizarTurma(atualizada);
 
-    setTurmas((lista) =>
-      lista.map((item) =>
-        String(item.id) === String(id)
-          ? turmaNormalizada
-          : item
-      )
-    );
+      setTurmas((lista) =>
+        lista.map((item) =>
+          String(item.id) === String(id)
+            ? turmaNormalizada
+            : item
+        )
+      );
 
-    return turmaNormalizada;
+      return turmaNormalizada;
+    } catch (error) {
+      console.error(
+        'Erro ao atualizar turma:',
+        error
+      );
+
+      throw error;
+    }
   }
   async function excluirTurma(
     id: string
   ): Promise<void> {
-    await deleteTurma(id);
+    try {
+      await deleteTurma(id);
 
-    setTurmas((lista) =>
-      lista.filter(
-        (turma) =>
-          String(turma.id) !== String(id)
-      )
-    );
+      setTurmas((lista) =>
+        lista.filter(
+          (turma) =>
+            String(turma.id) !== String(id)
+        )
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao excluir turma:',
+        error
+      );
+
+      throw error;
+    }
   }
 
   return (

@@ -1,6 +1,7 @@
 import {
   deleteProfessor,
   getProfessores,
+  onAuthLost,
   postProfessor,
   updateProfessor,
 } from "@/services/api";
@@ -169,9 +170,21 @@ export function ProfessorProvider({
 
     }
 
-    recarregarProfessores();
+    void recarregarProfessores();
 
   }, [userLogado]);
+
+  // ==============================
+  // AUTH LOSS LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthLost(() => {
+      setProfessores([]);
+    });
+
+    return cleanup;
+  }, []);
 
 
   // ==============================
@@ -182,34 +195,47 @@ export function ProfessorProvider({
     professor: Professor
   ): Promise<void> {
 
-    const {
-      id,
-      ...dados
-    } = professor;
+    try {
 
-    const criado =
-      await postProfessor(
-        dados
+      const {
+        id,
+        ...dados
+      } = professor;
+
+      const criado =
+        await postProfessor(
+          dados
+        );
+
+      setProfessores(
+        (lista) => [
+
+          ...lista,
+
+          {
+
+            ...criado,
+
+            id:
+              String(
+                criado.id
+              ),
+
+          },
+
+        ]
       );
 
-    setProfessores(
-      (lista) => [
+    } catch (error) {
 
-        ...lista,
+      console.error(
+        'Erro ao adicionar professor:',
+        error
+      );
 
-        {
+      throw error;
 
-          ...criado,
-
-          id:
-            String(
-              criado.id
-            ),
-
-        },
-
-      ]
-    );
+    }
 
   }
 
@@ -222,34 +248,47 @@ export function ProfessorProvider({
     professor: Professor
   ): Promise<void> {
 
-    const atualizado =
-      await updateProfessor(
-        professor.id,
-        professor
+    try {
+
+      const atualizado =
+        await updateProfessor(
+          professor.id,
+          professor
+        );
+
+      setProfessores(
+        (lista) =>
+
+          lista.map(
+            (item) =>
+
+              item.id === professor.id
+
+                ? {
+
+                    ...atualizado,
+
+                    id:
+                      String(
+                        atualizado.id
+                      ),
+
+                  }
+
+                : item
+        )
       );
 
-    setProfessores(
-      (lista) =>
+    } catch (error) {
 
-        lista.map(
-          (item) =>
+      console.error(
+        'Erro ao editar professor:',
+        error
+      );
 
-            item.id === professor.id
+      throw error;
 
-              ? {
-
-                  ...atualizado,
-
-                  id:
-                    String(
-                      atualizado.id
-                    ),
-
-                }
-
-              : item
-        )
-    );
+    }
 
   }
 

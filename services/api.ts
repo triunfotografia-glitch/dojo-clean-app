@@ -3,43 +3,151 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type {
   Aluno,
   Cobranca,
+  Graduacao,
 } from "@/components/context/DojoContext";
 
 import type {
   Professor,
 } from "@/components/context/ProfessorContext";
 
-// ==============================
-// BACKEND POSTGRESQL
-// ==============================
+import type {
+  Presenca,
+} from "@/components/context/PresencaContext";
 
-// Prioridade: EXPO_PUBLIC_API_URL (definida em .env ou nas envs do build/EAS)
-// Fallback: IP da rede local, só para dev quando a env não está definida.
-// Isso evita que o app quebre ao trocar de rede ou ao gerar build de produção
-// sem configurar a variável — mas o ideal é sempre definir EXPO_PUBLIC_API_URL.
+import type {
+  Treino,
+} from "@/components/context/TreinoContext";
+
+import type {
+  Turma,
+} from "@/components/context/TurmaContext";
+
+import { notifyAuthLost, onAuthLost } from "./authEvents";
+
+class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string
+  ) {
+    super(message);
+    this.status = status;
+  }
+}
+
+export {
+  ApiError,
+  notifyAuthLost,
+  onAuthLost,
+};
+
 const FALLBACK_API_URL_DEV = "http://192.168.15.64:3000";
 
 export const API_URL =
   process.env.EXPO_PUBLIC_API_URL ?? FALLBACK_API_URL_DEV;
 
-console.log(
-  '[API] API_URL efetiva:',
-  API_URL
-);
-
-if (__DEV__ && !process.env.EXPO_PUBLIC_API_URL) {
-  console.warn(
-    "[api] EXPO_PUBLIC_API_URL não definida — usando fallback local:",
-    FALLBACK_API_URL_DEV,
-    "\nDefina EXPO_PUBLIC_API_URL no arquivo .env para evitar isso."
-  );
-}
-
-// ==============================
-// JWT
-// ==============================
-
 const TOKEN_KEY = "@dojo_lb:jwt";
+
+const TIMEOUT_MS = 15000;
+
+async function request<T>(
+  url: string,
+  options: RequestInit = {}
+): Promise<T> {
+
+  const token =
+    await getToken();
+
+  const headers: Record<
+    string,
+    string
+  > = {
+    ...(options.headers as Record<
+      string,
+      string
+    > || {}),
+  };
+
+  if (
+    !headers["Content-Type"] &&
+    !headers["content-type"]
+  ) {
+
+    headers["Content-Type"] =
+      "application/json";
+
+  }
+
+  if (!token) {
+
+    throw new ApiError(
+      401,
+      "Token de autenticação não informado."
+    );
+
+  }
+
+  headers.Authorization =
+    `Bearer ${token}`;
+
+  const controller =
+    new AbortController();
+
+  const timeoutId =
+    setTimeout(() => {
+      controller.abort();
+    }, TIMEOUT_MS);
+
+  try {
+
+    const response =
+      await fetch(
+        url,
+        {
+          ...options,
+          headers,
+          signal:
+            controller.signal,
+        }
+      );
+
+    if (
+      response.status === 401
+    ) {
+
+      await removeToken();
+
+      notifyAuthLost();
+
+    }
+
+    return await parseJson<T>(
+      response
+    );
+
+  } catch (error) {
+
+    if (
+      error instanceof Error &&
+      error.name === "AbortError"
+    ) {
+
+      throw new Error(
+        "A requisição excedeu o tempo limite."
+      );
+
+    }
+
+    throw error;
+
+  } finally {
+
+    clearTimeout(
+      timeoutId
+    );
+
+  }
+
+}
 
 // ==============================
 // TYPES
@@ -49,6 +157,25 @@ export interface LoginResponse {
   sucesso: boolean;
   token: string;
   professor: Professor;
+}
+
+export interface PixConfig {
+  chave_pix: string;
+  nome_recebedor: string;
+  cidade_recebedor: string;
+}
+
+export interface Campeonato {
+  id: string;
+  nome: string;
+  dataInicio: string;
+  dataFim: string;
+  cidade: string;
+  estado: string;
+  local: string;
+  organizacao: string;
+  url: string;
+  fonte: string;
 }
 
 // ==============================
@@ -223,7 +350,8 @@ async function parseJson<T>(
       data?.message ||
       `Erro HTTP ${response.status}`;
 
-    throw new Error(
+    throw new ApiError(
+      response.status,
       mensagem
     );
 
@@ -232,79 +360,6 @@ async function parseJson<T>(
   return convertKeysToCamelCase(
     data
   ) as T;
-}
-
-// ==============================
-// REQUEST AUTENTICADO
-// ==============================
-
-async function request<T>(
-  url: string,
-  options: RequestInit = {}
-): Promise<T> {
-
-  const token =
-    await getToken();
-
-  const headers: Record<
-    string,
-    string
-  > = {
-    ...(options.headers as Record<
-      string,
-      string
-    > || {}),
-  };
-
-  if (
-    !headers["Content-Type"] &&
-    !headers["content-type"]
-  ) {
-
-    headers["Content-Type"] =
-      "application/json";
-
-  }
-
-  // ============================
-  // JWT OBRIGATÓRIO
-  // ============================
-
-  if (!token) {
-
-    throw new Error(
-      "Token de autenticação não informado."
-    );
-
-  }
-
-  headers.Authorization =
-    `Bearer ${token}`;
-
-  const response =
-    await fetch(
-      url,
-      {
-        ...options,
-        headers,
-      }
-    );
-
-  // ============================
-  // TOKEN INVÁLIDO / EXPIRADO
-  // ============================
-
-  if (
-    response.status === 401
-  ) {
-
-    await removeToken();
-
-  }
-
-  return parseJson<T>(
-    response
-  );
 }
 
 // ==============================
@@ -391,16 +446,8 @@ export async function loginProfessor(
 
   }
 
-  // ============================
-  // SALVAR JWT
-  // ============================
-
   await saveToken(
     data.token
-  );
-
-  console.log(
-    "JWT salvo com sucesso."
   );
 
   return data as LoginResponse;
@@ -414,6 +461,64 @@ export async function logoutProfessor(): Promise<void> {
 
   await removeToken();
 
+}
+
+//// ==============================
+// RECUPERAÇÃO DE SENHA
+// ==============================
+
+export interface EsqueciSenhaResponse {
+  mensagem: string;
+}
+
+export interface RedefinirSenhaResponse {
+  mensagem: string;
+}
+
+export async function esqueciSenha(
+  email: string
+): Promise<EsqueciSenhaResponse> {
+
+  const response = await fetch(
+    `${API_URL}/auth/esqueci-senha`,
+    {
+      method: "POST",
+
+      headers: jsonHeaders(),
+
+      body: JSON.stringify({
+        email: email.trim(),
+      }),
+    }
+  );
+
+  return parseJson<EsqueciSenhaResponse>(
+    response
+  );
+}
+
+export async function redefinirSenha(
+  token: string,
+  novaSenha: string
+): Promise<RedefinirSenhaResponse> {
+
+  const response = await fetch(
+    `${API_URL}/auth/redefinir-senha`,
+    {
+      method: "POST",
+
+      headers: jsonHeaders(),
+
+      body: JSON.stringify({
+        token: token.trim(),
+        nova_senha: novaSenha,
+      }),
+    }
+  );
+
+  return parseJson<RedefinirSenhaResponse>(
+    response
+  );
 }
 
 // ==============================
@@ -672,14 +777,13 @@ export async function deleteProfessor(
 // TURMAS
 // ==============================
 
-export async function getTurmas(): Promise<any[]> {
+export async function getTurmas(): Promise<Turma[]> {
 
-  return request<any[]>(
+  return request<Turma[]>(
     `${API_URL}/turmas`
   );
 
 }
-
 
 export async function deleteTurma(
   id: string
@@ -693,16 +797,18 @@ export async function deleteTurma(
     }
   );
 
-}export async function postTurma(
-  turma: any
-): Promise<any> {
+}
+
+export async function postTurma(
+  turma: Omit<Turma, "id">
+): Promise<Turma> {
 
   const payload =
     convertKeysToSnakeCase(
       turma
     );
 
-  return request<any>(
+  return request<Turma>(
     `${API_URL}/turmas`,
     {
       method: "POST",
@@ -719,22 +825,17 @@ export async function deleteTurma(
 
 }
 
-
-// ==============================
-// ATUALIZAR TURMA
-// ==============================
-
 export async function updateTurma(
   id: string,
-  turma: any
-): Promise<any> {
+  turma: Partial<Turma>
+): Promise<Turma> {
 
   const payload =
     convertKeysToSnakeCase(
       turma
     );
 
-  return request<any>(
+  return request<Turma>(
     `${API_URL}/turmas/${id}`,
     {
       method: "PUT",
@@ -750,28 +851,29 @@ export async function updateTurma(
   );
 
 }
+
 // ==============================
 // TREINOS
 // ==============================
 
-export async function getTreinos(): Promise<any[]> {
+export async function getTreinos(): Promise<Treino[]> {
 
-  return request<any[]>(
+  return request<Treino[]>(
     `${API_URL}/treinos`
   );
 
 }
 
 export async function postTreino(
-  treino: any
-): Promise<any> {
+  treino: Omit<Treino, "id">
+): Promise<Treino> {
 
   const payload =
     convertKeysToSnakeCase(
       treino
     );
 
-  return request<any>(
+  return request<Treino>(
     `${API_URL}/treinos`,
     {
       method: "POST",
@@ -788,13 +890,11 @@ export async function postTreino(
 
 }
 
-// ==============================
-
 export async function getTreino(
   id: string | number
-): Promise<any> {
+): Promise<Treino> {
 
-  return request<any>(
+  return request<Treino>(
     `${API_URL}/treinos/${id}`
   );
 
@@ -802,15 +902,15 @@ export async function getTreino(
 
 export async function putTreino(
   id: string | number,
-  treino: any
-): Promise<any> {
+  treino: Partial<Treino>
+): Promise<Treino> {
 
   const payload =
     convertKeysToSnakeCase(
       treino
     );
 
-  return request<any>(
+  return request<Treino>(
     `${API_URL}/treinos/${id}`,
     {
       method: "PUT",
@@ -831,7 +931,7 @@ export async function deleteTreino(
   id: string | number
 ): Promise<void> {
 
-  await request<any>(
+  await request<void>(
     `${API_URL}/treinos/${id}`,
     {
       method: "DELETE",
@@ -839,27 +939,28 @@ export async function deleteTreino(
   );
 
 }
+
 // PRESENÇAS
 // ==============================
 
-export async function getPresencas(): Promise<any[]> {
+export async function getPresencas(): Promise<Presenca[]> {
 
-  return request<any[]>(
+  return request<Presenca[]>(
     `${API_URL}/presencas`
   );
 
 }
 
 export async function postPresenca(
-  presenca: any
-): Promise<any> {
+  presenca: Omit<Presenca, "id">
+): Promise<Presenca> {
 
   const payload =
     convertKeysToSnakeCase(
       presenca
     );
 
-  return request<any>(
+  return request<Presenca>(
     `${API_URL}/presencas`,
     {
       method: "POST",
@@ -879,7 +980,7 @@ export async function postPresenca(
 export async function getPresencasPorTreino(
   treinoId: string | number,
   data?: string
-): Promise<any[]> {
+): Promise<Presenca[]> {
 
   const base =
     `${API_URL}/presencas/treino/${treinoId}`;
@@ -889,7 +990,7 @@ export async function getPresencasPorTreino(
       ? `${base}?data=${encodeURIComponent(data)}`
       : base;
 
-  return request<any[]>(
+  return request<Presenca[]>(
     url
   );
 
@@ -897,15 +998,15 @@ export async function getPresencasPorTreino(
 
 export async function putPresenca(
   id: string | number,
-  dados: any
-): Promise<any> {
+  dados: Partial<Presenca>
+): Promise<Presenca> {
 
   const payload =
     convertKeysToSnakeCase(
       dados
     );
 
-  return request<any>(
+  return request<Presenca>(
     `${API_URL}/presencas/${id}`,
     {
       method: "PUT",
@@ -926,54 +1027,13 @@ export async function deletePresenca(
   id: string | number
 ): Promise<void> {
 
-  const token =
-    await getToken();
-
-  if (!token) {
-    throw new Error(
-      "Token de autenticação não informado."
-    );
-  }
-
-  const response =
-    await fetch(
-      `${API_URL}/presencas/${id}`,
-      {
-        method: "DELETE",
-
-        headers: {
-          ...jsonHeaders(),
-
-          Authorization:
-            `Bearer ${token}`,
-        },
-      }
-    );
-
-  if (!response.ok) {
-    const text =
-      await response.text();
-
-    let errorMessage =
-      `Erro ao excluir presença. (status: ${response.status})`;
-
-    try {
-      const json =
-        JSON.parse(
-          text
-        );
-
-      errorMessage =
-        json.error || errorMessage;
-    } catch {
-      errorMessage =
-        text || errorMessage;
+  return request<void>(
+    `${API_URL}/presencas/${id}`,
+    {
+      method: "DELETE",
+      headers: jsonHeaders(),
     }
-
-    throw new Error(
-      errorMessage
-    );
-  }
+  );
 
 }
 
@@ -981,24 +1041,24 @@ export async function deletePresenca(
 // GRADUAÇÕES
 // ==============================
 
-export async function getGraduacoes(): Promise<any[]> {
+export async function getGraduacoes(): Promise<Graduacao[]> {
 
-  return request<any[]>(
+  return request<Graduacao[]>(
     `${API_URL}/graduacoes`
   );
 
 }
 
 export async function postGraduacao(
-  graduacao: any
-): Promise<any> {
+  graduacao: Omit<Graduacao, "id">
+): Promise<Graduacao> {
 
   const payload =
     convertKeysToSnakeCase(
       graduacao
     );
 
-  return request<any>(
+  return request<Graduacao>(
     `${API_URL}/graduacoes`,
     {
       method: "POST",
@@ -1020,24 +1080,24 @@ export async function postGraduacao(
 // PIX
 // ==============================
 
-export async function getPixConfig(): Promise<any> {
+export async function getPixConfig(): Promise<PixConfig> {
 
-  return request<any>(
+  return request<PixConfig>(
     `${API_URL}/pix`
   );
 
 }
 
 export async function updatePixConfig(
-  dados: any
-): Promise<any> {
+  dados: Partial<PixConfig>
+): Promise<PixConfig> {
 
   const payload =
     convertKeysToSnakeCase(
       dados
     );
 
-  return request<any>(
+  return request<PixConfig>(
     `${API_URL}/pix`,
     {
       method: "PUT",
@@ -1052,10 +1112,11 @@ export async function updatePixConfig(
 
     }
   );
+
 }
 
-export async function getCampeonatos(): Promise<any[]> {
-  return request<any[]>(
+export async function getCampeonatos(): Promise<Campeonato[]> {
+  return request<Campeonato[]>(
     `${API_URL}/campeonatos`
   );
 }

@@ -8,6 +8,7 @@ import {
 
 import {
   getPixConfig,
+  onAuthLost,
   updatePixConfig,
 } from "@/services/api";
 
@@ -50,6 +51,8 @@ export function PixProvider({
 
   useEffect(() => {
 
+    let ativo = true;
+
     async function carregar() {
 
       try {
@@ -57,7 +60,7 @@ export function PixProvider({
         const config =
           await getPixConfig();
 
-        if (config) {
+        if (ativo && config) {
           setChavePix(
             config.chave_pix || ""
           );
@@ -80,10 +83,12 @@ export function PixProvider({
               STORAGE_KEY
             );
 
-          if (!dados) return;
+          if (!dados || !ativo) return;
 
           const configuracao =
             JSON.parse(dados);
+
+          if (!ativo) return;
 
           setChavePix(
             configuracao.chavePix || ""
@@ -101,20 +106,37 @@ export function PixProvider({
 
         } catch (error) {
 
-          console.log(
-            "Erro carregar PIX",
-            error
-          );
+          if (ativo) {
+            console.log(
+              "Erro carregar PIX",
+              error
+            );
+          }
 
         }
 
       }
-
     }
 
+    void carregar();
 
-    carregar();
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
+  // ==============================
+  // AUTH LOSS LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthLost(() => {
+      setChavePix("");
+      setNomeRecebedor("DOJO LB");
+      setCidadeRecebedor("SAO PAULO");
+    });
+
+    return cleanup;
   }, []);
 
 
@@ -214,6 +236,8 @@ export function PixProvider({
 
 export function usePix(){
 
-  return useContext(PixContext);
+  return useContext(
+    PixContext
+  );
 
 }

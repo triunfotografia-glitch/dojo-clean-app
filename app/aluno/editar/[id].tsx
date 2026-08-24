@@ -146,7 +146,7 @@ export default function EditarAluno() {
           data: dataFormatada,
           professor: "Não informado",
           observacao: "Graduação atualizada via edição",
-        });
+        } as any);
 
         const novaGraduacao: Graduacao = {
           id: String(criada.id),
@@ -175,9 +175,24 @@ export default function EditarAluno() {
       }
     }
 
-    editarAluno(alunoParaSalvar);
-    Alert.alert("Sucesso", "Aluno atualizado!");
-    router.back();
+    try {
+
+      await editarAluno(alunoParaSalvar);
+      Alert.alert("Sucesso", "Aluno atualizado!");
+      router.back();
+
+    } catch (error) {
+
+      console.error(error);
+
+      Alert.alert(
+        'Erro',
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível atualizar o aluno. Tente novamente.'
+      );
+
+    }
   }
 
   // Garante que o componente não renderize se o estado de edição não estiver pronto

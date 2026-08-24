@@ -1,11 +1,14 @@
 // 🔥 DOJO CONTEXT - JWT + POSTGRESQL + NORMALIZAÇÃO DOS DADOS
 
 import {
+  ApiError,
   deleteAluno,
   deleteCobranca,
   getAlunos,
   getToken,
   loginProfessor,
+  notifyAuthLost,
+  onAuthLost,
   postAluno,
   postCobranca,
   removeToken,
@@ -43,6 +46,7 @@ export interface Graduacao {
 
 export interface Cobranca {
   id: string;
+  alunoId?: string | number;
   descricao: string;
   valor: number;
   vencimento: string;
@@ -381,6 +385,8 @@ export function DojoProvider({
 
   useEffect(() => {
 
+    let ativo = true;
+
     async function carregar() {
 
       try {
@@ -491,13 +497,15 @@ export function DojoProvider({
               apiAlunos
             );
 
+          if (!ativo) return;
+
           setAlunos(
             alunosNormalizados
           );
 
         } catch (error) {
 
-          console.warn(
+          console.error(
             "Erro ao carregar alunos da API:",
             error
           );
@@ -506,32 +514,6 @@ export function DojoProvider({
             error instanceof Error
               ? error.message
               : String(error);
-
-          // ========================
-          // TOKEN INVÁLIDO
-          // ========================
-
-          if (
-            mensagem.includes(
-              "Token inválido"
-            ) ||
-            mensagem.includes(
-              "Token de autenticação"
-            ) ||
-            mensagem.includes(
-              "401"
-            )
-          ) {
-
-            await AsyncStorage.removeItem(
-              USER_STORAGE_KEY
-            );
-
-            setUserLogado(null);
-            setAlunos([]);
-
-            return;
-          }
 
           // ========================
           // FALLBACK LOCAL
@@ -549,6 +531,8 @@ export function DojoProvider({
               const alunosLocais =
                 JSON.parse(local);
 
+              if (!ativo) return;
+
               setAlunos(
                 normalizarAlunos(
                   alunosLocais
@@ -562,11 +546,15 @@ export function DojoProvider({
                 error
               );
 
+              if (!ativo) return;
+
               setAlunos([]);
 
             }
 
           } else {
+
+            if (!ativo) return;
 
             setAlunos([]);
 
@@ -589,13 +577,35 @@ export function DojoProvider({
 
       } finally {
 
-        setCarregado(true);
+        if (ativo) {
+          setCarregado(true);
+        }
 
       }
     }
 
-    carregar();
+    void carregar();
 
+    return () => {
+      ativo = false;
+    };
+
+  }, []);
+
+  // ==============================
+  // AUTH LOSS LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthLost(() => {
+      setUserLogado(null);
+      setAlunos([]);
+      AsyncStorage.removeItem(
+        USER_STORAGE_KEY
+      ).catch(() => {});
+    });
+
+    return cleanup;
   }, []);
 
   // ==============================
@@ -730,6 +740,8 @@ export function DojoProvider({
 
     await removeToken();
 
+    notifyAuthLost();
+
   }
 
   // ==============================
@@ -752,21 +764,34 @@ export function DojoProvider({
   // ==============================
 
   async function adicionarAluno(
-  aluno: Omit<Aluno, "id">
-): Promise<void> {
+    aluno: Omit<Aluno, "id">
+  ): Promise<void> {
 
-    const novo =
-      await postAluno(aluno);
+    try {
 
-    const alunoNormalizado =
-      normalizarAluno(novo);
+      const novo =
+        await postAluno(aluno);
 
-    setAlunos(
-      (prev) => [
-        ...prev,
-        alunoNormalizado,
-      ]
-    );
+      const alunoNormalizado =
+        normalizarAluno(novo);
+
+      setAlunos(
+        (prev) => [
+          ...prev,
+          alunoNormalizado,
+        ]
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Erro ao adicionar aluno:",
+        error
+      );
+
+      throw error;
+
+    }
 
   }
 
@@ -813,30 +838,43 @@ export function DojoProvider({
     aluno: Aluno
   ): Promise<void> {
 
-    const alunoNormalizado =
-      normalizarAluno(aluno);
+    try {
 
-    const atualizado =
-      await updateAluno(
-        alunoNormalizado.id,
-        alunoNormalizado
+      const alunoNormalizado =
+        normalizarAluno(aluno);
+
+      const atualizado =
+        await updateAluno(
+          alunoNormalizado.id,
+          alunoNormalizado
+        );
+
+      const alunoAtualizado =
+        normalizarAluno(
+          atualizado
+        );
+
+      setAlunos(
+        (prev) =>
+          prev.map(
+            (item) =>
+              item.id ===
+                alunoAtualizado.id
+                ? alunoAtualizado
+                : item
+          )
       );
 
-    const alunoAtualizado =
-      normalizarAluno(
-        atualizado
+    } catch (error) {
+
+      console.error(
+        "Erro ao editar aluno:",
+        error
       );
 
-    setAlunos(
-      (prev) =>
-        prev.map(
-          (item) =>
-            item.id ===
-            alunoAtualizado.id
-              ? alunoAtualizado
-              : item
-        )
-    );
+      throw error;
+
+    }
 
   }
 
@@ -849,38 +887,51 @@ export function DojoProvider({
     cobranca: Omit<Cobranca, "id">
   ): Promise<void> {
 
-    const novaCobranca =
-      await postCobranca({
-        ...cobranca,
-        alunoId,
-      } as Omit<
-        Cobranca,
-        "id"
-      >);
+    try {
 
-    const cobrancaNormalizada =
-      normalizarCobranca(
-        novaCobranca
+      const novaCobranca =
+        await postCobranca({
+          ...cobranca,
+          alunoId,
+        } as Omit<
+          Cobranca,
+          "id"
+        >);
+
+      const cobrancaNormalizada =
+        normalizarCobranca(
+          novaCobranca
+        );
+
+      setAlunos(
+        (prev) =>
+          prev.map(
+            (aluno) =>
+              aluno.id ===
+              String(alunoId)
+                ? {
+                    ...aluno,
+
+                    cobrancas: [
+                      cobrancaNormalizada,
+                      ...(aluno.cobrancas ||
+                        []),
+                    ],
+                  }
+                : aluno
+          )
       );
 
-    setAlunos(
-      (prev) =>
-        prev.map(
-          (aluno) =>
-            aluno.id ===
-            String(alunoId)
-              ? {
-                  ...aluno,
+    } catch (error) {
 
-                  cobrancas: [
-                    cobrancaNormalizada,
-                    ...(aluno.cobrancas ||
-                      []),
-                  ],
-                }
-              : aluno
-        )
-    );
+      console.error(
+        'Erro ao adicionar cobrança:',
+        error
+      );
+
+      throw error;
+
+    }
 
   }
 
@@ -895,102 +946,185 @@ export function DojoProvider({
     formaPagamento?: string
   ): Promise<void> {
 
-    let cobrancaId =
-      String(primeiroId);
+    try {
 
-    let dados:
-      | Partial<Cobranca>
-      | undefined;
+      let cobrancaId =
+        String(primeiroId);
 
-    // ==========================
-    // FORMATO ANTIGO
-    // ==========================
+      let dados:
+        | Partial<Cobranca>
+        | undefined;
 
-    if (
-      typeof segundo === "string" ||
-      typeof segundo === "number"
-    ) {
+      // ==========================
+      // FORMATO ANTIGO
+      // ==========================
 
-      cobrancaId =
-        String(segundo);
+      if (
+        typeof segundo === "string" ||
+        typeof segundo === "number"
+      ) {
 
-      dados = {
+        cobrancaId =
+          String(segundo);
+
+        dados = {
+
+          pagoEm:
+            pagoEm ||
+            new Date()
+              .toISOString()
+              .slice(0, 10),
+
+          formaPagamento:
+            formaPagamento,
+
+        };
+
+      }
+
+      // ==========================
+      // FORMATO NOVO
+      // ==========================
+
+      else {
+
+        dados =
+          segundo;
+
+      }
+
+      const dataPagamento =
+        dados?.pagoEm ||
+        new Date()
+          .toISOString()
+          .slice(0, 10);
+
+      const dadosPagamento:
+        Partial<Cobranca> = {
+
+        ...(dados || {}),
+
+        status:
+          "pago",
 
         pagoEm:
-          pagoEm ||
-          new Date()
-            .toISOString()
-            .slice(0, 10),
-
-        formaPagamento:
-          formaPagamento,
+          dataPagamento,
 
       };
 
+      await updateCobranca(
+        cobrancaId,
+        dadosPagamento
+      );
+
+      const alunoAtualizado =
+        alunos.find(
+          (aluno) =>
+            aluno.cobrancas?.some(
+              (cobranca) =>
+                cobranca.id === cobrancaId
+            )
+        );
+
+      if (alunoAtualizado) {
+        const cobrancaPaga =
+          alunoAtualizado.cobrancas.find(
+            (cobranca) =>
+              cobranca.id === cobrancaId
+          );
+
+        if (cobrancaPaga) {
+          const proximoVencimento =
+            calcularProximoVencimento({
+              ...alunoAtualizado,
+              proximaCobranca:
+                cobrancaPaga.vencimento,
+            });
+
+          await updateAluno(
+            alunoAtualizado.id,
+            {
+              ...alunoAtualizado,
+              proximaCobranca:
+                proximoVencimento,
+            }
+          );
+
+          setAlunos(
+            (prev) =>
+              prev.map(
+                (item) =>
+                  item.id ===
+                    alunoAtualizado.id
+                    ? {
+                        ...item,
+
+                        cobrancas:
+                          (
+                            item.cobrancas ||
+                            []
+                          ).map(
+                            (cobranca) =>
+                              cobranca.id ===
+                                cobrancaId
+                                ? normalizarCobranca(
+                                    {
+                                      ...cobranca,
+                                      ...dadosPagamento,
+                                    }
+                                  )
+                                : cobranca
+                          ),
+
+                        proximaCobranca:
+                          proximoVencimento,
+                      }
+                    : item
+              )
+          );
+
+          return;
+        }
+      }
+
+      setAlunos(
+        (prev) =>
+          prev.map(
+            (aluno) => ({
+
+              ...aluno,
+
+              cobrancas:
+                (
+                  aluno.cobrancas ||
+                  []
+                ).map(
+                  (cobranca) =>
+                    cobranca.id ===
+                      cobrancaId
+                      ? normalizarCobranca(
+                          {
+                            ...cobranca,
+                            ...dadosPagamento,
+                          }
+                        )
+                      : cobranca
+                ),
+
+            })
+          )
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Erro ao registrar pagamento:",
+        error
+      );
+
+      throw error;
+
     }
-
-    // ==========================
-    // FORMATO NOVO
-    // ==========================
-
-    else {
-
-      dados =
-        segundo;
-
-    }
-
-    const dataPagamento =
-      dados?.pagoEm ||
-      new Date()
-        .toISOString()
-        .slice(0, 10);
-
-    const dadosPagamento:
-      Partial<Cobranca> = {
-
-      ...(dados || {}),
-
-      status:
-        "pago",
-
-      pagoEm:
-        dataPagamento,
-
-    };
-
-    await updateCobranca(
-      cobrancaId,
-      dadosPagamento
-    );
-
-    setAlunos(
-      (prev) =>
-        prev.map(
-          (aluno) => ({
-
-            ...aluno,
-
-            cobrancas:
-              (
-                aluno.cobrancas ||
-                []
-              ).map(
-                (cobranca) =>
-                  cobranca.id ===
-                  cobrancaId
-                    ? normalizarCobranca(
-                        {
-                          ...cobranca,
-                          ...dadosPagamento,
-                        }
-                      )
-                    : cobranca
-              ),
-
-          })
-        )
-    );
 
   }
 
@@ -1003,36 +1137,49 @@ export function DojoProvider({
     segundoId?: string
   ): Promise<void> {
 
-    const cobrancaId =
-      String(
-        segundoId ||
-        primeiroId
+    try {
+
+      const cobrancaId =
+        String(
+          segundoId ||
+          primeiroId
+        );
+
+      await deleteCobranca(
+        cobrancaId
       );
 
-    await deleteCobranca(
-      cobrancaId
-    );
+      setAlunos(
+        (prev) =>
+          prev.map(
+            (aluno) => ({
 
-    setAlunos(
-      (prev) =>
-        prev.map(
-          (aluno) => ({
+              ...aluno,
 
-            ...aluno,
+              cobrancas:
+                (
+                  aluno.cobrancas ||
+                  []
+                ).filter(
+                  (cobranca) =>
+                    cobranca.id !==
+                    cobrancaId
+                ),
 
-            cobrancas:
-              (
-                aluno.cobrancas ||
-                []
-              ).filter(
-                (cobranca) =>
-                  cobranca.id !==
-                  cobrancaId
-              ),
+            })
+          )
+      );
 
-          })
-        )
-    );
+    } catch (error) {
+
+      console.error(
+        "Erro ao remover cobrança:",
+        error
+      );
+
+      throw error;
+
+    }
 
   }
 
@@ -1045,24 +1192,37 @@ export function DojoProvider({
     segundoId?: string
   ): Promise<void> {
 
-    const cobrancaId =
-      String(
-        segundoId ||
-        primeiroId
+    try {
+
+      const cobrancaId =
+        String(
+          segundoId ||
+          primeiroId
+        );
+
+      await registrarPagamento(
+        cobrancaId,
+        {
+          status:
+            "pago",
+
+          pagoEm:
+            new Date()
+              .toISOString()
+              .slice(0, 10),
+        }
       );
 
-    await registrarPagamento(
-      cobrancaId,
-      {
-        status:
-          "pago",
+    } catch (error) {
 
-        pagoEm:
-          new Date()
-            .toISOString()
-            .slice(0, 10),
-      }
-    );
+      console.error(
+        "Erro ao marcar cobrança como paga:",
+        error
+      );
+
+      throw error;
+
+    }
 
   }
 
@@ -1070,12 +1230,60 @@ export function DojoProvider({
   // COBRANÇAS AUTOMÁTICAS
   // ==============================
 
-  async function executarCobrancasAutomaticas(): Promise<number> {
+  function calcularProximoVencimento(
+    aluno: Aluno
+  ): string {
+    const dia =
+      typeof aluno.diaVencimento === "number"
+        ? aluno.diaVencimento
+        : 10;
 
     const hoje =
-      new Date()
+      new Date();
+    const ano = hoje.getFullYear();
+    const mes = hoje.getMonth();
+
+    const vencimentoEsteMes = new Date(
+      ano,
+      mes,
+      dia
+    );
+
+    const vencimentoProximoMes = new Date(
+      ano,
+      mes + 1,
+      dia
+    );
+
+    const proximaCobrancaValida =
+      aluno.proximaCobranca &&
+      typeof aluno.proximaCobranca === "string";
+
+    const referencia = proximaCobrancaValida
+      ? new Date(aluno.proximaCobranca + "T00:00:00")
+      : null;
+
+    if (
+      referencia &&
+      !Number.isNaN(referencia.getTime()) &&
+      referencia >= hoje
+    ) {
+      return referencia
         .toISOString()
         .slice(0, 10);
+    }
+
+    const vencimento =
+      vencimentoEsteMes >= hoje
+        ? vencimentoEsteMes
+        : vencimentoProximoMes;
+
+    return vencimento
+      .toISOString()
+      .slice(0, 10);
+  }
+
+  async function executarCobrancasAutomaticas(): Promise<number> {
 
     const alunosAtivos =
       alunos.filter(
@@ -1094,16 +1302,23 @@ export function DojoProvider({
       const cobrancas =
         aluno.cobrancas || [];
 
-      const possuiPendente =
-        cobrancas.some(
-          (cobranca) =>
-            cobranca.status ===
-              "pendente" ||
-            cobranca.status ===
-              "atrasado"
-        );
+      const vencimento =
+        calcularProximoVencimento(aluno);
 
-      if (possuiPendente) {
+      const jaExiste =
+        cobrancas.some((cobranca) => {
+          const mesmaData =
+            (cobranca.vencimento || "").split("T")[0] ===
+            (vencimento || "").split("T")[0];
+
+          return (
+            String(cobranca.alunoId) ===
+              String(aluno.id) &&
+            mesmaData
+          );
+        });
+
+      if (jaExiste) {
         continue;
       }
 
@@ -1116,57 +1331,88 @@ export function DojoProvider({
         continue;
       }
 
-      const novaCobranca =
-        await postCobranca({
+      try {
 
-          descricao:
-            `Mensalidade - ${aluno.nome}`,
+        const novaCobranca =
+          await postCobranca({
 
-          valor:
-            Number(
-              aluno.valorMensalidade
-            ),
+            descricao:
+              `Mensalidade - ${aluno.nome}`,
 
-          vencimento:
-            aluno.proximaCobranca ||
-            hoje,
+            valor:
+              Number(
+                aluno.valorMensalidade
+              ),
 
-          status:
-            "pendente",
+            vencimento,
 
-          alunoId:
-            aluno.id,
+            status:
+              "pendente",
 
-        } as Omit<
-          Cobranca,
-          "id"
-        >);
+            alunoId:
+              aluno.id,
 
-      const cobrancaNormalizada =
-        normalizarCobranca(
-          novaCobranca
+          } as Omit<
+            Cobranca,
+            "id"
+          >);
+
+        const cobrancaNormalizada =
+          normalizarCobranca(
+            novaCobranca
+          );
+
+        quantidadeGerada++;
+
+        const proximoVencimento =
+          calcularProximoVencimento({
+            ...aluno,
+            proximaCobranca: vencimento,
+          });
+
+        await updateAluno(
+          aluno.id,
+          {
+            ...aluno,
+            proximaCobranca:
+              proximoVencimento,
+          }
         );
 
-      quantidadeGerada++;
+        setAlunos(
+          (prev) =>
+            prev.map(
+              (item) =>
+                item.id ===
+                  aluno.id
+                  ? {
+                      ...item,
 
-      setAlunos(
-        (prev) =>
-          prev.map(
-            (item) =>
-              item.id ===
-              aluno.id
-                ? {
-                    ...item,
+                      cobrancas: [
+                        cobrancaNormalizada,
+                        ...(item.cobrancas ||
+                          []),
+                      ],
 
-                    cobrancas: [
-                      cobrancaNormalizada,
-                      ...(item.cobrancas ||
-                        []),
-                    ],
-                  }
-                : item
-          )
-      );
+                      proximaCobranca:
+                        proximoVencimento,
+                    }
+                  : item
+            )
+        );
+
+      } catch (error) {
+
+        if (
+          error instanceof ApiError &&
+          error.status === 409
+        ) {
+          continue;
+        }
+
+        throw error;
+
+      }
 
     }
 

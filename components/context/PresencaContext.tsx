@@ -1,19 +1,20 @@
 ﻿import {
+  deletePresenca,
+  getPresencas,
+  getPresencasPorTreino,
+  getToken,
+  onAuthLost,
+  postPresenca,
+  putPresenca,
+} from '@/services/api';
+
+import {
   createContext,
   ReactNode,
   useContext,
   useEffect,
   useState,
 } from 'react';
-
-import {
-  deletePresenca,
-  getPresencas,
-  getPresencasPorTreino,
-  getToken,
-  postPresenca,
-  putPresenca,
-} from '@/services/api';
 
 export type StatusPresenca =
   'presente' |
@@ -137,6 +138,18 @@ export function PresencaProvider({
     };
   }, []);
 
+  // ==============================
+  // AUTH LOSS LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthLost(() => {
+      setPresencas([]);
+    });
+
+    return cleanup;
+  }, []);
+
   // ==========================================================
   // REGISTRAR PRESENÇA NO POSTGRESQL
   // ==========================================================
@@ -144,49 +157,58 @@ export function PresencaProvider({
   async function registrarPresenca(
     presenca: Omit<Presenca, 'id'>
   ) {
-    const resposta =
-      await postPresenca(
-        presenca
-      );
+    try {
+      const resposta =
+        await postPresenca(
+          presenca
+        );
 
-    const novaPresenca =
-      normalizarPresenca(
-        resposta
-      );
+      const novaPresenca =
+        normalizarPresenca(
+          resposta
+        );
 
-    setPresencas(
-      (lista) => {
-        const existe =
-          lista.some(
-            (item) =>
-              item.treinoId ===
-                novaPresenca.treinoId &&
-              item.alunoId ===
-                novaPresenca.alunoId &&
-              item.data ===
-                novaPresenca.data
-          );
-
-        if (existe) {
-          return lista.map(
-            (item) =>
-              item.treinoId ===
+      setPresencas(
+        (lista) => {
+          const existe =
+            lista.some(
+              (item) =>
+                item.treinoId ===
                   novaPresenca.treinoId &&
                 item.alunoId ===
                   novaPresenca.alunoId &&
                 item.data ===
                   novaPresenca.data
-                ? novaPresenca
-                : item
-          );
-        }
+            );
 
-        return [
-          ...lista,
-          novaPresenca,
-        ];
-      }
-    );
+          if (existe) {
+            return lista.map(
+              (item) =>
+                item.treinoId ===
+                  novaPresenca.treinoId &&
+                item.alunoId ===
+                  novaPresenca.alunoId &&
+                item.data ===
+                  novaPresenca.data
+                  ? novaPresenca
+                  : item
+            );
+          }
+
+          return [
+            ...lista,
+            novaPresenca,
+          ];
+        }
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao registrar presença:',
+        error
+      );
+
+      throw error;
+    }
   }
 
   // ==========================================================
@@ -228,26 +250,35 @@ export function PresencaProvider({
     id: string,
     dados: Partial<Presenca>
   ) {
-    const atualizada =
-      await putPresenca(
-        id,
-        dados
+    try {
+      const atualizada =
+        await putPresenca(
+          id,
+          dados
+        );
+
+      const presencaNormalizada =
+        normalizarPresenca(
+          atualizada
+        );
+
+      setPresencas(
+        (lista) =>
+          lista.map(
+            (item) =>
+              item.id === presencaNormalizada.id
+                ? presencaNormalizada
+                : item
+          )
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao editar presença:',
+        error
       );
 
-    const presencaNormalizada =
-      normalizarPresenca(
-        atualizada
-      );
-
-    setPresencas(
-      (lista) =>
-        lista.map(
-          (item) =>
-            item.id === presencaNormalizada.id
-              ? presencaNormalizada
-              : item
-        )
-    );
+      throw error;
+    }
   }
 
   // ==========================================================
@@ -257,16 +288,25 @@ export function PresencaProvider({
   async function excluirPresenca(
     id: string
   ) {
-    await deletePresenca(
-      id
-    );
+    try {
+      await deletePresenca(
+        id
+      );
 
-    setPresencas(
-      (lista) =>
-        lista.filter(
-          (item) => item.id !== id
-        )
-    );
+      setPresencas(
+        (lista) =>
+          lista.filter(
+            (item) => item.id !== id
+          )
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao excluir presença:',
+        error
+      );
+
+      throw error;
+    }
   }
 
   // ==========================================================

@@ -5,6 +5,19 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 
+function converterDataParaISO(dataPtBR: string): string {
+  const partes = dataPtBR.split('/');
+  if (partes.length === 3) {
+    const dia = partes[0].padStart(2, '0');
+    const mes = partes[1].padStart(2, '0');
+    const ano = partes[2];
+    if (ano.length === 4 && /^\d+$/.test(dia) && /^\d+$/.test(mes)) {
+      return `${ano}-${mes}-${dia}`;
+    }
+  }
+  return dataPtBR;
+}
+
 export default function NovaGraduacao() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { buscarAluno, editarAluno } = useDojo();
@@ -20,15 +33,17 @@ export default function NovaGraduacao() {
   async function salvar() {
     if (!faixa.trim() || !data.trim()) { Alert.alert('Atenção', 'Informe a faixa e a data.'); return; }
 
+    const dataEnviada = converterDataParaISO(data.trim());
+
     try {
 
       const criada = await postGraduacao({
         aluno_id: Number(aluno!.id),
         faixa: faixa.trim(),
-        data: data.trim(),
-        professor: professor.trim() || null,
-        observacao: observacao.trim() || null,
-      });
+        data: dataEnviada,
+        professor: professor.trim() || '',
+        observacao: observacao.trim() || '',
+      } as any);
 
       const novaGraduacao: Graduacao = {
         id: String(criada.id),
@@ -38,7 +53,7 @@ export default function NovaGraduacao() {
         observacao: criada.observacao || '',
       };
 
-      editarAluno({
+      await editarAluno({
         ...alunoAtual,
         faixa: novaGraduacao.faixa,
         historicoGraduacao: [

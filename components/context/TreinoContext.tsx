@@ -10,6 +10,7 @@ import {
   deleteTreino,
   getToken,
   getTreinos,
+  onAuthLost,
   postTreino,
   putTreino,
 } from '@/services/api';
@@ -84,6 +85,18 @@ export function TreinoProvider({
     return () => {
       ativo = false;
     };
+  }, []);
+
+  // ==============================
+  // AUTH LOSS LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthLost(() => {
+      setTreinos([]);
+    });
+
+    return cleanup;
   }, []);
 
   async function adicionarTreino(
