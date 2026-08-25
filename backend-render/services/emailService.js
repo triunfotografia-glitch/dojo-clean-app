@@ -16,6 +16,10 @@ const transporter = nodemailer.createTransport({
     user: getEnv('EMAIL_USER', ''),
     pass: getEnv('EMAIL_PASS', ''),
   },
+  family: 4,
+  connectTimeout: 10000,
+  greetingTimeout: 5000,
+  socketTimeout: 10000,
 });
 
 export function isEmailConfigured() {
