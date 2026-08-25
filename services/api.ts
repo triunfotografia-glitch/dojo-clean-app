@@ -516,7 +516,7 @@ export async function redefinirSenha(
       headers: jsonHeaders(),
 
       body: JSON.stringify({
-        token: token.trim(),
+        resetToken: token.trim(),
         nova_senha: novaSenha,
       }),
     }
