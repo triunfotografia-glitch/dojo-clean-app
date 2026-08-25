@@ -482,10 +482,17 @@ export async function validarOtp(req, res) {
   try {
     const { email, telefone, codigo } = req.body;
 
+    console.log('[DIAG OTP] validarOtp entrada:', {
+      hasEmail: Boolean(email && email.trim()),
+      hasTelefone: Boolean(telefone && telefone.trim()),
+      codigoLength: typeof codigo === 'string' ? codigo.trim().length : 0,
+    });
+
     if (
       (!email || !email.trim()) &&
       (!telefone || !telefone.trim())
     ) {
+      console.log('[DIAG OTP] Faltou email e telefone.');
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
@@ -497,6 +504,7 @@ export async function validarOtp(req, res) {
       typeof codigo !== 'string' ||
       !codigo.trim()
     ) {
+      console.log('[DIAG OTP] Código vazio ou inválido.');
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
@@ -505,27 +513,39 @@ export async function validarOtp(req, res) {
 
     const codigoHash = crypto.createHash('sha256').update(codigo.trim()).digest('hex');
 
+    console.log('[DIAG OTP] codigoHash:', codigoHash);
+
     let professorResult;
 
     if (email && typeof email === 'string' && email.trim()) {
       const emailNormalizado = email.trim().toLowerCase();
+      console.log('[DIAG OTP] Buscando professor por email:', emailNormalizado);
+
       professorResult = await query(
         `SELECT id FROM professores WHERE LOWER(email) = LOWER($1) LIMIT 1`,
         [emailNormalizado]
       );
+
+      console.log('[DIAG OTP] Professor encontrado por email:', professorResult.rows.length);
     } else if (telefone && typeof telefone === 'string' && telefone.trim()) {
       const telefoneNormalizado = normalizarTelefone(telefone);
       if (!telefoneNormalizado) {
+        console.log('[DIAG OTP] Telefone inválido após normalização.');
         return res.status(200).json({
           success: false,
           message: 'Código de recuperação inválido ou expirado.',
         });
       }
+      console.log('[DIAG OTP] Buscando professor por telefone:', telefoneNormalizado);
+
       professorResult = await query(
         `SELECT id FROM professores WHERE regexp_replace(telefone, '\D', '', 'g') = regexp_replace($1, '\D', '', 'g') LIMIT 1`,
         [telefoneNormalizado]
       );
+
+      console.log('[DIAG OTP] Professor encontrado por telefone:', professorResult.rows.length);
     } else {
+      console.log('[DIAG OTP] Nenhum dado de busca válido.');
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
@@ -533,6 +553,7 @@ export async function validarOtp(req, res) {
     }
 
     if (professorResult.rows.length === 0) {
+      console.log('[DIAG OTP] Professor NÃO encontrado.');
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
@@ -540,9 +561,20 @@ export async function validarOtp(req, res) {
     }
 
     const professorId = professorResult.rows[0].id;
+    console.log('[DIAG OTP] professorId:', professorId);
+
     const otp = await buscarOtpValido(professorId, codigoHash);
 
+    console.log('[DIAG OTP] buscarOtpValido resultado:', otp ? {
+      id: otp.id,
+      professor_id: otp.professor_id,
+      email: otp.email,
+      expires_at: otp.expires_at,
+      used_at: otp.used_at,
+    } : null);
+
     if (!otp) {
+      console.log('[DIAG OTP] OTP NÃO encontrado ou inválido/expirado.');
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
@@ -560,7 +592,7 @@ export async function validarOtp(req, res) {
       resetToken,
     });
   } catch (error) {
-    console.error('Erro ao validar OTP:', error);
+    console.error('[DIAG OTP] Erro ao validar OTP:', error);
 
     return res.status(200).json({
       success: false,

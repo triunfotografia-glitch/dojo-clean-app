@@ -1511,6 +1511,11 @@ export async function criarOtp(
 }
 
 export async function buscarOtpValido(professorId, codigoHash) {
+  console.log('[DIAG OTP] buscarOtpValido:', {
+    professorId,
+    codigoHash,
+  });
+
   const result = await query(
     `SELECT *
      FROM otp_recovery
@@ -1522,6 +1527,19 @@ export async function buscarOtpValido(professorId, codigoHash) {
      LIMIT 1`,
     [professorId, codigoHash]
   );
+
+  console.log('[DIAG OTP] buscarOtpValido rows:', result.rows.length);
+
+  if (result.rows.length > 0) {
+    const otp = result.rows[0];
+    console.log('[DIAG OTP] OTP encontrado:', {
+      id: otp.id,
+      professor_id: otp.professor_id,
+      email: otp.email,
+      expires_at: otp.expires_at,
+      used_at: otp.used_at,
+    });
+  }
 
   return result.rows[0] || null;
 }
