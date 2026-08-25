@@ -65,15 +65,30 @@ export async function query(text, params = []) {
   } catch (error) {
     console.error(
       '❌ Erro na query:',
-      error.message,
-      '\nQuery:',
-      text,
-      '\nParams:',
-      params
+      error.message
     );
 
     throw error;
   }
 }
 
+// 🔄 Executa uma função dentro de uma transação
+export async function transaction(fn) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export default pool;
+
+
