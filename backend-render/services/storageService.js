@@ -1,4 +1,4 @@
-import { query } from './databaseService.js';
+import { query, transaction } from './databaseService.js';
 
 /* =========================
    HELPERS
@@ -135,9 +135,49 @@ const ALUNO_PUBLIC_COLUMNS = `
 export async function getAlunos() {
   const result = await query(
     `SELECT
-      ${ALUNO_PUBLIC_COLUMNS}
-     FROM alunos
-     ORDER BY id DESC`
+      a.id,
+      a.nome,
+      a.email,
+      a.telefone,
+      a.foto,
+      a.data_nascimento,
+      a.faixa,
+      a.graus,
+      a.historico_graduacao,
+      a.turma,
+      a.professor_id,
+      a.data_entrada,
+      a.ativo,
+      a.mensalidade,
+      a.valor_mensalidade,
+      a.dia_vencimento,
+      a.proxima_cobranca,
+      a.observacao,
+      a.criado_em,
+      a.atualizado_em,
+      COALESCE(
+        JSON_AGG(
+          JSON_BUILD_OBJECT(
+            'id', c.id,
+            'aluno_id', c.aluno_id,
+            'descricao', c.descricao,
+            'valor', c.valor,
+            'vencimento', c.vencimento,
+            'competencia', c.competencia,
+            'status', c.status,
+            'pago_em', c.pago_em,
+            'forma_pagamento', c.forma_pagamento,
+            'observacao', c.observacao,
+            'criado_em', c.criado_em,
+            'atualizado_em', c.atualizado_em
+          )
+        ) FILTER (WHERE c.id IS NOT NULL),
+        '[]'::json
+      ) AS cobrancas
+     FROM alunos a
+     LEFT JOIN cobrancas c ON c.aluno_id = a.id
+     GROUP BY a.id
+     ORDER BY a.id DESC`
   );
 
   return result.rows.map(
@@ -203,7 +243,7 @@ export async function addAluno(
   const mappedAluno =
     mapObjectKeys(dadosAluno);
 
-  
+
   // Campos de data vazios devem ser enviados como NULL
   // para o PostgreSQL.
   if (mappedAluno.data_nascimento === "") {
@@ -624,58 +664,111 @@ export async function deleteProfessor(
 export async function getTurmas() {
   const result = await query(
     `SELECT
-       t.*,
-       COALESCE(p.nome, t.professor) AS professor
+       t.id,
+       t.nome,
+       t.professor,
+       t.professor_id,
+       COALESCE(
+         JSON_AGG(
+           JSON_BUILD_OBJECT(
+             'turma_id', ta.turma_id,
+             'aluno_id', ta.aluno_id
+           )
+         ) FILTER (WHERE ta.aluno_id IS NOT NULL),
+         '[]'::json
+       ) AS turma_alunos,
+       COALESCE(
+         JSON_AGG(ta.aluno_id) FILTER (WHERE ta.aluno_id IS NOT NULL),
+         '[]'::json
+       ) AS aluno_ids,
+       t.criado_em,
+       t.atualizado_em
      FROM turmas t
-     LEFT JOIN professores p
-       ON p.id = t.professor_id
+     LEFT JOIN turma_alunos ta ON ta.turma_id = t.id
+     GROUP BY t.id
      ORDER BY t.id DESC`
   );
 
-  return result.rows.map(
-    (row) =>
-      parseDatabaseFields(
-        row,
-        ['alunos']
-      )
-  );
+  return result.rows.map((row) => {
+    const parseado = parseDatabaseFields(row, ['aluno_ids', 'turma_alunos']);
+    return {
+      id: parseado.id,
+      nome: parseado.nome,
+      professor: parseado.professor,
+      professor_id: parseado.professor_id,
+      alunos: parseado.aluno_ids || [],
+      aluno_ids: parseado.aluno_ids || [],
+      alunoIds: parseado.aluno_ids || [],
+      turma_alunos: parseado.turma_alunos || [],
+      criado_em: parseado.criado_em,
+      atualizado_em: parseado.atualizado_em,
+    };
+  });
 }
 export async function addTurma(
   turma
 ) {
-  const result = await query(
-    `INSERT INTO turmas
-     (
-       nome,
-       professor,
-       professor_id,
-       alunos
-     )
-     VALUES
-     (
-       $1,
-       $2,
-       $3,
-       $4
-     )
-     RETURNING *`,
-    [
-      turma.nome,
-      turma.professor || null,
-      turma.professor_id || null,
-      JSON.stringify(
-        turma.alunos ??
-turma.aluno_ids ??
-turma.alunoIds ??
-[]
-      ),
-    ]
-  );
+  return transaction(async (client) => {
+    const result = await client.query(
+      `INSERT INTO turmas
+       (
+         nome,
+         professor,
+         professor_id,
+         alunos
+       )
+       VALUES
+       (
+         $1,
+         $2,
+         $3,
+         $4
+       )
+       RETURNING *`,
+      [
+        turma.nome,
+        turma.professor || null,
+        turma.professor_id || null,
+        JSON.stringify(
+          turma.alunos ??
+            turma.aluno_ids ??
+            turma.alunoIds ??
+            []
+        ),
+      ]
+    );
 
-  return parseDatabaseFields(
-    result.rows[0],
-    ['alunos']
-  );
+    const turmaCriada = result.rows[0];
+
+    const alunoIds =
+      turma.alunos ??
+      turma.aluno_ids ??
+      turma.alunoIds ??
+      [];
+
+    if (Array.isArray(alunoIds) && alunoIds.length > 0) {
+      const valores = alunoIds
+        .map((alunoId) => [turmaCriada.id, alunoId])
+        .filter(([turmaId, alunoId]) => Number.isInteger(alunoId));
+
+      if (valores.length > 0) {
+        const placeholders = valores.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(', ');
+        const params = valores.flat();
+
+        await client.query(
+          `INSERT INTO turma_alunos (turma_id, aluno_id)
+           VALUES ${placeholders}
+           ON CONFLICT (turma_id, aluno_id) DO NOTHING`,
+          params
+        );
+      }
+    }
+
+    return parseDatabaseFields(
+      turmaCriada,
+      ['alunos']
+    );
+  });
 }
 /* =========================
    TREINOS
@@ -690,12 +783,20 @@ export async function getTurma(
 ) {
   const result = await query(
     `SELECT
-       t.*,
-       COALESCE(p.nome, t.professor) AS professor
+       t.id,
+       t.nome,
+       t.professor,
+       t.professor_id,
+       COALESCE(
+         JSON_AGG(ta.aluno_id) FILTER (WHERE ta.aluno_id IS NOT NULL),
+         '[]'::json
+       ) AS aluno_ids,
+       t.criado_em,
+       t.atualizado_em
      FROM turmas t
-     LEFT JOIN professores p
-       ON p.id = t.professor_id
+     LEFT JOIN turma_alunos ta ON ta.turma_id = t.id
      WHERE t.id = $1
+     GROUP BY t.id
      LIMIT 1`,
     [id]
   );
@@ -704,10 +805,19 @@ export async function getTurma(
     return null;
   }
 
-  return parseDatabaseFields(
-    result.rows[0],
-    ['alunos']
-  );
+  const parseado = parseDatabaseFields(result.rows[0], ['aluno_ids']);
+
+  return {
+    id: parseado.id,
+    nome: parseado.nome,
+    professor: parseado.professor,
+    professor_id: parseado.professor_id,
+    alunos: parseado.aluno_ids || [],
+    aluno_ids: parseado.aluno_ids || [],
+    alunoIds: parseado.aluno_ids || [],
+    criado_em: parseado.criado_em,
+    atualizado_em: parseado.atualizado_em,
+  };
 }
 
 /* =========================================================
@@ -718,44 +828,75 @@ export async function updateTurma(
   id,
   turma
 ) {
-  const result = await query(
-    `UPDATE turmas
-     SET
-       nome = COALESCE($1, nome),
-       professor = COALESCE($2, professor),
-       professor_id = COALESCE($3, professor_id),
-       alunos = COALESCE($4, alunos),
-       atualizado_em = NOW()
-     WHERE id = $5
-     RETURNING *`,
-    [
-      turma.nome ?? null,
-      turma.professor ?? null,
-      turma.professor_id ?? null,
-      (
-      turma.alunos !== undefined ||
-      turma.aluno_ids !== undefined ||
-      turma.alunoIds !== undefined
-    )
-      ? JSON.stringify(
-          turma.alunos ??
-          turma.aluno_ids ??
-          turma.alunoIds ??
-          []
+  return transaction(async (client) => {
+    const result = await client.query(
+      `UPDATE turmas
+       SET
+         nome = COALESCE($1, nome),
+         professor = COALESCE($2, professor),
+         professor_id = COALESCE($3, professor_id),
+         alunos = COALESCE($4, alunos),
+         atualizado_em = NOW()
+       WHERE id = $5
+       RETURNING *`,
+      [
+        turma.nome ?? null,
+        turma.professor ?? null,
+        turma.professor_id ?? null,
+        (
+          turma.alunos !== undefined ||
+          turma.aluno_ids !== undefined ||
+          turma.alunoIds !== undefined
         )
-      : null,
-      id,
-    ]
-  );
+          ? JSON.stringify(
+              turma.alunos ??
+                turma.aluno_ids ??
+                turma.alunoIds ??
+                []
+            )
+          : null,
+        id,
+      ]
+    );
 
-  if (!result.rows[0]) {
-    return null;
-  }
+    if (!result.rows[0]) {
+      return null;
+    }
 
-  return parseDatabaseFields(
-    result.rows[0],
-    ['alunos']
-  );
+    const alunoIds =
+      turma.alunos ??
+      turma.aluno_ids ??
+      turma.alunoIds ??
+      null;
+
+    if (alunoIds !== null && Array.isArray(alunoIds)) {
+      await client.query(
+        `DELETE FROM turma_alunos WHERE turma_id = $1`,
+        [id]
+      );
+
+      const valores = alunoIds
+        .filter((alunoId) => Number.isInteger(alunoId))
+        .map((alunoId) => [id, alunoId]);
+
+      if (valores.length > 0) {
+        const placeholders = valores.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(', ');
+        const params = valores.flat();
+
+        await client.query(
+          `INSERT INTO turma_alunos (turma_id, aluno_id)
+           VALUES ${placeholders}
+           ON CONFLICT (turma_id, aluno_id) DO NOTHING`,
+          params
+        );
+      }
+    }
+
+    return parseDatabaseFields(
+      result.rows[0],
+      ['alunos']
+    );
+  });
 }
 
 /* =========================================================
@@ -1038,8 +1179,8 @@ export async function deletePresenca(
 ) {
   const result = await query(
     `DELETE FROM presencas
-     WHERE id = $1
-     RETURNING *`,
+      WHERE id = $1
+      RETURNING *`,
     [id]
   );
 
@@ -1048,8 +1189,8 @@ export async function deletePresenca(
 
 
 /* =========================
-   GRADUAÃƒâ€¡Ãƒâ€¢ES
-========================= */
+    GRADUAÃƒâ€¡Ãƒâ€¢ES
+ ========================= */
 
 export async function getGraduacoes() {
   const result = await query(
@@ -1272,4 +1413,67 @@ export async function updateFirstPixConfig(
   );
 
   return insertResult.rows[0];
+}
+
+/* =========================
+   RECUPERAÇÃO DE SENHA
+========================= */
+
+export async function criarRecuperacaoSenha(
+  professorId,
+  tokenHash
+) {
+  await query(
+    `UPDATE recuperacao_senha
+     SET used_at = NOW()
+     WHERE professor_id = $1 AND used_at IS NULL`,
+    [professorId]
+  );
+
+  const result = await query(
+    `INSERT INTO recuperacao_senha
+      (professor_id, token_hash, expires_at)
+     VALUES
+      ($1, $2, NOW() + INTERVAL '15 minutes')
+     RETURNING *`,
+    [professorId, tokenHash]
+  );
+
+  return result.rows[0];
+}
+
+export async function buscarRecuperacaoSenhaValida(tokenHash) {
+  const result = await query(
+    `SELECT *
+     FROM recuperacao_senha
+     WHERE token_hash = $1
+       AND used_at IS NULL
+       AND expires_at > NOW()
+     ORDER BY criado_em DESC
+     LIMIT 1`,
+    [tokenHash]
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function marcarRecuperacaoSenhaComoUsada(id) {
+  const result = await query(
+    `UPDATE recuperacao_senha
+     SET used_at = NOW()
+     WHERE id = $1 AND used_at IS NULL
+     RETURNING *`,
+    [id]
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function invalidarRecuperacoesSenhaProfessor(professorId) {
+  await query(
+    `UPDATE recuperacao_senha
+     SET used_at = NOW()
+     WHERE professor_id = $1 AND used_at IS NULL`,
+    [professorId]
+  );
 }

@@ -160,6 +160,24 @@ CREATE TABLE IF NOT EXISTS pix_config (
 );
 
 -- ============================================================
+-- TABELA: recuperacao_senha
+-- ============================================================
+CREATE TABLE IF NOT EXISTS recuperacao_senha (
+    id            SERIAL PRIMARY KEY,
+    professor_id  INTEGER NOT NULL REFERENCES professores(id) ON DELETE CASCADE,
+    token_hash    TEXT NOT NULL,
+    expires_at    TIMESTAMP NOT NULL,
+    used_at       TIMESTAMP,
+    criado_em     TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_recuperacao_senha_professor_id
+ON recuperacao_senha(professor_id);
+
+CREATE INDEX IF NOT EXISTS idx_recuperacao_senha_expires_at
+ON recuperacao_senha(expires_at);
+
+-- ============================================================
 -- TRIGGERS updated_at
 -- ============================================================
 CREATE TRIGGER trg_alunos_updated
