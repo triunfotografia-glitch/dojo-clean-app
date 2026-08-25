@@ -1519,11 +1519,11 @@ export async function buscarOtpValido(professorId, codigoHash) {
   const result = await query(
     `SELECT *
      FROM otp_recovery
-     WHERE professor_id = $1
-       AND codigo_hash = $2
-       AND used_at IS NULL
-       AND expires_at > NOW()
-     ORDER BY criado_em DESC
+      WHERE professor_id = $1
+        AND codigo_hash = $2
+        AND used_at IS NULL
+        AND expires_at > NOW()
+     ORDER BY created_at DESC
      LIMIT 1`,
     [professorId, codigoHash]
   );
