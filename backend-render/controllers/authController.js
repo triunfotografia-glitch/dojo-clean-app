@@ -12,7 +12,7 @@ import {
   buscarOtpValido,
   marcarOtpComoUsado,
 } from '../services/storageService.js';
-import { sendPasswordResetEmail, isEmailConfigured } from '../services/emailService.js';
+import { sendPasswordResetEmail, sendOtpEmail, isEmailConfigured } from '../services/emailService.js';
 import { sendOtpWhatsApp, isWhatsAppConfigured } from '../services/whatsappService.js';
 
 export async function login(req, res) {
