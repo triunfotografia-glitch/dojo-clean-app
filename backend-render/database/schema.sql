@@ -178,6 +178,28 @@ CREATE INDEX IF NOT EXISTS idx_recuperacao_senha_expires_at
 ON recuperacao_senha(expires_at);
 
 -- ============================================================
+-- TABELA: otp_recovery
+-- ============================================================
+CREATE TABLE IF NOT EXISTS otp_recovery (
+    id            SERIAL PRIMARY KEY,
+    professor_id  INTEGER NOT NULL REFERENCES professores(id) ON DELETE CASCADE,
+    codigo_hash   TEXT NOT NULL,
+    telefone      TEXT NOT NULL,
+    expires_at    TIMESTAMP NOT NULL,
+    used_at       TIMESTAMP,
+    criado_em     TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_otp_recovery_professor_id
+ON otp_recovery(professor_id);
+
+CREATE INDEX IF NOT EXISTS idx_otp_recovery_expires_at
+ON otp_recovery(expires_at);
+
+CREATE INDEX IF NOT EXISTS idx_otp_recovery_telefone
+ON otp_recovery(telefone);
+
+-- ============================================================
 -- TRIGGERS updated_at
 -- ============================================================
 CREATE TRIGGER trg_alunos_updated

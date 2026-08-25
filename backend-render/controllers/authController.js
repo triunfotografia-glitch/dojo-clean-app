@@ -7,8 +7,13 @@ import {
   buscarRecuperacaoSenhaValida,
   marcarRecuperacaoSenhaComoUsada,
   invalidarRecuperacoesSenhaProfessor,
+  invalidarOtpsProfessor,
+  criarOtp,
+  buscarOtpValido,
+  marcarOtpComoUsado,
 } from '../services/storageService.js';
 import { sendPasswordResetEmail, isEmailConfigured } from '../services/emailService.js';
+import { sendOtpWhatsApp, isWhatsAppConfigured } from '../services/whatsappService.js';
 
 export async function login(req, res) {
   try {
@@ -244,13 +249,7 @@ export async function esqueciSenha(req, res) {
 
 export async function redefinirSenha(req, res) {
   try {
-    const { token, nova_senha } = req.body;
-
-    if (!token || typeof token !== 'string' || !token.trim()) {
-      return res.status(400).json({
-        error: 'Token de recuperação inválido.',
-      });
-    }
+    const { token, resetToken, nova_senha } = req.body;
 
     if (!nova_senha || typeof nova_senha !== 'string' || nova_senha.length < 6) {
       return res.status(400).json({
@@ -258,12 +257,40 @@ export async function redefinirSenha(req, res) {
       });
     }
 
-    const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
-    const recuperacao = await buscarRecuperacaoSenhaValida(tokenHash);
+    let professorId = null;
 
-    if (!recuperacao) {
+    if (resetToken && typeof resetToken === 'string' && resetToken.trim()) {
+      let decoded;
+      try {
+        decoded = jwt.verify(resetToken.trim(), process.env.JWT_SECRET);
+      } catch {
+        return res.status(400).json({
+          error: 'Token de redefinição inválido ou expirado.',
+        });
+      }
+
+      if (!decoded || !decoded.professorId || !decoded.resetPassword) {
+        return res.status(400).json({
+          error: 'Token de redefinição inválido.',
+        });
+      }
+
+      professorId = decoded.professorId;
+    } else if (token && typeof token === 'string' && token.trim()) {
+      const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+      const recuperacao = await buscarRecuperacaoSenhaValida(tokenHash);
+
+      if (!recuperacao) {
+        return res.status(400).json({
+          error: 'Token inválido, expirado ou já utilizado.',
+        });
+      }
+
+      professorId = recuperacao.professor_id;
+      await marcarRecuperacaoSenhaComoUsada(recuperacao.id);
+    } else {
       return res.status(400).json({
-        error: 'Token inválido, expirado ou já utilizado.',
+        error: 'Token de recuperação inválido.',
       });
     }
 
@@ -273,10 +300,8 @@ export async function redefinirSenha(req, res) {
       `UPDATE professores
        SET senha = $1, atualizado_em = NOW()
        WHERE id = $2`,
-      [senhaHash, recuperacao.professor_id]
+      [senhaHash, professorId]
     );
-
-    await marcarRecuperacaoSenhaComoUsada(recuperacao.id);
 
     return res.status(200).json({
       mensagem: 'Senha redefinida com sucesso.',
@@ -287,6 +312,174 @@ export async function redefinirSenha(req, res) {
 
     return res.status(500).json({
       error: 'Erro interno ao redefinir senha.',
+    });
+  }
+}
+
+function normalizarTelefone(telefone) {
+  const digits = telefone.replace(/\D/g, '');
+
+  if (!digits || digits.length < 10 || digits.length > 13) {
+    return null;
+  }
+
+  if (digits.startsWith('55') && digits.length >= 12) {
+    return '+' + digits;
+  }
+
+  if (digits.length === 10 || digits.length === 11) {
+    return '+55' + digits;
+  }
+
+  return null;
+}
+
+/* =========================
+   WHATSAPP — SOLICITAR OTP
+   ========================= */
+
+export async function solicitarRecuperacaoWhatsApp(req, res) {
+  try {
+    const { telefone } = req.body;
+
+    if (
+      !telefone ||
+      typeof telefone !== 'string' ||
+      !telefone.trim()
+    ) {
+      return res.status(200).json({
+        mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+      });
+    }
+
+    const telefoneNormalizado = normalizarTelefone(telefone);
+
+    if (!telefoneNormalizado) {
+      return res.status(200).json({
+        mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+      });
+    }
+
+    const result = await query(
+      `SELECT id, telefone
+       FROM professores
+       WHERE regexp_replace(telefone, '\D', '', 'g') = regexp_replace($1, '\D', '', 'g')
+       LIMIT 1`,
+      [telefoneNormalizado]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(200).json({
+        mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+      });
+    }
+
+    const professor = result.rows[0];
+
+    const codigo = String(crypto.randomInt(100000, 999999));
+    const codigoHash = crypto.createHash('sha256').update(codigo).digest('hex');
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await invalidarOtpsProfessor(professor.id);
+    await criarOtp(professor.id, professor.telefone, codigoHash, expiresAt);
+
+    if (!isWhatsAppConfigured()) {
+      console.error('WhatsApp não configurado para recuperação de senha.');
+      return res.status(200).json({
+        mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+      });
+    }
+
+    const destinatario = `whatsapp:+${professor.telefone.replace(/\D/g, '')}`;
+
+    await sendOtpWhatsApp({
+      to: destinatario,
+      codigo,
+    });
+
+    return res.status(200).json({
+      mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+    });
+  } catch (error) {
+    console.error('Erro ao solicitar recuperação por WhatsApp:', error);
+
+    return res.status(200).json({
+      mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+    });
+  }
+}
+
+/* =========================
+   WHATSAPP — VALIDAR OTP
+   ========================= */
+
+export async function validarOtp(req, res) {
+  try {
+    const { telefone, codigo } = req.body;
+
+    if (
+      !telefone ||
+      typeof telefone !== 'string' ||
+      !telefone.trim() ||
+      !codigo ||
+      typeof codigo !== 'string' ||
+      !codigo.trim()
+    ) {
+      return res.status(200).json({
+        success: false,
+        message: 'Código de recuperação inválido ou expirado.',
+      });
+    }
+
+    const telefoneNormalizado = normalizarTelefone(telefone);
+
+    if (!telefoneNormalizado) {
+      return res.status(200).json({
+        success: false,
+        message: 'Código de recuperação inválido ou expirado.',
+      });
+    }
+
+    const codigoHash = crypto.createHash('sha256').update(codigo.trim()).digest('hex');
+
+    const professorResult = await query(
+      `SELECT id FROM professores WHERE regexp_replace(telefone, '\D', '', 'g') = regexp_replace($1, '\D', '', 'g') LIMIT 1`,
+      [telefoneNormalizado]
+    );
+
+    if (professorResult.rows.length === 0) {
+      return res.status(200).json({
+        success: false,
+        message: 'Código de recuperação inválido ou expirado.',
+      });
+    }
+
+    const professorId = professorResult.rows[0].id;
+    const otp = await buscarOtpValido(professorId, codigoHash);
+
+    if (!otp) {
+      return res.status(200).json({
+        success: false,
+        message: 'Código de recuperação inválido ou expirado.',
+      });
+    }
+
+    const resetToken = jwt.sign(
+      { professorId, resetPassword: true },
+      process.env.JWT_SECRET,
+      { expiresIn: '10m' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      resetToken,
+    });
+  } catch (error) {
+    console.error('Erro ao validar OTP:', error);
+
+    return res.status(200).json({
+      success: false,
+      message: 'Código de recuperação inválido ou expirado.',
     });
   }
 }

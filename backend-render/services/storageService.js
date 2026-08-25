@@ -1477,3 +1477,62 @@ export async function invalidarRecuperacoesSenhaProfessor(professorId) {
     [professorId]
   );
 }
+
+/* =========================
+   OTP — WHATSAPP
+   ========================= */
+
+export async function invalidarOtpsProfessor(professorId) {
+  await query(
+    `UPDATE otp_recovery
+     SET used_at = NOW()
+     WHERE professor_id = $1 AND used_at IS NULL`,
+    [professorId]
+  );
+}
+
+export async function criarOtp(
+  professorId,
+  telefone,
+  codigoHash,
+  expiresAt
+) {
+  const result = await query(
+    `INSERT INTO otp_recovery
+      (professor_id, telefone, codigo_hash, expires_at)
+     VALUES
+      ($1, $2, $3, $4)
+     RETURNING *`,
+    [professorId, telefone, codigoHash, expiresAt]
+  );
+
+  return result.rows[0];
+}
+
+export async function buscarOtpValido(professorId, codigoHash) {
+  const result = await query(
+    `SELECT *
+     FROM otp_recovery
+     WHERE professor_id = $1
+       AND codigo_hash = $2
+       AND used_at IS NULL
+       AND expires_at > NOW()
+     ORDER BY criado_em DESC
+     LIMIT 1`,
+    [professorId, codigoHash]
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function marcarOtpComoUsado(id) {
+  const result = await query(
+    `UPDATE otp_recovery
+     SET used_at = NOW()
+     WHERE id = $1 AND used_at IS NULL
+     RETURNING *`,
+    [id]
+  );
+
+  return result.rows[0] || null;
+}
