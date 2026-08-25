@@ -23,11 +23,14 @@ const transporter = nodemailer.createTransport({
 });
 
 export function isEmailConfigured() {
-  return Boolean(
+  const hasSmtp =
     getEnv('EMAIL_HOST', '') &&
-      getEnv('EMAIL_USER', '') &&
-      getEnv('EMAIL_PASS', '')
-  );
+    getEnv('EMAIL_USER', '') &&
+    getEnv('EMAIL_PASS', '');
+
+  const hasResend = getEnv('RESEND_API_KEY', '');
+
+  return Boolean(hasSmtp || hasResend);
 }
 
 export async function sendPasswordResetEmail({ to, nome, token, frontendUrl }) {
@@ -72,9 +75,7 @@ export async function sendPasswordResetEmail({ to, nome, token, frontendUrl }) {
 }
 
 export async function sendOtpEmail({ to, codigo }) {
-  if (!isEmailConfigured()) {
-    throw new Error('Configuração de e-mail ausente.');
-  }
+  const useResend = Boolean(getEnv('RESEND_API_KEY', ''));
 
   const text =
     `Olá,\n\n` +
@@ -93,6 +94,41 @@ export async function sendOtpEmail({ to, codigo }) {
     `<p>Este código é válido por <strong>10 minutos</strong> e pode ser utilizado apenas uma vez.</p>` +
     `<p>Se você não solicitou esta recuperação, ignore este e-mail.</p>` +
     `<p>DOJO LB JIU-JITSU</p>`;
+
+  if (useResend) {
+    const apiKey = getEnv('RESEND_API_KEY', '');
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'DOJO LB JIU-JITSU <onboarding@resend.dev>',
+        to: [to],
+        subject: 'DOJO LB - Código de recuperação de senha',
+        html,
+      }),
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Erro ao enviar e-mail via Resend.';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    return;
+  }
+
+  if (!isEmailConfigured()) {
+    throw new Error('Configuração de e-mail ausente.');
+  }
 
   const mailOptions = {
     from: getEnv('EMAIL_FROM', getEnv('EMAIL_USER', 'no-reply@dojolb.local')),
