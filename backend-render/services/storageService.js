@@ -1495,15 +1495,16 @@ export async function criarOtp(
   professorId,
   telefone,
   codigoHash,
-  expiresAt
+  expiresAt,
+  email = null
 ) {
   const result = await query(
     `INSERT INTO otp_recovery
-      (professor_id, telefone, codigo_hash, expires_at)
+      (professor_id, telefone, email, codigo_hash, expires_at)
      VALUES
-      ($1, $2, $3, $4)
+      ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [professorId, telefone, codigoHash, expiresAt]
+    [professorId, telefone, email, codigoHash, expiresAt]
   );
 
   return result.rows[0];

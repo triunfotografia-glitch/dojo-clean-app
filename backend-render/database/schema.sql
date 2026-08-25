@@ -184,7 +184,8 @@ CREATE TABLE IF NOT EXISTS otp_recovery (
     id            SERIAL PRIMARY KEY,
     professor_id  INTEGER NOT NULL REFERENCES professores(id) ON DELETE CASCADE,
     codigo_hash   TEXT NOT NULL,
-    telefone      TEXT NOT NULL,
+    telefone      TEXT,
+    email         TEXT,
     expires_at    TIMESTAMP NOT NULL,
     used_at       TIMESTAMP,
     criado_em     TIMESTAMP DEFAULT NOW()

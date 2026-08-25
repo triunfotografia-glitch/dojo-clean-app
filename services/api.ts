@@ -475,6 +475,12 @@ export interface RedefinirSenhaResponse {
   mensagem: string;
 }
 
+export interface ValidarOtpResponse {
+  success: boolean;
+  resetToken?: string;
+  message?: string;
+}
+
 export async function esqueciSenha(
   email: string
 ): Promise<EsqueciSenhaResponse> {
@@ -517,6 +523,98 @@ export async function redefinirSenha(
   );
 
   return parseJson<RedefinirSenhaResponse>(
+    response
+  );
+}
+
+export async function solicitarRecuperacaoEmail(
+  email: string
+): Promise<EsqueciSenhaResponse> {
+
+  const response = await fetch(
+    `${API_URL}/auth/solicitar-recuperacao-email`,
+    {
+      method: "POST",
+
+      headers: jsonHeaders(),
+
+      body: JSON.stringify({
+        email: email.trim(),
+      }),
+    }
+  );
+
+  return parseJson<EsqueciSenhaResponse>(
+    response
+  );
+}
+
+export async function solicitarRecuperacaoWhatsApp(
+  telefone: string
+): Promise<EsqueciSenhaResponse> {
+
+  const response = await fetch(
+    `${API_URL}/auth/solicitar-recuperacao-whatsapp`,
+    {
+      method: "POST",
+
+      headers: jsonHeaders(),
+
+      body: JSON.stringify({
+        telefone: telefone.trim(),
+      }),
+    }
+  );
+
+  return parseJson<EsqueciSenhaResponse>(
+    response
+  );
+}
+
+export async function validarOtpEmail(
+  email: string,
+  codigo: string
+): Promise<ValidarOtpResponse> {
+
+  const response = await fetch(
+    `${API_URL}/auth/validar-otp`,
+    {
+      method: "POST",
+
+      headers: jsonHeaders(),
+
+      body: JSON.stringify({
+        email: email.trim(),
+        codigo: codigo.trim(),
+      }),
+    }
+  );
+
+  return parseJson<ValidarOtpResponse>(
+    response
+  );
+}
+
+export async function validarOtp(
+  telefone: string,
+  codigo: string
+): Promise<ValidarOtpResponse> {
+
+  const response = await fetch(
+    `${API_URL}/auth/validar-otp`,
+    {
+      method: "POST",
+
+      headers: jsonHeaders(),
+
+      body: JSON.stringify({
+        telefone: telefone.trim(),
+        codigo: codigo.trim(),
+      }),
+    }
+  );
+
+  return parseJson<ValidarOtpResponse>(
     response
   );
 }

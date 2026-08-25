@@ -335,6 +335,71 @@ function normalizarTelefone(telefone) {
 }
 
 /* =========================
+   E-MAIL — SOLICITAR OTP
+   ========================= */
+
+export async function solicitarRecuperacaoEmail(req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return res.status(200).json({
+        mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+      });
+    }
+
+    const emailNormalizado = email.trim().toLowerCase();
+
+    const result = await query(
+      `
+        SELECT id, nome, email
+        FROM professores
+        WHERE LOWER(email) = LOWER($1)
+        LIMIT 1
+      `,
+      [emailNormalizado]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(200).json({
+        mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+      });
+    }
+
+    const professor = result.rows[0];
+
+    const codigo = String(crypto.randomInt(100000, 999999));
+    const codigoHash = crypto.createHash('sha256').update(codigo).digest('hex');
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await invalidarOtpsProfessor(professor.id);
+    await criarOtp(professor.id, null, codigoHash, expiresAt, emailNormalizado);
+
+    if (!isEmailConfigured()) {
+      console.error('E-mail não configurado para recuperação de senha.');
+      return res.status(200).json({
+        mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+      });
+    }
+
+    await sendOtpEmail({
+      to: professor.email,
+      codigo,
+    });
+
+    return res.status(200).json({
+      mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+    });
+  } catch (error) {
+    console.error('Erro ao solicitar recuperação por e-mail:', error);
+
+    return res.status(200).json({
+      mensagem: 'Se os dados estiverem cadastrados, enviaremos um código para recuperação da senha.',
+    });
+  }
+}
+
+/* =========================
    WHATSAPP — SOLICITAR OTP
    ========================= */
 
@@ -415,12 +480,19 @@ export async function solicitarRecuperacaoWhatsApp(req, res) {
 
 export async function validarOtp(req, res) {
   try {
-    const { telefone, codigo } = req.body;
+    const { email, telefone, codigo } = req.body;
 
     if (
-      !telefone ||
-      typeof telefone !== 'string' ||
-      !telefone.trim() ||
+      (!email || !email.trim()) &&
+      (!telefone || !telefone.trim())
+    ) {
+      return res.status(200).json({
+        success: false,
+        message: 'Código de recuperação inválido ou expirado.',
+      });
+    }
+
+    if (
       !codigo ||
       typeof codigo !== 'string' ||
       !codigo.trim()
@@ -431,21 +503,34 @@ export async function validarOtp(req, res) {
       });
     }
 
-    const telefoneNormalizado = normalizarTelefone(telefone);
+    const codigoHash = crypto.createHash('sha256').update(codigo.trim()).digest('hex');
 
-    if (!telefoneNormalizado) {
+    let professorResult;
+
+    if (email && typeof email === 'string' && email.trim()) {
+      const emailNormalizado = email.trim().toLowerCase();
+      professorResult = await query(
+        `SELECT id FROM professores WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+        [emailNormalizado]
+      );
+    } else if (telefone && typeof telefone === 'string' && telefone.trim()) {
+      const telefoneNormalizado = normalizarTelefone(telefone);
+      if (!telefoneNormalizado) {
+        return res.status(200).json({
+          success: false,
+          message: 'Código de recuperação inválido ou expirado.',
+        });
+      }
+      professorResult = await query(
+        `SELECT id FROM professores WHERE regexp_replace(telefone, '\D', '', 'g') = regexp_replace($1, '\D', '', 'g') LIMIT 1`,
+        [telefoneNormalizado]
+      );
+    } else {
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
       });
     }
-
-    const codigoHash = crypto.createHash('sha256').update(codigo.trim()).digest('hex');
-
-    const professorResult = await query(
-      `SELECT id FROM professores WHERE regexp_replace(telefone, '\D', '', 'g') = regexp_replace($1, '\D', '', 'g') LIMIT 1`,
-      [telefoneNormalizado]
-    );
 
     if (professorResult.rows.length === 0) {
       return res.status(200).json({

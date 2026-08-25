@@ -70,3 +70,37 @@ export async function sendPasswordResetEmail({ to, nome, token, frontendUrl }) {
 
   await transporter.sendMail(mailOptions);
 }
+
+export async function sendOtpEmail({ to, codigo }) {
+  if (!isEmailConfigured()) {
+    throw new Error('Configuração de e-mail ausente.');
+  }
+
+  const text =
+    `Olá,\n\n` +
+    `Recebemos uma solicitação para redefinir sua senha no DOJO LB.\n\n` +
+    `Seu código de recuperação é:\n\n` +
+    `${codigo}\n\n` +
+    `Este código é válido por 10 minutos e pode ser utilizado apenas uma vez.\n\n` +
+    `Se você não solicitou esta recuperação, ignore este e-mail.\n\n` +
+    `DOJO LB JIU-JITSU`;
+
+  const html =
+    `<p>Olá,</p>` +
+    `<p>Recebemos uma solicitação para redefinir sua senha no <strong>DOJO LB</strong>.</p>` +
+    `<p>Seu código de recuperação é:</p>` +
+    `<p><strong>${codigo}</strong></p>` +
+    `<p>Este código é válido por <strong>10 minutos</strong> e pode ser utilizado apenas uma vez.</p>` +
+    `<p>Se você não solicitou esta recuperação, ignore este e-mail.</p>` +
+    `<p>DOJO LB JIU-JITSU</p>`;
+
+  const mailOptions = {
+    from: getEnv('EMAIL_FROM', getEnv('EMAIL_USER', 'no-reply@dojolb.local')),
+    to,
+    subject: 'DOJO LB - Código de recuperação de senha',
+    text,
+    html,
+  };
+
+  await transporter.sendMail(mailOptions);
+}

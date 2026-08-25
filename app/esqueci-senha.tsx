@@ -1,139 +1,103 @@
 import { COLORS } from "@/components/Colors";
-import { promptText } from "@/components/Prompt";
-import { Professor, useProfessores } from "@/components/context/ProfessorContext";
+import { solicitarRecuperacaoEmail } from "@/services/api";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 export default function EsqueciSenha() {
-  const { professores, editarProfessor } = useProfessores();
-  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [professorEncontrado, setProfessorEncontrado] = useState<Professor | null>(null);
+  const [carregando, setCarregando] = useState(false);
 
-  function redefinirSenha(usuario: Professor) {
-    promptText(
-      "Redefinir Senha",
-      `Olá, ${usuario.nome}. Digite sua nova senha.`,
-      (novaSenha) => {
-        if (novaSenha === null) return; // Cancelado
-
-        if (novaSenha.trim().length < 4) {
-          Alert.alert("Senha muito curta", "A senha deve ter no mínimo 4 caracteres.");
-          return;
-        }
-
-        editarProfessor({ ...usuario, senha: novaSenha });
-
-        Alert.alert("Sucesso!", "Sua senha foi redefinida. Você já pode fazer o login.", [
-          { text: "OK", onPress: () => router.back() },
-        ]);
-      },
-      "secure-text"
-    );
-  }
-
-  function buscarUsuario() {
-    if (!nome.trim()) {
-      Alert.alert("Atenção", "Por favor, informe seu nome completo.");
-      return;
-    }
-
-    const nomeBusca = nome.trim().toLowerCase();
-    const encontrado = professores.find(
-      (p) => p.nome.toLowerCase() === nomeBusca
-    );
-    if (encontrado) {
-      setProfessorEncontrado(encontrado);
-      setEmail("");
-      return;
-    }
-
-    setProfessorEncontrado(null);
-    Alert.alert("Usuário não encontrado", "Não encontramos nenhum professor com este nome.");
-  }
-
-  function confirmarEmail() {
-    if (!professorEncontrado) return;
-
+  async function solicitarRecuperacao() {
     if (!email.trim()) {
-      Alert.alert("Atenção", "Por favor, informe o e-mail cadastrado.");
+      Alert.alert("Atenção", "Informe o e-mail cadastrado.");
       return;
     }
 
-    const emailNormalizado = email.trim().toLowerCase();
-    const emailCadastrado = professorEncontrado.email.trim().toLowerCase();
+    try {
+      setCarregando(true);
 
-    if (emailNormalizado !== emailCadastrado) {
-      Alert.alert("Erro", "E-mail não confere. Verifique o e-mail cadastrado e tente novamente.");
-      return;
+      await solicitarRecuperacaoEmail(email.trim());
+
+      router.replace({
+        pathname: "/redefinir-senha",
+        params: { email: email.trim() },
+      });
+    } catch (error) {
+      console.error("Erro ao solicitar recuperação:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível solicitar a recuperação. Tente novamente mais tarde."
+      );
+    } finally {
+      setCarregando(false);
     }
-
-    redefinirSenha(professorEncontrado);
   }
 
   return (
-    <View style={styles.container}>
-      <Pressable onPress={() => router.back()}>
-        <Text style={styles.back}>‹ Voltar para o Login</Text>
-      </Pressable>
+    <KeyboardAvoidingView
+      style={styles.keyboardContainer}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView contentContainerStyle={styles.container}>
+        <Pressable onPress={() => router.back()}>
+          <Text style={styles.back}>‹ Voltar para o Login</Text>
+        </Pressable>
 
-      <Text style={styles.title}>Redefinir Senha</Text>
-      <Text style={styles.subtitle}>
-        {professorEncontrado
-          ? "Confirme o e-mail cadastrado para continuar."
-          : "Digite seu nome completo para localizar seu cadastro."}
-      </Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Seu nome completo"
-        placeholderTextColor={COLORS.muted}
-        value={nome}
-        onChangeText={setNome}
-        autoCapitalize="words"
-      />
-
-      {professorEncontrado && (
-        <TextInput
-          style={styles.input}
-          placeholder="E-mail cadastrado"
-          placeholderTextColor={COLORS.muted}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-      )}
-
-      <Pressable style={styles.button} onPress={professorEncontrado ? confirmarEmail : buscarUsuario}>
-        <Text style={styles.buttonText}>
-          {professorEncontrado ? "Confirmar E-mail" : "Buscar Cadastro"}
+        <Text style={styles.title}>Recuperar Senha</Text>
+        <Text style={styles.subtitle}>
+          Informe o e-mail cadastrado para receber o código de recuperação.
         </Text>
-      </Pressable>
-    </View>
+
+        <View style={styles.card}>
+          <TextInput
+            style={styles.input}
+            placeholder="E-mail cadastrado"
+            placeholderTextColor={COLORS.muted}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+
+          <Pressable
+            style={[styles.button, carregando && styles.buttonDisabled]}
+            onPress={solicitarRecuperacao}
+            disabled={carregando}
+          >
+            {carregando ? (
+              <Text style={styles.buttonText}>Enviando...</Text>
+            ) : (
+              <Text style={styles.buttonText}>Enviar código</Text>
+            )}
+          </Pressable>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardContainer: { flex: 1, backgroundColor: COLORS.background },
   container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
     padding: 25,
-    justifyContent: "center",
+    paddingTop: 70,
   },
   back: {
     color: COLORS.textSecondary,
     fontSize: 16,
-    position: "absolute",
-    top: -100,
+    marginBottom: 20,
   },
   title: {
     color: COLORS.white,
@@ -143,29 +107,43 @@ const styles = StyleSheet.create({
   subtitle: {
     color: COLORS.muted,
     marginTop: 8,
-    marginBottom: 30,
+    marginBottom: 25,
     lineHeight: 22,
   },
-  input: {
+  card: {
     backgroundColor: COLORS.card,
-    color: COLORS.white,
-    borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
-    fontSize: 16,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 18,
+    marginTop: 30,
+  },
+  input: {
+    backgroundColor: COLORS.background,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    color: COLORS.white,
+    marginBottom: 12,
+  },
+  help: {
+    color: COLORS.textSecondary,
+    marginBottom: 18,
+    lineHeight: 20,
   },
   button: {
     backgroundColor: COLORS.primary,
-    padding: 16,
-    borderRadius: 15,
+    borderRadius: 12,
+    padding: 15,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: COLORS.white,
     fontWeight: "bold",
-    fontSize: 16,
   },
 });
