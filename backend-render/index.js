@@ -21,6 +21,9 @@ import turmasRoutes from './routes/turmas.js';
 // Conexão com banco
 import { connectDatabase } from './services/databaseService.js';
 
+// Diagnóstico SMTP
+import { transporter, isEmailConfigured } from './services/emailService.js';
+
 const app = express();
 
 app.set('trust proxy', 1);
@@ -152,6 +155,50 @@ app.use(
   authMiddleware,
   campeonatosRoutes
 );
+
+// ==============================
+// DIAGNÓSTICO SMTP
+// ==============================
+
+app.get('/diagnostico/smtp', async (req, res) => {
+  console.log('[DIAG SMTP] Iniciando teste de conexão SMTP...');
+
+  if (!isEmailConfigured()) {
+    console.log('[DIAG SMTP] E-mail não configurado.');
+    return res.status(500).json({
+      success: false,
+      error: 'E-mail não configurado.',
+    });
+  }
+
+  try {
+    const result = await transporter.verify();
+
+    console.log('[DIAG SMTP] Conexão SMTP OK');
+
+    res.json({
+      success: true,
+      host: process.env.EMAIL_HOST || '',
+      port: Number(process.env.EMAIL_PORT || '587'),
+      secure: String(process.env.EMAIL_SECURE || 'false').toLowerCase() === 'true',
+      result,
+    });
+  } catch (error) {
+    console.error('[DIAG SMTP] Erro:', error.code, error.command, error.address, error.port);
+
+    res.status(500).json({
+      success: false,
+      host: process.env.EMAIL_HOST || '',
+      port: Number(process.env.EMAIL_PORT || '587'),
+      secure: String(process.env.EMAIL_SECURE || 'false').toLowerCase() === 'true',
+      error: error.message,
+      code: error.code,
+      command: error.command,
+      address: error.address,
+      port: error.port,
+    });
+  }
+});
 
 // ==============================
 // 404

@@ -104,3 +104,5 @@ export async function sendOtpEmail({ to, codigo }) {
 
   await transporter.sendMail(mailOptions);
 }
+
+export { transporter };
