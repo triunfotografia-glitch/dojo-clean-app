@@ -28,8 +28,6 @@ export async function getPix(req, res) {
 
     return res.status(500).json({
       error: 'Erro ao buscar configuração PIX.',
-      detalhe: error?.message || null,
-      codigo: error?.code || null,
     });
   }
 }
@@ -98,6 +96,11 @@ export async function updatePix(req, res) {
       });
     }
 
+    console.log('[SECURITY] Configuração PIX alterada:', {
+      usuarioId: req.usuario?.id,
+      ip: req.ip,
+    });
+
     return res.json(config);
   } catch (error) {
     console.error(
@@ -107,8 +110,6 @@ export async function updatePix(req, res) {
 
     return res.status(500).json({
       error: 'Erro ao atualizar configuração PIX.',
-      detalhe: error?.message || null,
-      codigo: error?.code || null,
     });
   }
 }

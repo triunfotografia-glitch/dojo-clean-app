@@ -14,7 +14,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     const isPublicRoute =
       segments.includes("login") ||
-      segments.includes("esqueci-senha");
+      segments.includes("esqueci-senha") ||
+      segments.includes("redefinir-senha");
 
     if (userLogado) {
       if (isPublicRoute) {

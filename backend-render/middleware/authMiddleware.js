@@ -53,7 +53,10 @@ export function authMiddleware(req, res, next) {
     const usuario =
       jwt.verify(
         token,
-        process.env.JWT_SECRET
+        process.env.JWT_SECRET,
+        {
+          algorithms: ['HS256'],
+        }
       );
 
     // =========================

@@ -319,14 +319,42 @@ export async function updateAluno(
   aluno
 ) {
   const {
-  senha,
-  password,
-  cobrancas,
-  ...dadosAluno
-} = aluno || {};
+    senha,
+    password,
+    cobrancas,
+    ...dadosAluno
+  } = aluno || {};
 
-const mappedAluno =
-  mapObjectKeys(dadosAluno);
+  const mappedAluno =
+    mapObjectKeys(dadosAluno);
+
+  if (mappedAluno.data_nascimento === "") {
+    mappedAluno.data_nascimento = null;
+  }
+
+  if (mappedAluno.data_entrada === "") {
+    mappedAluno.data_entrada = null;
+  }
+
+  if (mappedAluno.proxima_cobranca === "") {
+    mappedAluno.proxima_cobranca = null;
+  }
+
+  if (mappedAluno.criado_em === "") {
+    mappedAluno.criado_em = null;
+  }
+
+  if (mappedAluno.atualizado_em === "") {
+    mappedAluno.atualizado_em = null;
+  }
+
+  if (mappedAluno.valor_mensalidade === "") {
+    mappedAluno.valor_mensalidade = null;
+  }
+
+  if (mappedAluno.dia_vencimento === "") {
+    mappedAluno.dia_vencimento = null;
+  }
 
   const fields =
     prepareFields(mappedAluno);

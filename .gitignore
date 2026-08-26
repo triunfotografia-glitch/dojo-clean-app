@@ -37,11 +37,14 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# backups manuais (não devem ser versionados)
+# backups manuais (nao devem ser versionados)
 *.bak
 *.bak-*
 *.backup
 *.backup-*
+
+# audit local
+audit_geral.js
 
 # generated native folders
 /ios

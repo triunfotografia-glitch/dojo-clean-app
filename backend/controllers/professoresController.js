@@ -134,11 +134,6 @@ export async function updateProfessor(req, res) {
     const professor =
       req.body;
 
-    console.log('[BACKEND updateProfessor] id:', id);
-    console.log('[BACKEND updateProfessor] req.body keys:', Object.keys(professor || {}));
-    console.log('[BACKEND updateProfessor] req.body.senha existe:', typeof professor?.senha === 'string');
-    console.log('[BACKEND updateProfessor] req.body.senha length:', typeof professor?.senha === 'string' ? professor.senha.length : 'N/A');
-
     // =========================
     // VALIDAR ID
     // =========================
@@ -183,16 +178,13 @@ export async function updateProfessor(req, res) {
       professor.senha &&
       typeof professor.senha === 'string'
     ) {
-      console.log('[BACKEND updateProfessor] bcrypt executado: SIM');
       const hash = await bcrypt.hash(
         professor.senha,
         10
       );
-      console.log('[BACKEND updateProfessor] hash produzido length:', hash.length);
       dadosAtualizados.senha =
         hash;
     } else {
-      console.log('[BACKEND updateProfessor] bcrypt executado: NAO');
       // Nunca enviar senha vazia
       // para o storage.
       delete dadosAtualizados.senha;

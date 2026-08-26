@@ -26,7 +26,10 @@ function hoje() {
 
 
 function paraData(data: string) {
-  const partes = data.split('-').map(Number);
+  if (!data) return null;
+
+  const apenasData = data.split('T')[0];
+  const partes = apenasData.split('-').map(Number);
 
   if (partes.length !== 3) return null;
 
@@ -77,13 +80,21 @@ function formatarValor(valor:number){
 
 function parseValor(valor:string){
 
-  return Number(
+  const limpo =
     valor
       .replace(/\s/g,'')
-      .replace('R$','')
-      .replace(/\./g,'')
-      .replace(',','.')
-  );
+      .replace('R$','');
+
+  if (limpo.includes(',')) {
+
+    return Number(
+      limpo
+        .replace(/\./g,'')
+        .replace(',','.')
+    );
+  }
+
+  return Number(limpo);
 
 }
 
@@ -339,7 +350,7 @@ export default function FinanceiroAluno(){
 
 
 
-  function adicionar(){
+  async function adicionar(){
 
     const valorNumerico =
       parseValor(valor);
@@ -383,10 +394,25 @@ export default function FinanceiroAluno(){
 
 
 
-    adicionarCobranca(
-      aluno.id,
-      novaCobranca
-    );
+    try {
+
+      await adicionarCobranca(
+        aluno.id,
+        novaCobranca
+      );
+
+    } catch (error) {
+
+      Alert.alert(
+        'Erro ao adicionar cobrança',
+        error instanceof Error
+          ? error.message
+          : 'Erro ao criar cobrança.'
+      );
+
+      return;
+
+    }
 
 
 
@@ -444,7 +470,7 @@ export default function FinanceiroAluno(){
 
 
 
-  function confirmarPagamento(
+  async function confirmarPagamento(
     cobranca:Cobranca
   ){
 
@@ -461,14 +487,32 @@ export default function FinanceiroAluno(){
         {
           text:'Confirmar',
 
-          onPress:()=>{
+          onPress:async ()=>{
 
-            registrarPagamento(
-              aluno.id,
-              cobranca.id,
-              hoje(),
-              'PIX'
-            );
+            try {
+
+              await registrarPagamento(
+                aluno.id,
+                cobranca.id,
+                hoje(),
+                'PIX'
+              );
+
+              Alert.alert(
+                'Sucesso',
+                'Pagamento registrado.'
+              );
+
+            } catch (error) {
+
+              console.error(error);
+
+              Alert.alert(
+                'Erro',
+                'Não foi possível registrar o pagamento.'
+              );
+
+            }
 
           }
 
@@ -523,23 +567,14 @@ onPress: async () => {
     );
   }
 
-   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-    >
-
-      <Pressable
-        onPress={() => router.back()}
+    return (
+      <ScrollView
+        contentContainerStyle={styles.container}
       >
-        <Text style={styles.back}>
-          ‹ Voltar
+
+        <Text style={styles.title}>
+          Financeiro
         </Text>
-      </Pressable>
-
-
-      <Text style={styles.title}>
-        Financeiro
-      </Text>
 
 
       <Text style={styles.subtitle}>
@@ -843,12 +878,11 @@ const styles = StyleSheet.create({
   },
 
 
-  back:{
-    color:COLORS.textSecondary,
-    fontSize:16,
-    marginBottom:20,
+  backButtonText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 16,
   },
-
 
   title:{
     color:COLORS.white,
@@ -958,30 +992,30 @@ const styles = StyleSheet.create({
     fontSize:16,
     fontWeight:'bold',
   },
-  
+
   chargeValue: {
     color: "#22c55e",
     fontSize: 20,
     marginTop: 6,
   },
-  
+
   chargeDate: {
     color: "#aaa",
     marginTop: 4,
   },
-  
+
   status: {
     marginTop: 6,
     fontWeight: "bold",
   },
-  
+
   actions: {
     flexDirection: "row",
     // justifyContent: "space-between", // The user example doesn't have this, let's make it more flexible
     gap: 8,
     marginTop: 12,
   },
-  
+
   btnPix: {
     backgroundColor: "#333",
     padding: 8,
@@ -989,7 +1023,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  
+
   btnPago: {
     backgroundColor: "#16a34a",
     padding: 8,
@@ -997,13 +1031,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  
+
   btnExcluir: {
     backgroundColor: "#b91c1c",
     padding: 8,
     borderRadius: 8,
   },
-  
+
   btnText: {
     color: "#fff",
     fontWeight: 'bold',

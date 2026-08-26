@@ -51,7 +51,7 @@ export default function Treinos() {
   }
 
   function confirmarExclusao(id: string) {
-    Alert.alert('Excluir treino', 'Deseja excluir este treino?', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Excluir', style: 'destructive', onPress: () => void excluir(id) }]);
+    Alert.alert('Excluir treino', 'Deseja excluir este treino?', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Excluir', style: 'destructive', onPress: () => excluir(id) }]);
   }
 
   async function excluir(id: string) {

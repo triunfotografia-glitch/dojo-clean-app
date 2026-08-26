@@ -39,7 +39,11 @@ console.log(
 // MIDDLEWARES GERAIS
 // ==============================
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  })
+);
 
 app.use(
   express.json({
@@ -51,13 +55,15 @@ app.use(
 // LOG DE REQUISIÇÕES
 // ==============================
 
-app.use((req, res, next) => {
-  console.log(
-    `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`
-  );
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log(
+      `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`
+    );
 
-  next();
-});
+    next();
+  });
+}
 
 // ==============================
 // ROTA BASE
@@ -66,8 +72,6 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
-    message: 'API Dojo LB rodando',
-    database: 'PostgreSQL',
   });
 });
 
@@ -81,25 +85,6 @@ app.get('/', (req, res) => {
 // obtém o JWT para acessar o sistema.
 
 app.use('/auth', authRoutes);
-
-// ==============================
-// TESTE DO JWT
-// ==============================
-
-// Rota temporária para validar
-// se o middleware JWT está funcionando.
-
-app.get(
-  '/teste-auth',
-  authMiddleware,
-  (req, res) => {
-    res.json({
-      sucesso: true,
-      mensagem: 'JWT válido.',
-      usuario: req.usuario,
-    });
-  }
-);
 
 // ==============================
 // ROTAS PROTEGIDAS

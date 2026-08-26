@@ -135,9 +135,49 @@ const ALUNO_PUBLIC_COLUMNS = `
 export async function getAlunos() {
   const result = await query(
     `SELECT
-      ${ALUNO_PUBLIC_COLUMNS}
-     FROM alunos
-     ORDER BY id DESC`
+      a.id,
+      a.nome,
+      a.email,
+      a.telefone,
+      a.foto,
+      a.data_nascimento,
+      a.faixa,
+      a.graus,
+      a.historico_graduacao,
+      a.turma,
+      a.professor_id,
+      a.data_entrada,
+      a.ativo,
+      a.mensalidade,
+      a.valor_mensalidade,
+      a.dia_vencimento,
+      a.proxima_cobranca,
+      a.observacao,
+      a.criado_em,
+      a.atualizado_em,
+      COALESCE(
+        JSON_AGG(
+          JSON_BUILD_OBJECT(
+            'id', c.id,
+            'aluno_id', c.aluno_id,
+            'descricao', c.descricao,
+            'valor', c.valor,
+            'vencimento', c.vencimento,
+            'competencia', c.competencia,
+            'status', c.status,
+            'pago_em', c.pago_em,
+            'forma_pagamento', c.forma_pagamento,
+            'observacao', c.observacao,
+            'criado_em', c.criado_em,
+            'atualizado_em', c.atualizado_em
+          )
+        ) FILTER (WHERE c.id IS NOT NULL),
+        '[]'::json
+      ) AS cobrancas
+     FROM alunos a
+     LEFT JOIN cobrancas c ON c.aluno_id = a.id
+     GROUP BY a.id
+     ORDER BY a.id DESC`
   );
 
   return result.rows.map(
@@ -203,7 +243,7 @@ export async function addAluno(
   const mappedAluno =
     mapObjectKeys(dadosAluno);
 
-  
+
   // Campos de data vazios devem ser enviados como NULL
   // para o PostgreSQL.
   if (mappedAluno.data_nascimento === "") {
@@ -279,14 +319,42 @@ export async function updateAluno(
   aluno
 ) {
   const {
-  senha,
-  password,
-  cobrancas,
-  ...dadosAluno
-} = aluno || {};
+    senha,
+    password,
+    cobrancas,
+    ...dadosAluno
+  } = aluno || {};
 
-const mappedAluno =
-  mapObjectKeys(dadosAluno);
+  const mappedAluno =
+    mapObjectKeys(dadosAluno);
+
+  if (mappedAluno.data_nascimento === "") {
+    mappedAluno.data_nascimento = null;
+  }
+
+  if (mappedAluno.data_entrada === "") {
+    mappedAluno.data_entrada = null;
+  }
+
+  if (mappedAluno.proxima_cobranca === "") {
+    mappedAluno.proxima_cobranca = null;
+  }
+
+  if (mappedAluno.criado_em === "") {
+    mappedAluno.criado_em = null;
+  }
+
+  if (mappedAluno.atualizado_em === "") {
+    mappedAluno.atualizado_em = null;
+  }
+
+  if (mappedAluno.valor_mensalidade === "") {
+    mappedAluno.valor_mensalidade = null;
+  }
+
+  if (mappedAluno.dia_vencimento === "") {
+    mappedAluno.dia_vencimento = null;
+  }
 
   const fields =
     prepareFields(mappedAluno);

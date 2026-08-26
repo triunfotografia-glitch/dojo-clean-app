@@ -22,7 +22,12 @@ function moeda(valor: number) {
 
 function formatarData(data: string) {
   if (!data) return '';
-  const [ano, mes, dia] = data.split('-');
+
+  const apenasData = data.split('T')[0];
+  const [ano, mes, dia] = apenasData.split('-');
+
+  if (!ano || !mes || !dia) return '';
+
   return `${dia}/${mes}/${ano}`;
 }
 
@@ -116,13 +121,24 @@ export default function Financeiro() {
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Confirmar',
-          onPress: () => {
-            registrarPagamento(
-              aluno.id,
-              cobranca.id,
-              new Date().toISOString().slice(0, 10),
-              'Manual'
-            );
+          onPress: async () => {
+            try {
+              await registrarPagamento(
+                aluno.id,
+                cobranca.id,
+                new Date().toISOString().slice(0, 10),
+                'Manual'
+              );
+              Alert.alert('Sucesso', 'Pagamento registrado com sucesso.');
+            } catch (error) {
+              console.error('Erro ao registrar pagamento:', error);
+              Alert.alert(
+                'Erro',
+                error instanceof Error
+                  ? error.message
+                  : 'Não foi possível registrar o pagamento. Tente novamente.'
+              );
+            }
           },
         },
       ]

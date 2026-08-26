@@ -79,8 +79,8 @@ export interface Aluno {
   observacao: string;
   criadoEm: string;
 
-  
-  
+
+
 }
 
 // ==============================

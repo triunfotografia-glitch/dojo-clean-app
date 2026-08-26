@@ -49,6 +49,12 @@ export async function createCobranca(req, res) {
   } catch (error) {
     console.error('Erro ao criar cobrança:', error);
 
+    if (error.code === '23505') {
+      return res.status(409).json({
+        error: 'Já existe uma cobrança para este aluno nesta data de vencimento.',
+      });
+    }
+
     res.status(500).json({
       error: 'Erro ao criar cobrança.',
     });

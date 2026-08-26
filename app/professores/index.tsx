@@ -26,11 +26,21 @@ export default function Professores() {
           {
             text: 'Excluir e desvincular',
             style: 'destructive',
-            onPress: () => {
-              alunosVinculados.forEach((aluno) => {
-                editarAluno({ ...aluno, professorId: undefined });
-              });
-              excluirProfessor(id);
+            onPress: async () => {
+              try {
+                for (const aluno of alunosVinculados) {
+                  await editarAluno({ ...aluno, professorId: undefined });
+                }
+                await excluirProfessor(id);
+              } catch (error) {
+                console.error('Erro ao excluir professor:', error);
+                Alert.alert(
+                  'Erro',
+                  error instanceof Error
+                    ? error.message
+                    : 'Não foi possível excluir o professor. Tente novamente.'
+                );
+              }
             },
           },
         ],
@@ -46,7 +56,19 @@ export default function Professores() {
         {
           text: 'Excluir',
           style: 'destructive',
-          onPress: () => excluirProfessor(id),
+          onPress: async () => {
+            try {
+              await excluirProfessor(id);
+            } catch (error) {
+              console.error('Erro ao excluir professor:', error);
+              Alert.alert(
+                'Erro',
+                error instanceof Error
+                  ? error.message
+                  : 'Não foi possível excluir o professor. Tente novamente.'
+              );
+            }
+          },
         },
       ],
     );

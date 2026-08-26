@@ -30,12 +30,22 @@ export async function adminMiddleware(req, res, next) {
     const professor = result.rows[0];
 
     if (professor.ativo === false) {
+      console.warn('[SECURITY] Acesso administrativo negado — professor inativo:', {
+        usuarioId: req.usuario?.id,
+        ip: req.ip,
+      });
+
       return res.status(403).json({
         error: 'Professor inativo.',
       });
     }
 
     if (professor.administrador !== true) {
+      console.warn('[SECURITY] Acesso administrativo negado:', {
+        usuarioId: req.usuario?.id,
+        ip: req.ip,
+      });
+
       return res.status(403).json({
         error: 'Acesso administrativo necessário.',
       });

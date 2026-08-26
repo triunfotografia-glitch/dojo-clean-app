@@ -10,8 +10,6 @@ export async function listCampeonatos(req, res) {
 
     return res.status(500).json({
       error: 'Erro ao buscar campeonatos.',
-      detalhe: error?.message || null,
-      codigo: error?.code || null,
     });
   }
 }

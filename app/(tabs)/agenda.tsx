@@ -57,38 +57,43 @@ export default function Agenda() {
     }, 1000);
 
     async function carregarDados() {
-      // Carrega anotações e avisos
-      const [dadosAnotacoes, dadosAvisos] = await Promise.all([
-        AsyncStorage.getItem(ANOTACOES_STORAGE_KEY),
-        AsyncStorage.getItem(AVISOS_STORAGE_KEY),
-      ]);
+      try {
+        // Carrega anotações e avisos
+        const [dadosAnotacoes, dadosAvisos] = await Promise.all([
+          AsyncStorage.getItem(ANOTACOES_STORAGE_KEY),
+          AsyncStorage.getItem(AVISOS_STORAGE_KEY),
+        ]);
 
-      if (dadosAnotacoes) setAnotacoes(JSON.parse(dadosAnotacoes));
-      if (dadosAvisos) setAvisos(JSON.parse(dadosAvisos));
+        if (dadosAnotacoes) setAnotacoes(JSON.parse(dadosAnotacoes));
+        if (dadosAvisos) setAvisos(JSON.parse(dadosAvisos));
 
-      // Lógica para resetar avisos no domingo
-      const ultimoReset = await AsyncStorage.getItem("@dojo_avisos_ultimo_reset");
-      const hoje = new Date();
-      const diaDaSemana = hoje.getDay(); // 0 = Domingo, 1 = Segunda...
+        // Lógica para resetar avisos no domingo
+        const ultimoReset = await AsyncStorage.getItem("@dojo_avisos_ultimo_reset");
+        const hoje = new Date();
+        const diaDaSemana = hoje.getDay(); // 0 = Domingo, 1 = Segunda...
 
-      // Se hoje for domingo e o reset ainda não ocorreu hoje
-      if (diaDaSemana === 0 && ultimoReset !== hoje.toISOString().slice(0, 10)) {
-        Alert.alert(
-          "Limpeza Semanal",
-          "Os avisos da semana foram limpos automaticamente."
-        );
-        setAvisos([]); // Limpa os avisos
-        // Marca que o reset de hoje foi feito
-        await AsyncStorage.setItem(
-          "@dojo_avisos_ultimo_reset",
-          hoje.toISOString().slice(0, 10)
-        );
-      } else if (diaDaSemana !== 0 && ultimoReset === null) {
-        // Garante que a chave de reset seja criada na primeira vez fora de um domingo
-        await AsyncStorage.setItem("@dojo_avisos_ultimo_reset", "init");
+        // Se hoje for domingo e o reset ainda não ocorreu hoje
+        if (diaDaSemana === 0 && ultimoReset !== hoje.toISOString().slice(0, 10)) {
+          Alert.alert(
+            "Limpeza Semanal",
+            "Os avisos da semana foram limpos automaticamente."
+          );
+          setAvisos([]); // Limpa os avisos
+          // Marca que o reset de hoje foi feito
+          await AsyncStorage.setItem(
+            "@dojo_avisos_ultimo_reset",
+            hoje.toISOString().slice(0, 10)
+          );
+        } else if (diaDaSemana !== 0 && ultimoReset === null) {
+          // Garante que a chave de reset seja criada na primeira vez fora de um domingo
+          await AsyncStorage.setItem("@dojo_avisos_ultimo_reset", "init");
+        }
+
+        setCarregado(true);
+      } catch (error) {
+        console.warn("Erro ao carregar dados da agenda:", error);
+        setCarregado(true);
       }
-
-      setCarregado(true);
     }
     void carregarDados();
 

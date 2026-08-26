@@ -242,7 +242,7 @@ export default function PerfilAluno() {
       ? Math.round(
           (presentes /
             historicoPresenca.length) *
-            100
+          100
         )
       : 0;
 
@@ -290,12 +290,21 @@ export default function PerfilAluno() {
           text: 'Excluir',
           style: 'destructive',
 
-          onPress: () => {
-            removerAluno(
-              String(aluno.id)
-            );
-
-            router.back();
+          onPress: async () => {
+            try {
+              await removerAluno(
+                String(aluno.id)
+              );
+              router.back();
+            } catch (error) {
+              console.error('Erro ao excluir aluno:', error);
+              Alert.alert(
+                'Erro',
+                error instanceof Error
+                  ? error.message
+                  : 'Não foi possível excluir o aluno. Tente novamente.'
+              );
+            }
           },
         },
       ]

@@ -64,6 +64,11 @@ export async function login(req, res) {
     );
 
     if (result.rows.length === 0) {
+      console.warn('[SECURITY] Falha de login:', {
+        nome: req.body.nome,
+        ip: req.ip,
+      });
+
       return res.status(401).json({
         error: 'Nome ou senha inválidos.',
       });
@@ -71,19 +76,16 @@ export async function login(req, res) {
 
     const professor = result.rows[0];
 
-    // =========================
-    // PROFESSOR INATIVO
-    // =========================
-
     if (professor.ativo === false) {
+      console.warn('[SECURITY] Login bloqueado — professor inativo:', {
+        nome: req.body.nome,
+        ip: req.ip,
+      });
+
       return res.status(403).json({
         error: 'Professor inativo.',
       });
     }
-
-    // =========================
-    // COMPARAR SENHA
-    // =========================
 
     const senhaValida = await bcrypt.compare(
       senha,
@@ -91,6 +93,11 @@ export async function login(req, res) {
     );
 
     if (!senhaValida) {
+      console.warn('[SECURITY] Falha de login:', {
+        nome: req.body.nome,
+        ip: req.ip,
+      });
+
       return res.status(401).json({
         error: 'Nome ou senha inválidos.',
       });
@@ -118,6 +125,7 @@ export async function login(req, res) {
       },
       process.env.JWT_SECRET,
       {
+        algorithm: 'HS256',
         expiresIn: '8h',
       }
     );

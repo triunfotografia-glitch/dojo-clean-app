@@ -65,11 +65,7 @@ export async function query(text, params = []) {
   } catch (error) {
     console.error(
       '❌ Erro na query:',
-      error.message,
-      '\nQuery:',
-      text,
-      '\nParams:',
-      params
+      error.message
     );
 
     throw error;

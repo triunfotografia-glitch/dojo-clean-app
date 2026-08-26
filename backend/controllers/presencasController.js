@@ -3,6 +3,8 @@ import {
   getPresencas,
 } from '../services/storageService.js';
 
+import { query } from '../services/databaseService.js';
+
 /* =========================================================
    LISTAR PRESENÇAS
 ========================================================= */
@@ -20,8 +22,6 @@ export async function listPresencas(req, res) {
 
     return res.status(500).json({
       error: 'Erro ao buscar presenças.',
-      detalhe: error?.message || null,
-      codigo: error?.code || null,
     });
   }
 }
@@ -117,6 +117,43 @@ export async function createPresenca(req, res) {
     }
 
     /* =====================================================
+       VALIDAR ALUNO ↔ TURMA ↔ TREINO
+    ===================================================== */
+
+    const treinoResult = await query(
+      `SELECT turma_id FROM treinos WHERE id = $1`,
+      [treinoIdNumero]
+    );
+
+    if (treinoResult.rows.length === 0) {
+      return res.status(400).json({
+        error: 'Treino informado não existe.',
+      });
+    }
+
+    const turmaIdDoTreino = treinoResult.rows[0].turma_id;
+
+    if (turmaIdDoTreino) {
+      const turmaAlunoResult = await query(
+        `SELECT 1 FROM turma_alunos WHERE turma_id = $1 AND aluno_id = $2`,
+        [turmaIdDoTreino, alunoIdNumero]
+      );
+
+      if (turmaAlunoResult.rows.length === 0) {
+        console.warn('[PRESENCAS] Validação aluno-turma falhou:', {
+          aluno_id: alunoIdNumero,
+          treino_id: treinoIdNumero,
+          turma_id: turmaIdDoTreino,
+        });
+
+        return res.status(400).json({
+          error:
+            'Aluno não pertence à turma associada a este treino.',
+        });
+      }
+    }
+
+    /* =====================================================
        CRIAR PRESENÇA
     ===================================================== */
 
@@ -161,8 +198,6 @@ export async function createPresenca(req, res) {
 
     return res.status(500).json({
       error: 'Erro ao criar presença.',
-      detalhe: error?.message || null,
-      codigo: error?.code || null,
     });
   }
 }

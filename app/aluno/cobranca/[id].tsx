@@ -2,6 +2,7 @@ import { COLORS } from "@/components/Colors";
 import { useDojo } from "@/components/context/DojoContext";
 import { useLocalSearchParams } from "expo-router";
 import {
+  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -203,12 +204,22 @@ export default function CobrancasAluno() {
 
                     style={styles.botao}
 
-                    onPress={() =>
-                      marcarCobrancaComoPaga(
-                        aluno.id,
-                        item.id
-                      )
-                    }
+                    onPress={async () => {
+                      try {
+                        await marcarCobrancaComoPaga(
+                          aluno.id,
+                          item.id
+                        );
+                      } catch (error) {
+                        console.error('Erro ao marcar cobrança como paga:', error);
+                        Alert.alert(
+                          'Erro',
+                          error instanceof Error
+                            ? error.message
+                            : 'Não foi possível marcar a cobrança como paga. Tente novamente.'
+                        );
+                      }
+                    }}
 
                   >
 
