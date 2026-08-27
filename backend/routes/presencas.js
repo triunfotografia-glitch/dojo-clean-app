@@ -2,33 +2,37 @@ import { Router } from 'express';
 
 import {
     createPresenca,
+    deletePresenca,
     listPresencas,
+    listPresencasPorTreino,
+    updatePresenca,
 } from '../controllers/presencasController.js';
 
 const router = Router();
 
-/* =========================================================
-   PRESENÇAS
-   O authMiddleware é aplicado no index.js
-========================================================= */
-
-/*
- * GET /presencas
- * Lista todas as presenças
- */
 router.get(
   '/',
   listPresencas
 );
 
+router.get(
+  '/treino/:treinoId',
+  listPresencasPorTreino
+);
 
-/*
- * POST /presencas
- * Registra uma presença
- */
 router.post(
   '/',
   createPresenca
+);
+
+router.put(
+  '/:id',
+  updatePresenca
+);
+
+router.delete(
+  '/:id',
+  deletePresenca
 );
 
 export default router;

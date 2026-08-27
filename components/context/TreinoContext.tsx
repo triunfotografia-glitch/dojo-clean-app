@@ -42,6 +42,8 @@ function normalizarTreino(treino: any): Treino {
   return {
     ...treino,
     id: String(treino.id),
+    turmaId: treino.turmaId != null ? String(treino.turmaId) : undefined,
+    professorId: treino.professorId != null ? String(treino.professorId) : undefined,
   } as Treino;
 }
 

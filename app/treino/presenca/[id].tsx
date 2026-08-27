@@ -44,10 +44,10 @@ export default function PresencaTreino() {
   const { alunos } = useDojo();
   const { presencas, registrarPresenca, editarPresenca, excluirPresenca, carregarPresencasPorTreino } = usePresencas();
   const treino = treinos.find((item) => item.id === id);
-  const turma = turmas.find((item) => item.id === treino?.turmaId || item.nome.trim().toLowerCase() === treino?.turma.trim().toLowerCase());
+  const turma = turmas.find((item) => item.id === treino?.turmaId || item.nome.trim().toLowerCase() === (treino?.turma || '').trim().toLowerCase());
   const alunosDaTurma = alunos.filter((aluno) => {
     const associadoNaTurma = turma?.alunoIds.includes(aluno.id);
-    const turmaDoAluno = aluno.turma.trim().toLowerCase() === treino?.turma.trim().toLowerCase();
+    const turmaDoAluno = (aluno.turma || '').trim().toLowerCase() === (treino?.turma || '').trim().toLowerCase();
     return aluno.ativo && (associadoNaTurma || turmaDoAluno);
   });
 
@@ -87,10 +87,11 @@ export default function PresencaTreino() {
       if (existente) {
         await editarPresenca(existente.id, { status });
       } else {
-        await registrarPresenca({ treinoId: treino.id, alunoId, data: hoje, status });
+        const payload = { treinoId: treino.id, alunoId, data: hoje, status };
+        await registrarPresenca(payload);
       }
     } catch (error) {
-      console.error(error);
+      console.error('Erro ao salvar a presença:', error);
       Alert.alert('Erro', 'Não foi possível salvar a presença. Tente novamente.');
     } finally {
       setSalvando(false);

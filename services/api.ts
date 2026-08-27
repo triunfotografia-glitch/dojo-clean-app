@@ -165,6 +165,17 @@ export interface PixConfig {
   cidade_recebedor: string;
 }
 
+export interface PixChave {
+  id: string;
+  nome_identificacao: string;
+  chave_pix: string;
+  tipo: string;
+  descricao?: string;
+  ativo: boolean;
+  criado_em?: string;
+  atualizado_em?: string;
+}
+
 export interface Campeonato {
   id: string;
   nome: string;
@@ -1207,6 +1218,94 @@ export async function updatePixConfig(
         JSON.stringify(
           payload
         ),
+
+    }
+  );
+
+}
+
+export async function getPixChaves(): Promise<PixChave[]> {
+
+  return request<PixChave[]>(
+    `${API_URL}/pix/chaves`
+  );
+
+}
+
+export async function getPixChavesAtivas(): Promise<PixChave[]> {
+
+  return request<PixChave[]>(
+    `${API_URL}/pix/chaves/ativas`
+  );
+
+}
+
+export async function postPixChave(
+  chave: Omit<PixChave, "id">
+): Promise<PixChave> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      chave
+    );
+
+  return request<PixChave>(
+    `${API_URL}/pix/chaves`,
+    {
+      method: "POST",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+
+    }
+  );
+
+}
+
+export async function putPixChave(
+  id: string,
+  chave: Partial<PixChave>
+): Promise<PixChave> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      chave
+    );
+
+  return request<PixChave>(
+    `${API_URL}/pix/chaves/${id}`,
+    {
+      method: "PUT",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+
+    }
+  );
+
+}
+
+export async function deletePixChave(
+  id: string
+): Promise<void> {
+
+  await request<void>(
+    `${API_URL}/pix/chaves/${id}`,
+    {
+      method: "DELETE",
+
+      headers:
+        jsonHeaders(),
 
     }
   );

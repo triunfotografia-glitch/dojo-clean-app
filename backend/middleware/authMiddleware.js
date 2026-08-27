@@ -56,8 +56,8 @@ export function authMiddleware(req, res, next) {
         process.env.JWT_SECRET,
         {
           algorithms: ['HS256'],
-        }
-      );
+      }
+    );
 
     // =========================
     // DISPONIBILIZAR USUÁRIO

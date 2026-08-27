@@ -20,12 +20,6 @@ import {
 
 const router = Router();
 
-/* =========================================================
-   PIX CONFIG
-   GET disponível para professores autenticados.
-   PUT exclusivo para administrador.
-========================================================= */
-
 router.get(
   '/',
   authMiddleware,
@@ -38,13 +32,6 @@ router.put(
   adminMiddleware,
   updatePix
 );
-
-/* =========================================================
-   PIX CHAVES (múltiplas chaves)
-   GET /chaves/ativas disponível para professores autenticados.
-   GET /chaves e POST /chaves exclusivo para administrador.
-   PUT /chaves/:id e DELETE /chaves/:id exclusivo para administrador.
-========================================================= */
 
 router.get(
   '/chaves/ativas',

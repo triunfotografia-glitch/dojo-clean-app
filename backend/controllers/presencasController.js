@@ -1,13 +1,12 @@
 import {
   addPresenca,
+  deletePresenca as deletePresencaRecord,
   getPresencas,
+  getPresencasPorTreino,
+  updatePresenca as updatePresencaRecord,
 } from '../services/storageService.js';
 
 import { query } from '../services/databaseService.js';
-
-/* =========================================================
-   LISTAR PRESENÇAS
-========================================================= */
 
 export async function listPresencas(req, res) {
   try {
@@ -26,10 +25,59 @@ export async function listPresencas(req, res) {
   }
 }
 
+export async function listPresencasPorTreino(req, res) {
+  try {
+    const { treinoId } = req.params;
+    const data = req.query.data;
 
-/* =========================================================
-   CRIAR PRESENÇA
-========================================================= */
+    if (
+      !treinoId ||
+      !/^[0-9]+$/.test(String(treinoId))
+    ) {
+      return res.status(400).json({
+        error: 'ID do treino inválido.',
+      });
+    }
+
+    const treinoIdNumero = Number(treinoId);
+
+    const dataStr =
+      typeof data === 'string' && data.trim()
+        ? data.trim()
+        : null;
+
+    if (dataStr) {
+      const partes = dataStr.split('-');
+
+      if (
+        partes.length !== 3 ||
+        !/^\d{4}$/.test(partes[0]) ||
+        !/^\d{2}$/.test(partes[1]) ||
+        !/^\d{2}$/.test(partes[2])
+      ) {
+        return res.status(400).json({
+          error: 'Data inválida. Use o formato YYYY-MM-DD.',
+        });
+      }
+    }
+
+    const presencas = await getPresencasPorTreino(
+      treinoIdNumero,
+      dataStr
+    );
+
+    return res.json(presencas);
+  } catch (error) {
+    console.error(
+      'Erro ao buscar presenças por treino:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Erro ao buscar presenças por treino.',
+    });
+  }
+}
 
 export async function createPresenca(req, res) {
   try {
@@ -58,10 +106,6 @@ export async function createPresenca(req, res) {
     const data = presenca.data;
     const status = presenca.status;
 
-    /* =====================================================
-       VALIDAR IDS
-    ===================================================== */
-
     const alunoIdNumero = Number(alunoId);
     const treinoIdNumero = Number(treinoId);
 
@@ -83,10 +127,6 @@ export async function createPresenca(req, res) {
       });
     }
 
-    /* =====================================================
-       VALIDAR DATA
-    ===================================================== */
-
     if (
       typeof data !== 'string' ||
       !data.trim()
@@ -95,10 +135,6 @@ export async function createPresenca(req, res) {
         error: 'Data da presença é obrigatória.',
       });
     }
-
-    /* =====================================================
-       VALIDAR STATUS
-    ===================================================== */
 
     const statusPermitido = [
       'presente',
@@ -115,10 +151,6 @@ export async function createPresenca(req, res) {
         permitidos: statusPermitido,
       });
     }
-
-    /* =====================================================
-       VALIDAR ALUNO ↔ TURMA ↔ TREINO
-    ===================================================== */
 
     const treinoResult = await query(
       `SELECT turma_id FROM treinos WHERE id = $1`,
@@ -153,10 +185,6 @@ export async function createPresenca(req, res) {
       }
     }
 
-    /* =====================================================
-       CRIAR PRESENÇA
-    ===================================================== */
-
     const novaPresenca = await addPresenca({
       aluno_id: alunoIdNumero,
       treino_id: treinoIdNumero,
@@ -164,19 +192,13 @@ export async function createPresenca(req, res) {
       status: status.trim(),
     });
 
-    return res.status(201).json(
-      novaPresenca
-    );
+    return res.status(201).json(novaPresenca);
 
   } catch (error) {
     console.error(
       'Erro ao criar presença:',
       error
     );
-
-    /* =====================================================
-       VIOLAÇÃO DE PRESENÇA DUPLICADA
-    ===================================================== */
 
     if (error?.code === '23505') {
       return res.status(409).json({
@@ -185,19 +207,132 @@ export async function createPresenca(req, res) {
       });
     }
 
-    /* =====================================================
-       FOREIGN KEY
-    ===================================================== */
-
     if (error?.code === '23503') {
       return res.status(400).json({
-        error:
-          'Aluno ou treino informado não existe.',
+        error: 'Aluno ou treino informado não existe.',
       });
     }
 
     return res.status(500).json({
       error: 'Erro ao criar presença.',
+    });
+  }
+}
+
+export async function updatePresenca(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!id || !/^[0-9]+$/.test(id)) {
+      return res.status(400).json({
+        error: 'ID de presença inválido.',
+      });
+    }
+
+    const presenca = req.body;
+
+    if (
+      !presenca ||
+      typeof presenca !== 'object' ||
+      Array.isArray(presenca)
+    ) {
+      return res.status(400).json({
+        error: 'Dados de presença inválidos.',
+      });
+    }
+
+    const dadosAtualizados = {};
+
+    if (presenca.status !== undefined) {
+      const statusPermitido = [
+        'presente',
+        'falta',
+        'justificado',
+      ];
+
+      if (
+        typeof presenca.status !== 'string' ||
+        !statusPermitido.includes(presenca.status.trim())
+      ) {
+        return res.status(400).json({
+          error: 'Status de presença inválido.',
+          permitidos: statusPermitido,
+        });
+      }
+
+      dadosAtualizados.status = presenca.status.trim();
+    }
+
+    if (presenca.data !== undefined) {
+      if (
+        typeof presenca.data !== 'string' ||
+        !presenca.data.trim()
+      ) {
+        return res.status(400).json({
+          error: 'Data da presença é obrigatória.',
+        });
+      }
+
+      dadosAtualizados.data = presenca.data.trim();
+    }
+
+    if (!Object.keys(dadosAtualizados).length) {
+      return res.status(400).json({
+        error: 'Nenhum campo válido para atualizar.',
+      });
+    }
+
+    const atualizada = await updatePresencaRecord(
+      id,
+      dadosAtualizados
+    );
+
+    if (!atualizada) {
+      return res.status(404).json({
+        error: 'Presença não encontrada.',
+      });
+    }
+
+    return res.json(atualizada);
+  } catch (error) {
+    console.error(
+      'Erro ao atualizar presença:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Erro ao atualizar presença.',
+    });
+  }
+}
+
+export async function deletePresenca(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!id || !/^[0-9]+$/.test(id)) {
+      return res.status(400).json({
+        error: 'ID de presença inválido.',
+      });
+    }
+
+    const excluida = await deletePresencaRecord(id);
+
+    if (!excluida) {
+      return res.status(404).json({
+        error: 'Presença não encontrada.',
+      });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error(
+      'Erro ao excluir presença:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Erro ao excluir presença.',
     });
   }
 }

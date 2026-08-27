@@ -4,7 +4,8 @@ export function enviarCobrancaWhatsApp(
   telefone: string,
   nome: string,
   valor: string,
-  data: string
+  data: string,
+  chavePixInfo: string = ""
 ) {
   const numero = telefone.replace(/\D/g, "");
   const numeroFormatado = numero.startsWith("55") ? numero.slice(2) : numero;
@@ -17,7 +18,9 @@ export function enviarCobrancaWhatsApp(
     return;
   }
 
-  const mensagem = `Olá ${nome}, sua mensalidade no valor de R$ ${valor} vence em ${data}.`;
+  const mensagem =
+    `Olá ${nome}, sua mensalidade no valor de R$ ${valor} vence em ${data}.` +
+    chavePixInfo;
   const url = `https://wa.me/55${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
 
   void Linking.openURL(url).catch(() => {

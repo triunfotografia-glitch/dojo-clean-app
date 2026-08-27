@@ -9,10 +9,6 @@ import {
   deletePixChave,
 } from '../services/storageService.js';
 
-/* =========================================================
-   LISTAR PIX CONFIG
-========================================================= */
-
 export async function getPix(req, res) {
   try {
     const config =
@@ -37,10 +33,6 @@ export async function getPix(req, res) {
     });
   }
 }
-
-/* =========================================================
-   ATUALIZAR PIX CONFIG
-========================================================= */
 
 export async function updatePix(req, res) {
   try {
@@ -120,10 +112,6 @@ export async function updatePix(req, res) {
   }
 }
 
-/* =========================================================
-   LISTAR CHAVES PIX
-========================================================= */
-
 export async function listarChavesPix(req, res) {
   try {
     const chaves =
@@ -142,10 +130,6 @@ export async function listarChavesPix(req, res) {
   }
 }
 
-/* =========================================================
-   LISTAR CHAVES PIX ATIVAS
-========================================================= */
-
 export async function listarChavesPixAtivas(req, res) {
   try {
     const chaves =
@@ -163,10 +147,6 @@ export async function listarChavesPixAtivas(req, res) {
     });
   }
 }
-
-/* =========================================================
-   CRIAR CHAVE PIX
-========================================================= */
 
 export async function criarChavePix(req, res) {
   try {
@@ -253,10 +233,6 @@ export async function criarChavePix(req, res) {
     });
   }
 }
-
-/* =========================================================
-   EDITAR CHAVE PIX
-========================================================= */
 
 export async function editarChavePix(req, res) {
   try {
@@ -379,10 +355,6 @@ export async function editarChavePix(req, res) {
     });
   }
 }
-
-/* =========================================================
-   EXCLUIR CHAVE PIX
-========================================================= */
 
 export async function excluirChavePix(req, res) {
   try {

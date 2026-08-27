@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './services/envLoader.js';
 
 import cors from 'cors';
 import express from 'express';
@@ -9,8 +9,10 @@ import { authMiddleware } from './middleware/authMiddleware.js';
 // Rotas
 import alunosRoutes from './routes/alunos.js';
 import authRoutes from './routes/auth.js';
+import campeonatosRoutes from './routes/campeonatos.js';
 import cobrancasRoutes from './routes/cobrancas.js';
 import graduacoesRoutes from './routes/graduacoes.js';
+import pixRoutes from './routes/pix.js';
 import presencasRoutes from './routes/presencas.js';
 import professoresRoutes from './routes/professores.js';
 import treinosRoutes from './routes/treinos.js';
@@ -132,9 +134,21 @@ app.use(
 );
 
 app.use(
+  '/campeonatos',
+  authMiddleware,
+  campeonatosRoutes
+);
+
+app.use(
   '/graduacoes',
   authMiddleware,
   graduacoesRoutes
+);
+
+app.use(
+  '/pix',
+  authMiddleware,
+  pixRoutes
 );
 
 // ==============================
@@ -194,9 +208,16 @@ async function startServer() {
 
     app.listen(
       PORT,
+      '0.0.0.0',
       () => {
         console.log(
-          `🌐 Servidor rodando em http://localhost:${PORT}`
+          `🌐 Servidor rodando em http://0.0.0.0:${PORT}`
+        );
+        console.log(
+          `   Acesso local: http://localhost:${PORT}`
+        );
+        console.log(
+          `   Acesso rede:  http://192.168.15.64:${PORT}`
         );
       }
     );

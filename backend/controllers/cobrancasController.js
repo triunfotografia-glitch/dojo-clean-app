@@ -3,6 +3,7 @@
   getCobrancas,
   updateCobranca as updateCobrancaRecord,
   deleteCobranca as deleteCobrancaRecord,
+  getPixChave,
 } from '../services/storageService.js';
 
 import { enviarCobrancaWhatsApp } from '../services/whatsappService.js';
@@ -38,16 +39,51 @@ export async function createCobranca(req, res) {
     const novaCobranca =
       await addCobranca(cobranca);
 
+    let whatsappLink = '';
+
+    if (
+      novaCobranca.telefone &&
+      novaCobranca.nome &&
+      novaCobranca.valor
+    ) {
+      const vencimento =
+        novaCobranca.vencimento ||
+        '';
+
+      let chavePixInfo = '';
+
+      if (novaCobranca.pix_chave_id) {
+        const chavePix =
+          await getPixChave(
+            novaCobranca.pix_chave_id
+          );
+
+        if (chavePix) {
+          chavePixInfo = `\n\nPagamento via PIX:\n${chavePix.nome_identificacao}\nTipo: ${chavePix.tipo}\nChave: ${chavePix.chave_pix}`;
+        }
+      }
+
+      whatsappLink = enviarCobrancaWhatsApp(
+        String(novaCobranca.telefone),
+        String(novaCobranca.nome),
+        String(novaCobranca.valor),
+        vencimento,
+        chavePixInfo
+      );
+    }
+
     res.status(201).json({
       ...novaCobranca,
-      whatsappLink: enviarCobrancaWhatsApp(
-        String(cobranca.telefone || ''),
-        String(cobranca.nome || ''),
-        String(cobranca.valor || ''),
-      ),
+      whatsappLink,
     });
   } catch (error) {
     console.error('Erro ao criar cobrança:', error);
+
+    if (error.code === '23505') {
+      return res.status(409).json({
+        error: 'Já existe uma cobrança para este aluno nesta data de vencimento.',
+      });
+    }
 
     res.status(500).json({
       error: 'Erro ao criar cobrança.',

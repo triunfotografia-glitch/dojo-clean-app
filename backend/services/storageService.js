@@ -693,10 +693,21 @@ export async function getTurmas() {
   const result = await query(
     `SELECT
        t.*,
-       COALESCE(p.nome, t.professor) AS professor
+       COALESCE(p.nome, t.professor) AS professor,
+       COALESCE(
+         JSON_AGG(
+           JSON_BUILD_OBJECT(
+             'aluno_id', ta.aluno_id
+           )
+         ) FILTER (WHERE ta.aluno_id IS NOT NULL),
+         '[]'::json
+       ) AS turma_alunos
      FROM turmas t
      LEFT JOIN professores p
        ON p.id = t.professor_id
+     LEFT JOIN turma_alunos ta
+       ON ta.turma_id = t.id
+     GROUP BY t.id, p.nome
      ORDER BY t.id DESC`
   );
 
@@ -704,7 +715,7 @@ export async function getTurmas() {
     (row) =>
       parseDatabaseFields(
         row,
-        ['alunos']
+        ['alunos', 'turma_alunos']
       )
   );
 }
@@ -1029,10 +1040,75 @@ export async function addPresenca(
   return result.rows[0];
 }
 
+export async function getPresencasPorTreino(treinoId, dataFiltro = null) {
+  let sql = `
+    SELECT
+      p.id,
+      p.aluno_id,
+      p.treino_id,
+      p.data,
+      p.status,
+      p.criado_em,
+      a.nome AS aluno_nome
+    FROM presencas p
+    JOIN alunos a ON a.id = p.aluno_id
+    WHERE p.treino_id = $1
+  `;
+  const params = [treinoId];
+
+  if (dataFiltro) {
+    sql += ` AND p.data = $2`;
+    params.push(dataFiltro);
+  }
+
+  sql += ` ORDER BY p.data DESC, a.nome ASC`;
+
+  const result = await query(sql, params);
+  return result.rows;
+}
+
+export async function updatePresenca(id, dados) {
+  const fields = [];
+  const values = [];
+  let paramCount = 1;
+
+  if (dados.status !== undefined) {
+    fields.push(`status = $${paramCount++}`);
+    values.push(dados.status);
+  }
+  if (dados.data !== undefined) {
+    fields.push(`data = $${paramCount++}`);
+    values.push(dados.data);
+  }
+
+  if (fields.length === 0) {
+    throw new Error('Nenhum campo válido para atualizar.');
+  }
+
+  fields.push(`atualizado_em = NOW()`);
+  values.push(id);
+
+  const result = await query(
+    `UPDATE presencas SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+    values
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function deletePresenca(id) {
+  const result = await query(
+    `DELETE FROM presencas WHERE id = $1 RETURNING id`,
+    [id]
+  );
+
+  return result.rows[0] || null;
+}
+
 
 /* =========================
    GRADUAÃƒâ€¡Ãƒâ€¢ES
-========================= */
+   ========================= */
 
 export async function getGraduacoes() {
   const result = await query(
@@ -1130,4 +1206,276 @@ export async function deleteGraduacao(
   );
 
   return result.rows[0];
+}
+
+/* =========================
+   PIX CONFIG
+   ========================= */
+
+export async function getPixConfig() {
+  const result = await query(
+    `SELECT
+       id,
+       chave_pix,
+       nome_recebedor,
+       cidade_recebedor,
+       criado_em,
+       atualizado_em
+     FROM pix_config
+     ORDER BY id ASC
+     LIMIT 1`
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function updatePixConfig(
+  id,
+  dados
+) {
+  const mapped =
+    mapObjectKeys(dados);
+
+  const fields =
+    prepareFields(mapped);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo válido para atualizar.'
+    );
+  }
+
+  const columns =
+    fields.map(
+      ([key], i) =>
+        `${key} = $${i + 1}`
+    );
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `UPDATE pix_config
+     SET
+       ${columns.join(', ')}
+     WHERE id = $${values.length + 1}
+     RETURNING *`,
+    [
+      ...values,
+      id,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+export async function updateFirstPixConfig(
+  dados
+) {
+  const mapped =
+    mapObjectKeys(dados);
+
+  const fields =
+    prepareFields(mapped);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo válido para atualizar.'
+    );
+  }
+
+  const columns =
+    fields.map(
+      ([key], i) =>
+        `${key} = $${i + 1}`
+    );
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `UPDATE pix_config
+     SET
+       ${columns.join(', ')}
+     WHERE id = (
+       SELECT id FROM pix_config
+       ORDER BY id ASC
+       LIMIT 1
+     )
+     RETURNING *`,
+    values
+  );
+
+  if (result.rows.length > 0) {
+    return result.rows[0];
+  }
+
+  const insertResult = await query(
+    `INSERT INTO pix_config
+      (chave_pix, nome_recebedor, cidade_recebedor)
+     VALUES
+      ($1, $2, $3)
+     RETURNING *`,
+    [
+      dados.chave_pix || '',
+      dados.nome_recebedor || 'DOJO LB',
+      dados.cidade_recebedor || 'SAO PAULO',
+    ]
+  );
+
+  return insertResult.rows[0];
+}
+
+/* =========================
+   PIX CHAVES (múltiplas chaves)
+   ========================= */
+
+export async function getPixChaves() {
+  const result = await query(
+    `SELECT
+       id,
+       nome_identificacao,
+       chave_pix,
+       tipo,
+       descricao,
+       ativo,
+       criado_em,
+       atualizado_em
+     FROM pix_chaves
+     ORDER BY id ASC`
+  );
+
+  return result.rows;
+}
+
+export async function getPixChave(id) {
+  const result = await query(
+    `SELECT
+       id,
+       nome_identificacao,
+       chave_pix,
+       tipo,
+       descricao,
+       ativo,
+       criado_em,
+       atualizado_em
+     FROM pix_chaves
+     WHERE id = $1`,
+    [id]
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function getPixChavesAtivas() {
+  const result = await query(
+    `SELECT
+       id,
+       nome_identificacao,
+       chave_pix,
+       tipo,
+       descricao,
+       ativo,
+       criado_em,
+       atualizado_em
+     FROM pix_chaves
+     WHERE ativo = TRUE
+     ORDER BY id ASC`
+  );
+
+  return result.rows;
+}
+
+export async function addPixChave(chave) {
+  const mapped =
+    mapObjectKeys(chave);
+
+  const fields =
+    prepareFields(mapped);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo válido para adicionar chave PIX.'
+    );
+  }
+
+  const columns =
+    fields
+      .map(([key]) => key)
+      .join(', ');
+
+  const placeholders =
+    fields
+      .map((_, i) => `$${i + 1}`)
+      .join(', ');
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `INSERT INTO pix_chaves
+       (${columns})
+     VALUES
+       (${placeholders})
+     RETURNING *`,
+    values
+  );
+
+  return result.rows[0];
+}
+
+export async function updatePixChave(id, chave) {
+  const mapped =
+    mapObjectKeys(chave);
+
+  const fields =
+    prepareFields(mapped);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo válido para atualizar chave PIX.'
+    );
+  }
+
+  const columns =
+    fields.map(
+      ([key], i) =>
+        `${key} = $${i + 1}`
+    );
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `UPDATE pix_chaves
+     SET
+       ${columns.join(', ')}
+     WHERE id = $${values.length + 1}
+     RETURNING *`,
+    [
+      ...values,
+      id,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+export async function deletePixChave(id) {
+  const result = await query(
+    `DELETE FROM pix_chaves
+     WHERE id = $1
+     RETURNING id`,
+    [id]
+  );
+
+  return result.rows[0] || null;
 }

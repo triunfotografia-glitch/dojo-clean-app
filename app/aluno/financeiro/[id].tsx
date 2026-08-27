@@ -4,7 +4,7 @@ import { usePix } from '@/components/context/PixContext';
 import { enviarCobrancaWhatsApp } from '@/components/whatsapp';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -13,6 +13,7 @@ import {
   Text,
   TextInput,
   View,
+  Modal,
 } from 'react-native';
 
 import Svg, { Rect } from 'react-native-svg';
@@ -258,8 +259,15 @@ export default function FinanceiroAluno(){
     chavePix,
     nomeRecebedor,
     cidadeRecebedor,
-    pixConfigurado
+    pixConfigurado,
+    chavesPix,
+    carregarChavesPix,
   } = usePix();
+
+
+  useEffect(() => {
+    carregarChavesPix();
+  }, [carregarChavesPix]);
 
 
 
@@ -292,6 +300,13 @@ export default function FinanceiroAluno(){
 
   const [cobrancaPix,setCobrancaPix] =
     useState<Cobranca|null>(null);
+
+
+  const [chavePixSelecionada, setChavePixSelecionada] =
+    useState<string | number>('');
+
+  const [mostrarSeletorPix, setMostrarSeletorPix] =
+    useState(false);
 
 
 
@@ -390,6 +405,9 @@ export default function FinanceiroAluno(){
       status:
         'pendente',
 
+      pixChaveId:
+        chavePixSelecionada || undefined,
+
     };
 
 
@@ -452,12 +470,18 @@ export default function FinanceiroAluno(){
 
 
 
-  async function copiarPix(
-    // A cobrança não é mais necessária, vamos copiar a chave estática
-  ){
+  async function copiarPix(){
+    const chaveSelecionada = cobrancaPix?.pixChaveId
+      ? chavesPix.find(
+          (c) => c.id === cobrancaPix.pixChaveId
+        )
+      : null;
+
+    const chaveParaCopiar =
+      chaveSelecionada?.chave_pix || chavePix;
 
     await Clipboard.setStringAsync(
-      chavePix
+      chaveParaCopiar
     );
 
 
@@ -675,7 +699,16 @@ onPress: async () => {
           placeholderTextColor={COLORS.muted}
         />
 
-
+        <Pressable
+          style={styles.input}
+          onPress={() => setMostrarSeletorPix(true)}
+        >
+          <Text style={{ color: COLORS.white }}>
+            {chavePixSelecionada
+              ? `Chave PIX: ${chavesPix.find((c) => c.id === chavePixSelecionada)?.nome_identificacao || chavePixSelecionada}`
+              : 'Selecionar chave PIX (opcional)'}
+          </Text>
+        </Pressable>
 
         <Pressable
           style={styles.primaryButton}
@@ -812,11 +845,42 @@ onPress: async () => {
               Copie a chave e use no app do seu banco para pagar o valor de {formatarValor(cobrancaPix.valor)}.
             </Text>
 
-            <TextInput
-              style={[styles.input, { marginTop: 20, textAlign: 'center' }]}
-              value={chavePix}
-              editable={false}
-            />
+            {(() => {
+              const chaveSelecionada = cobrancaPix.pixChaveId
+                ? chavesPix.find(
+                    (c) => c.id === cobrancaPix.pixChaveId
+                  )
+                : null;
+
+              const chaveParaExibir =
+                chaveSelecionada?.chave_pix ||
+                chavePix;
+
+              const nomeParaExibir =
+                chaveSelecionada?.nome_identificacao ||
+                nomeRecebedor;
+
+              return (
+                <>
+                  <Text
+                    style={[
+                      styles.pixSubtitle,
+                      { marginBottom: 4 },
+                    ]}
+                  >
+                    {nomeParaExibir}
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { marginTop: 20, textAlign: 'center' },
+                    ]}
+                    value={chaveParaExibir}
+                    editable={false}
+                  />
+                </>
+              );
+            })()}
 
             <Pressable
               style={styles.primaryButton}
@@ -853,6 +917,61 @@ onPress: async () => {
 
       }
 
+
+      <Modal
+        visible={mostrarSeletorPix}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setMostrarSeletorPix(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Selecionar chave PIX
+            </Text>
+
+            {chavesPix.filter((c) => c.ativo).length === 0 ? (
+              <Text style={styles.modalEmpty}>
+                Nenhuma chave PIX disponível para esta cobrança.
+              </Text>
+            ) : (
+              chavesPix
+                .filter((c) => c.ativo)
+                .map((chave) => (
+                  <Pressable
+                    key={chave.id}
+                    style={styles.modalOption}
+                    onPress={() => {
+                      setChavePixSelecionada(
+                        chave.id
+                      );
+                      setMostrarSeletorPix(false);
+                    }}
+                  >
+                    <Text style={styles.modalOptionTitle}>
+                      {chave.nome_identificacao}
+                    </Text>
+                    <Text style={styles.modalOptionDetail}>
+                      {chave.tipo.toUpperCase()} • {chave.chave_pix}
+                    </Text>
+                  </Pressable>
+                ))
+            )}
+
+            <Pressable
+              style={[
+                styles.primaryButton,
+                { marginTop: 16 },
+              ]}
+              onPress={() => setMostrarSeletorPix(false)}
+            >
+              <Text style={styles.buttonText}>
+                Fechar
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
 
     </ScrollView>
@@ -1088,6 +1207,58 @@ const styles = StyleSheet.create({
   closeText:{
     color:COLORS.textSecondary,
     fontWeight:'bold',
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 25,
+  },
+
+  modalContent: {
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    padding: 22,
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '80%',
+  },
+
+  modalTitle: {
+    color: COLORS.white,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 18,
+  },
+
+  modalOption: {
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  modalOptionTitle: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  modalOptionDetail: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    marginTop: 4,
+  },
+
+  modalEmpty: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
+    marginVertical: 20,
   },
 
 });

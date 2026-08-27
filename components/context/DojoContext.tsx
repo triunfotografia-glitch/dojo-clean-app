@@ -55,6 +55,7 @@ export interface Cobranca {
   pagoEm?: string;
   formaPagamento?: string;
   observacao?: string;
+  pixChaveId?: string | number;
 }
 
 export interface Aluno {

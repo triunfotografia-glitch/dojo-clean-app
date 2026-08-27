@@ -41,7 +41,12 @@ export async function sendOtpWhatsApp({ to, codigo }) {
   return result;
 }
 
-export function enviarCobrancaWhatsApp(telefone, nome, valor) {
-  const mensagem = `Olá ${nome}, sua mensalidade é de R$ ${valor}`;
+export function enviarCobrancaWhatsApp(telefone, nome, valor, vencimento, chavePixInfo = '') {
+  const mensagem =
+    `Olá ${nome}, sua mensalidade é de R$ ${valor}` +
+    (vencimento
+      ? ` e vence em ${vencimento}`
+      : '') +
+    chavePixInfo;
   return `https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`;
 }

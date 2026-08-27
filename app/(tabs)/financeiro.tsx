@@ -1,5 +1,6 @@
 import { COLORS } from '@/components/Colors';
 import { Aluno, Cobranca, useDojo } from '@/components/context/DojoContext';
+import { usePix } from '@/components/context/PixContext';
 import { enviarCobrancaWhatsApp, enviarCobrancasWhatsApp } from '@/components/whatsapp';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -52,6 +53,7 @@ function getStatusAluno(aluno: Aluno): { texto: string, cor: string } {
 
 export default function Financeiro() {
   const { alunos, executarCobrancasAutomaticas, registrarPagamento } = useDojo();
+  const { chavesPix } = usePix();
   const [competencia, setCompetencia] = useState(competenciaAtual());
   const [mensagemPadrao, setMensagemPadrao] = useState(
     'Olá {{nome}}, sua mensalidade no valor de R$ {{valor}} vence em {{data}}.'
@@ -160,11 +162,20 @@ export default function Financeiro() {
       return;
     }
 
+    const chavePixSelecionada = cobrancaPendente.pixChaveId
+      ? chavesPix.find((c) => c.id === cobrancaPendente.pixChaveId)
+      : null;
+
+    const chavePixInfo = chavePixSelecionada
+      ? `\n\nPagamento via PIX:\n${chavePixSelecionada.nome_identificacao}\nTipo: ${chavePixSelecionada.tipo}\nChave: ${chavePixSelecionada.chave_pix}`
+      : '';
+
     enviarCobrancaWhatsApp(
       telefone,
       aluno.nome,
       cobrancaPendente.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-      formatarData(cobrancaPendente.vencimento)
+      formatarData(cobrancaPendente.vencimento),
+      chavePixInfo
     );
   }
 

@@ -1444,6 +1444,156 @@ export async function updateFirstPixConfig(
 }
 
 /* =========================
+   PIX CHAVES (múltiplas chaves)
+========================= */
+
+export async function getPixChaves() {
+  const result = await query(
+    `SELECT
+       id,
+       nome_identificacao,
+       chave_pix,
+       tipo,
+       descricao,
+       ativo,
+       criado_em,
+       atualizado_em
+     FROM pix_chaves
+     ORDER BY id ASC`
+  );
+
+  return result.rows;
+}
+
+export async function getPixChave(id) {
+  const result = await query(
+    `SELECT
+       id,
+       nome_identificacao,
+       chave_pix,
+       tipo,
+       descricao,
+       ativo,
+       criado_em,
+       atualizado_em
+     FROM pix_chaves
+     WHERE id = $1`,
+    [id]
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function getPixChavesAtivas() {
+  const result = await query(
+    `SELECT
+       id,
+       nome_identificacao,
+       chave_pix,
+       tipo,
+       descricao,
+       ativo,
+       criado_em,
+       atualizado_em
+     FROM pix_chaves
+     WHERE ativo = TRUE
+     ORDER BY id ASC`
+  );
+
+  return result.rows;
+}
+
+export async function addPixChave(chave) {
+  const mapped =
+    mapObjectKeys(chave);
+
+  const fields =
+    prepareFields(mapped);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo válido para adicionar chave PIX.'
+    );
+  }
+
+  const columns =
+    fields
+      .map(([key]) => key)
+      .join(', ');
+
+  const placeholders =
+    fields
+      .map((_, i) => `$${i + 1}`)
+      .join(', ');
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `INSERT INTO pix_chaves
+       (${columns})
+     VALUES
+       (${placeholders})
+     RETURNING *`,
+    values
+  );
+
+  return result.rows[0];
+}
+
+export async function updatePixChave(id, chave) {
+  const mapped =
+    mapObjectKeys(chave);
+
+  const fields =
+    prepareFields(mapped);
+
+  if (!fields.length) {
+    throw new Error(
+      'Nenhum campo válido para atualizar chave PIX.'
+    );
+  }
+
+  const columns =
+    fields.map(
+      ([key], i) =>
+        `${key} = $${i + 1}`
+    );
+
+  const values =
+    fields.map(
+      ([, value]) => value
+    );
+
+  const result = await query(
+    `UPDATE pix_chaves
+     SET
+       ${columns.join(', ')}
+     WHERE id = $${values.length + 1}
+     RETURNING *`,
+    [
+      ...values,
+      id,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+export async function deletePixChave(id) {
+  const result = await query(
+    `DELETE FROM pix_chaves
+     WHERE id = $1
+     RETURNING id`,
+    [id]
+  );
+
+  return result.rows[0] || null;
+}
+
+/* =========================
    RECUPERAÇÃO DE SENHA
 ========================= */
 

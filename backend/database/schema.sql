@@ -143,6 +143,7 @@ CREATE TABLE IF NOT EXISTS cobrancas (
     pago_em         TIMESTAMP,
     forma_pagamento TEXT,
     observacao      TEXT,
+    pix_chave_id    INTEGER REFERENCES pix_chaves(id) ON DELETE SET NULL,
     criado_em       TIMESTAMP DEFAULT NOW(),
     atualizado_em   TIMESTAMP DEFAULT NOW()
 );
@@ -158,6 +159,23 @@ CREATE TABLE IF NOT EXISTS pix_config (
     criado_em           TIMESTAMP DEFAULT NOW(),
     atualizado_em       TIMESTAMP DEFAULT NOW()
 );
+
+-- ============================================================
+-- TABELA: pix_chaves
+-- ============================================================
+CREATE TABLE IF NOT EXISTS pix_chaves (
+    id                  SERIAL PRIMARY KEY,
+    nome_identificacao  TEXT NOT NULL,
+    chave_pix           TEXT NOT NULL,
+    tipo                TEXT NOT NULL DEFAULT 'aleatoria',
+    descricao           TEXT,
+    ativo               BOOLEAN NOT NULL DEFAULT TRUE,
+    criado_em           TIMESTAMP DEFAULT NOW(),
+    atualizado_em       TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pix_chaves_ativo
+ON pix_chaves(ativo);
 
 -- ============================================================
 -- TRIGGERS updated_at
@@ -184,6 +202,10 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE TRIGGER trg_pix_updated
 BEFORE UPDATE ON pix_config
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_pix_chaves_updated
+BEFORE UPDATE ON pix_chaves
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- ============================================================
