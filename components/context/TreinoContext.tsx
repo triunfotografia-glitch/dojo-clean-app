@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createContext,
   ReactNode,
@@ -11,9 +12,12 @@ import {
   getToken,
   getTreinos,
   onAuthLost,
+  onAuthChanged,
   postTreino,
   putTreino,
 } from '@/services/api';
+
+const TREINOS_STORAGE_KEY = '@dojo_lb:treinos';
 
 export interface Treino {
   id: string;
@@ -32,6 +36,7 @@ interface TreinoContextData {
   editarTreino: (treino: Treino) => Promise<void>;
   excluirTreino: (id: string) => Promise<void>;
   buscarTreino: (id: string) => Treino | undefined;
+  logout: () => Promise<void>;
 }
 
 const TreinoContext = createContext<TreinoContextData>(
@@ -69,16 +74,51 @@ export function TreinoProvider({
 
         if (!ativo) return;
 
-        setTreinos(
-          Array.isArray(dados)
-            ? dados.map(normalizarTreino)
-            : [],
-        );
+        const normalizados = Array.isArray(dados)
+          ? dados.map(normalizarTreino)
+          : [];
+
+        setTreinos(normalizados);
+
+        try {
+          await AsyncStorage.setItem(
+            TREINOS_STORAGE_KEY,
+            JSON.stringify(normalizados)
+          );
+        } catch (error) {
+          console.warn(
+            'Erro ao salvar treinos localmente:',
+            error
+          );
+        }
       } catch (error) {
         console.error(
           'Erro ao carregar treinos:',
           error,
         );
+
+        if (!ativo) return;
+
+        try {
+          const local = await AsyncStorage.getItem(
+            TREINOS_STORAGE_KEY
+          );
+
+          if (local) {
+            const treinosLocais = JSON.parse(local);
+
+            if (Array.isArray(treinosLocais)) {
+              setTreinos(
+                treinosLocais.map(normalizarTreino)
+              );
+            }
+          }
+        } catch (error) {
+          console.warn(
+            'Erro ao carregar treinos locais:',
+            error
+          );
+        }
       }
     }
 
@@ -101,6 +141,68 @@ export function TreinoProvider({
     return cleanup;
   }, []);
 
+  // ==============================
+  // AUTH CHANGED LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthChanged(async () => {
+      const token = await getToken();
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        const dados = await getTreinos();
+
+        const normalizados = Array.isArray(dados)
+          ? dados.map(normalizarTreino)
+          : [];
+
+        setTreinos(normalizados);
+
+        try {
+          await AsyncStorage.setItem(
+            TREINOS_STORAGE_KEY,
+            JSON.stringify(normalizados)
+          );
+        } catch (error) {
+          console.warn(
+            'Erro ao salvar treinos localmente:',
+            error
+          );
+        }
+      } catch (error) {
+        console.error(
+          'Erro ao carregar treinos:',
+          error,
+        );
+      }
+    });
+
+    return cleanup;
+  }, []);
+
+  // ==============================
+  // LOGOUT
+  // ==============================
+
+  async function logout() {
+    setTreinos([]);
+
+    try {
+      await AsyncStorage.removeItem(
+        TREINOS_STORAGE_KEY
+      );
+    } catch (error) {
+      console.warn(
+        'Erro ao limpar cache de treinos:',
+        error
+      );
+    }
+  }
+
   async function adicionarTreino(
     treino: Treino,
   ) {
@@ -109,10 +211,28 @@ export function TreinoProvider({
         treino,
       );
 
+      const normalizado =
+        normalizarTreino(novoTreino);
+
       setTreinos((lista) => [
-        normalizarTreino(novoTreino),
+        normalizado,
         ...lista,
       ]);
+
+      try {
+        await AsyncStorage.setItem(
+          TREINOS_STORAGE_KEY,
+          JSON.stringify([
+            normalizado,
+            ...treinos,
+          ])
+        );
+      } catch (error) {
+        console.warn(
+          'Erro ao salvar treinos localmente:',
+          error
+        );
+      }
     } catch (error) {
       console.error(
         'Erro ao adicionar treino:',
@@ -133,13 +253,34 @@ export function TreinoProvider({
           treino,
         );
 
+      const normalizado =
+        normalizarTreino(atualizado);
+
       setTreinos((lista) =>
         lista.map((item) =>
           item.id === treino.id
-            ? normalizarTreino(atualizado)
+            ? normalizado
             : item,
         ),
       );
+
+      try {
+        await AsyncStorage.setItem(
+          TREINOS_STORAGE_KEY,
+          JSON.stringify(
+            treinos.map((item) =>
+              item.id === treino.id
+                ? normalizado
+                : item
+            )
+          )
+        );
+      } catch (error) {
+        console.warn(
+          'Erro ao salvar treinos localmente:',
+          error
+        );
+      }
     } catch (error) {
       console.error(
         'Erro ao editar treino:',
@@ -156,11 +297,23 @@ export function TreinoProvider({
     try {
       await deleteTreino(id);
 
-      setTreinos((lista) =>
-        lista.filter(
-          (item) => item.id !== String(id),
-        ),
+      const treinosAtualizados = treinos.filter(
+        (item) => item.id !== String(id),
       );
+
+      setTreinos(treinosAtualizados);
+
+      try {
+        await AsyncStorage.setItem(
+          TREINOS_STORAGE_KEY,
+          JSON.stringify(treinosAtualizados)
+        );
+      } catch (error) {
+        console.warn(
+          'Erro ao salvar treinos localmente:',
+          error
+        );
+      }
     } catch (error) {
       console.error(
         'Erro ao excluir treino:',
@@ -187,6 +340,7 @@ export function TreinoProvider({
         editarTreino,
         excluirTreino,
         buscarTreino,
+        logout,
       }}
     >
       {children}

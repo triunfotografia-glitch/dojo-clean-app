@@ -1,8 +1,10 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   deleteTurma,
   getToken,
   getTurmas,
   onAuthLost,
+  onAuthChanged,
   postTurma,
   updateTurma,
 } from '@/services/api';
@@ -13,6 +15,8 @@ import {
   useEffect,
   useState,
 } from 'react';
+
+const TURMAS_STORAGE_KEY = '@dojo_lb:turmas';
 
 export interface Turma {
   id: string;
@@ -29,6 +33,7 @@ interface TurmaContextData {
     id: string,
     turma: Omit<Turma, 'id'>
   ) => Promise<Turma>;
+  logout: () => Promise<void>;
 }
 
 const TurmaContext =
@@ -82,16 +87,51 @@ export function TurmaProvider({
 
         if (!ativo) return;
 
-        setTurmas(
-          Array.isArray(dados)
-            ? dados.map(normalizarTurma)
-            : []
-        );
+        const normalizadas = Array.isArray(dados)
+          ? dados.map(normalizarTurma)
+          : [];
+
+        setTurmas(normalizadas);
+
+        try {
+          await AsyncStorage.setItem(
+            TURMAS_STORAGE_KEY,
+            JSON.stringify(normalizadas)
+          );
+        } catch (error) {
+          console.warn(
+            'Erro ao salvar turmas localmente:',
+            error
+          );
+        }
       } catch (error) {
         console.error(
           'Erro ao carregar turmas:',
           error
         );
+
+        if (!ativo) return;
+
+        try {
+          const local = await AsyncStorage.getItem(
+            TURMAS_STORAGE_KEY
+          );
+
+          if (local) {
+            const turmasLocais = JSON.parse(local);
+
+            if (Array.isArray(turmasLocais)) {
+              setTurmas(
+                turmasLocais.map(normalizarTurma)
+              );
+            }
+          }
+        } catch (error) {
+          console.warn(
+            'Erro ao carregar turmas locais:',
+            error
+          );
+        }
       }
     }
 
@@ -114,6 +154,68 @@ export function TurmaProvider({
     return cleanup;
   }, []);
 
+  // ==============================
+  // AUTH CHANGED LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthChanged(async () => {
+      const token = await getToken();
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        const dados = await getTurmas();
+
+        const normalizadas = Array.isArray(dados)
+          ? dados.map(normalizarTurma)
+          : [];
+
+        setTurmas(normalizadas);
+
+        try {
+          await AsyncStorage.setItem(
+            TURMAS_STORAGE_KEY,
+            JSON.stringify(normalizadas)
+          );
+        } catch (error) {
+          console.warn(
+            'Erro ao salvar turmas localmente:',
+            error
+          );
+        }
+      } catch (error) {
+        console.error(
+          'Erro ao recarregar turmas:',
+          error
+        );
+      }
+    });
+
+    return cleanup;
+  }, []);
+
+  // ==============================
+  // LOGOUT
+  // ==============================
+
+  async function logout() {
+    setTurmas([]);
+
+    try {
+      await AsyncStorage.removeItem(
+        TURMAS_STORAGE_KEY
+      );
+    } catch (error) {
+      console.warn(
+        'Erro ao limpar cache de turmas:',
+        error
+      );
+    }
+  }
+
   async function adicionarTurma(
     turma: Omit<Turma, 'id'>
   ): Promise<Turma> {
@@ -132,6 +234,21 @@ export function TurmaProvider({
         turmaNormalizada,
         ...lista,
       ]);
+
+      try {
+        await AsyncStorage.setItem(
+          TURMAS_STORAGE_KEY,
+          JSON.stringify([
+            turmaNormalizada,
+            ...turmas,
+          ])
+        );
+      } catch (error) {
+        console.warn(
+          'Erro ao salvar turmas localmente:',
+          error
+        );
+      }
 
       return turmaNormalizada;
     } catch (error) {
@@ -167,6 +284,24 @@ export function TurmaProvider({
         )
       );
 
+      try {
+        await AsyncStorage.setItem(
+          TURMAS_STORAGE_KEY,
+          JSON.stringify(
+            turmas.map((item) =>
+              String(item.id) === String(id)
+                ? turmaNormalizada
+                : item
+            )
+          )
+        );
+      } catch (error) {
+        console.warn(
+          'Erro ao salvar turmas localmente:',
+          error
+        );
+      }
+
       return turmaNormalizada;
     } catch (error) {
       console.error(
@@ -183,12 +318,24 @@ export function TurmaProvider({
     try {
       await deleteTurma(id);
 
-      setTurmas((lista) =>
-        lista.filter(
-          (turma) =>
-            String(turma.id) !== String(id)
-        )
+      const turmasAtualizadas = turmas.filter(
+        (turma) =>
+          String(turma.id) !== String(id)
       );
+
+      setTurmas(turmasAtualizadas);
+
+      try {
+        await AsyncStorage.setItem(
+          TURMAS_STORAGE_KEY,
+          JSON.stringify(turmasAtualizadas)
+        );
+      } catch (error) {
+        console.warn(
+          'Erro ao salvar turmas localmente:',
+          error
+        );
+      }
     } catch (error) {
       console.error(
         'Erro ao excluir turma:',
@@ -205,7 +352,8 @@ export function TurmaProvider({
         turmas,
         adicionarTurma,
         excluirTurma,
-      atualizarTurma,
+        atualizarTurma,
+        logout,
       }}
     >
       {children}

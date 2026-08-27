@@ -22,7 +22,7 @@ import type {
   Turma,
 } from "@/components/context/TurmaContext";
 
-import { notifyAuthLost, onAuthLost } from "./authEvents";
+import { notifyAuthLost, onAuthLost, notifyAuthChanged, onAuthChanged } from "./authEvents";
 
 class ApiError extends Error {
   constructor(
@@ -38,6 +38,8 @@ export {
   ApiError,
   notifyAuthLost,
   onAuthLost,
+  notifyAuthChanged,
+  onAuthChanged,
 };
 
 const FALLBACK_API_URL_DEV = "http://192.168.15.64:3000";

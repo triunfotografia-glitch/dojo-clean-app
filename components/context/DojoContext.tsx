@@ -9,6 +9,7 @@ import {
   loginProfessor,
   notifyAuthLost,
   onAuthLost,
+  notifyAuthChanged,
   postAluno,
   postCobranca,
   removeToken,
@@ -711,6 +712,8 @@ export function DojoProvider({
         );
 
       }
+
+      notifyAuthChanged();
 
       return user;
 
