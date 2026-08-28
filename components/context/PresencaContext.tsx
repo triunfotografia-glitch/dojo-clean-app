@@ -4,6 +4,7 @@
   getPresencasPorTreino,
   getToken,
   onAuthLost,
+  onAuthChanged,
   postPresenca,
   putPresenca,
 } from '@/services/api';
@@ -145,6 +146,40 @@ export function PresencaProvider({
   useEffect(() => {
     const cleanup = onAuthLost(() => {
       setPresencas([]);
+    });
+
+    return cleanup;
+  }, []);
+
+  // ==============================
+  // AUTH CHANGED LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthChanged(async () => {
+      const token = await getToken();
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        const dados = await getPresencas();
+
+        const normalizadas =
+          Array.isArray(dados)
+            ? dados.map(normalizarPresenca)
+            : [];
+
+        setPresencas(
+          normalizadas
+        );
+      } catch (error) {
+        console.error(
+          'Erro ao recarregar presenças:',
+          error
+        );
+      }
     });
 
     return cleanup;

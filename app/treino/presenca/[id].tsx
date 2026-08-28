@@ -44,10 +44,10 @@ export default function PresencaTreino() {
   const { alunos } = useDojo();
   const { presencas, registrarPresenca, editarPresenca, excluirPresenca, carregarPresencasPorTreino } = usePresencas();
   const treino = treinos.find((item) => item.id === id);
-  const turma = turmas.find((item) => item.id === treino?.turmaId || item.nome.trim().toLowerCase() === (treino?.turma || '').trim().toLowerCase());
+  const turma = turmas.find((item) => item.id === treino?.turmaId || item.nome.trim().toLowerCase() === (treino?.turma ?? '').trim().toLowerCase());
   const alunosDaTurma = alunos.filter((aluno) => {
     const associadoNaTurma = turma?.alunoIds.includes(aluno.id);
-    const turmaDoAluno = (aluno.turma || '').trim().toLowerCase() === (treino?.turma || '').trim().toLowerCase();
+    const turmaDoAluno = (aluno.turma ?? '').trim().toLowerCase() === (treino?.turma ?? '').trim().toLowerCase();
     return aluno.ativo && (associadoNaTurma || turmaDoAluno);
   });
 
@@ -128,7 +128,7 @@ export default function PresencaTreino() {
       <Text style={styles.title}>Chamada</Text>
       <Text style={styles.training}>{treino.nome}</Text>
       <Text style={styles.info}>{treino.dia} • {treino.horario} • {hoje.split('-').reverse().join('/')}</Text>
-      <Text style={styles.info}>Turma: {treino.turma || 'Não definida'}</Text>
+      <Text style={styles.info}>Turma: {String(treino.turma ?? 'Não definida')}</Text>
       {!turma ? <Text style={styles.warning}>Associe uma turma cadastrada ao treino para fazer a chamada.</Text> : null}
       {turma && alunosDaTurma.length === 0 ? <Text style={styles.warning}>Esta turma ainda não possui alunos ativos.</Text> : null}
       {carregando ? <Text style={styles.warning}>Carregando presenças...</Text> : null}
