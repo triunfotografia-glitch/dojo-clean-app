@@ -66,3 +66,13 @@ export async function adminMiddleware(req, res, next) {
     });
   }
 }
+
+export function professorMiddleware(req, res, next) {
+  if (!req.usuario?.tipo || req.usuario.tipo !== 'professor') {
+    return res.status(403).json({
+      error: 'Acesso permitido apenas para professores.',
+    });
+  }
+
+  next();
+}

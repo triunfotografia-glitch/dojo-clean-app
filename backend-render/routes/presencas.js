@@ -8,6 +8,8 @@ import {
     updatePresenca,
 } from '../controllers/presencasController.js';
 
+import { professorMiddleware } from '../middleware/adminMiddleware.js';
+
 const router = Router();
 
 /* =========================================================
@@ -41,6 +43,7 @@ router.get(
  */
 router.post(
   '/',
+  professorMiddleware,
   createPresenca
 );
 
@@ -51,6 +54,7 @@ router.post(
  */
 router.put(
   '/:id',
+  professorMiddleware,
   updatePresenca
 );
 
@@ -61,6 +65,7 @@ router.put(
  */
 router.delete(
   '/:id',
+  professorMiddleware,
   deletePresenca
 );
 

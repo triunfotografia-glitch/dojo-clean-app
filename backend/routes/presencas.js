@@ -8,6 +8,8 @@ import {
     updatePresenca,
 } from '../controllers/presencasController.js';
 
+import { professorMiddleware } from '../middleware/adminMiddleware.js';
+
 const router = Router();
 
 router.get(
@@ -22,16 +24,19 @@ router.get(
 
 router.post(
   '/',
+  professorMiddleware,
   createPresenca
 );
 
 router.put(
   '/:id',
+  professorMiddleware,
   updatePresenca
 );
 
 router.delete(
   '/:id',
+  professorMiddleware,
   deletePresenca
 );
 
