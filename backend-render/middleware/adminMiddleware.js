@@ -76,3 +76,59 @@ export function professorMiddleware(req, res, next) {
 
   next();
 }
+
+export async function presencaScopeMiddleware(req, res, next) {
+  try {
+    if (!req.usuario?.id) {
+      return res.status(401).json({
+        error: 'Usuário não autenticado.',
+      });
+    }
+
+    const { id } = req.params;
+
+    if (!id || !/^[0-9]+$/.test(id)) {
+      return res.status(400).json({
+        error: 'ID de presença inválido.',
+      });
+    }
+
+    const result = await query(
+      `
+        SELECT
+          p.id,
+          t.professor_id
+        FROM presencas p
+        JOIN treinos t ON t.id = p.treino_id
+        WHERE p.id = $1
+        LIMIT 1
+      `,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Presença não encontrada.',
+      });
+    }
+
+    const presenca = result.rows[0];
+
+    if (presenca.professor_id && Number(presenca.professor_id) !== Number(req.usuario.id)) {
+      return res.status(403).json({
+        error: 'Acesso negado a esta presença.',
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error(
+      'Erro ao verificar escopo da presença:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Erro ao verificar permissão de acesso.',
+    });
+  }
+}

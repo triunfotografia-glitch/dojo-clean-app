@@ -8,7 +8,7 @@ import {
     updatePresenca,
 } from '../controllers/presencasController.js';
 
-import { professorMiddleware } from '../middleware/adminMiddleware.js';
+import { professorMiddleware, presencaScopeMiddleware } from '../middleware/adminMiddleware.js';
 
 const router = Router();
 
@@ -55,6 +55,7 @@ router.post(
 router.put(
   '/:id',
   professorMiddleware,
+  presencaScopeMiddleware,
   updatePresenca
 );
 
@@ -66,6 +67,7 @@ router.put(
 router.delete(
   '/:id',
   professorMiddleware,
+  presencaScopeMiddleware,
   deletePresenca
 );
 
