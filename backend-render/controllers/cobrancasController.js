@@ -3,10 +3,41 @@
   getCobrancas,
   updateCobranca as updateCobrancaRecord,
   deleteCobranca as deleteCobrancaRecord,
+  getAluno,
   getPixChave,
 } from '../services/storageService.js';
 
 import { enviarCobrancaWhatsApp } from '../services/whatsappService.js';
+
+const STATUS_COBRANCA_PERMITIDOS = [
+  'pendente',
+  'pago',
+  'atrasado',
+];
+
+function normalizarDataISO(valor) {
+  if (!valor || typeof valor !== 'string') {
+    return null;
+  }
+
+  const apenasData = valor.trim().split('T')[0];
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(apenasData)) {
+    return null;
+  }
+
+  return apenasData;
+}
+
+function normalizarNumeroPositivo(valor) {
+  const numero = Number(valor);
+
+  if (!Number.isFinite(numero) || numero <= 0) {
+    return null;
+  }
+
+  return numero;
+}
 
 export async function listCobrancas(req, res) {
   try {
@@ -36,8 +67,63 @@ export async function createCobranca(req, res) {
       });
     }
 
+    const aluno_id = Number(cobranca.aluno_id);
+
+    if (
+      !Number.isInteger(aluno_id) ||
+      aluno_id <= 0
+    ) {
+      return res.status(400).json({
+        error: 'ID do aluno inválido.',
+      });
+    }
+
+    const aluno = await getAluno(aluno_id);
+
+    if (!aluno) {
+      return res.status(400).json({
+        error: 'Aluno informado não existe.',
+      });
+    }
+
+    const valor = normalizarNumeroPositivo(cobranca.valor);
+
+    if (valor === null) {
+      return res.status(400).json({
+        error: 'Valor da cobrança inválido.',
+      });
+    }
+
+    const vencimento = normalizarDataISO(cobranca.vencimento);
+
+    if (vencimento === null) {
+      return res.status(400).json({
+        error: 'Data de vencimento inválida.',
+      });
+    }
+
+    if (
+      cobranca.status &&
+      !STATUS_COBRANCA_PERMITIDOS.includes(
+        String(cobranca.status).trim()
+      )
+    ) {
+      return res.status(400).json({
+        error: 'Status de cobrança inválido.',
+        permitidos: STATUS_COBRANCA_PERMITIDOS,
+      });
+    }
+
+    const dadosParaSalvar = {
+      ...cobranca,
+      aluno_id,
+      valor,
+      vencimento,
+      status: cobranca.status ? String(cobranca.status).trim() : 'pendente',
+    };
+
     const novaCobranca =
-      await addCobranca(cobranca);
+      await addCobranca(dadosParaSalvar);
 
     let whatsappLink = '';
 
@@ -46,9 +132,8 @@ export async function createCobranca(req, res) {
       novaCobranca.nome &&
       novaCobranca.valor
     ) {
-      const vencimento =
-        novaCobranca.vencimento ||
-        '';
+      const vencimentoFormatado =
+        novaCobranca.vencimento || '';
 
       let chavePixInfo = '';
 
@@ -67,7 +152,7 @@ export async function createCobranca(req, res) {
         String(novaCobranca.telefone),
         String(novaCobranca.nome),
         String(novaCobranca.valor),
-        vencimento,
+        vencimentoFormatado,
         chavePixInfo
       );
     }
@@ -111,10 +196,59 @@ export async function updateCobranca(req, res) {
       });
     }
 
+    const dadosAtualizados = {};
+
+    if (cobranca.descricao !== undefined) {
+      dadosAtualizados.descricao = String(cobranca.descricao).trim();
+    }
+
+    if (cobranca.valor !== undefined) {
+      const valor = normalizarNumeroPositivo(cobranca.valor);
+
+      if (valor === null) {
+        return res.status(400).json({
+          error: 'Valor da cobrança inválido.',
+        });
+      }
+
+      dadosAtualizados.valor = valor;
+    }
+
+    if (cobranca.vencimento !== undefined) {
+      const vencimento = normalizarDataISO(cobranca.vencimento);
+
+      if (vencimento === null) {
+        return res.status(400).json({
+          error: 'Data de vencimento inválida.',
+        });
+      }
+
+      dadosAtualizados.vencimento = vencimento;
+    }
+
+    if (cobranca.status !== undefined) {
+      const status = String(cobranca.status).trim();
+
+      if (!STATUS_COBRANCA_PERMITIDOS.includes(status)) {
+        return res.status(400).json({
+          error: 'Status de cobrança inválido.',
+          permitidos: STATUS_COBRANCA_PERMITIDOS,
+        });
+      }
+
+      dadosAtualizados.status = status;
+    }
+
+    if (!Object.keys(dadosAtualizados).length) {
+      return res.status(400).json({
+        error: 'Nenhum campo válido para atualizar.',
+      });
+    }
+
     const atualizada =
       await updateCobrancaRecord(
         id,
-        cobranca
+        dadosAtualizados
       );
 
     if (!atualizada) {

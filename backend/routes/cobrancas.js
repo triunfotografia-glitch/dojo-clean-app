@@ -1,13 +1,19 @@
 ﻿import { Router } from 'express';
 
 import {
-  listCobrancas,
   createCobranca,
-  updateCobranca,
   deleteCobranca,
+  listCobrancas,
+  updateCobranca,
 } from '../controllers/cobrancasController.js';
 
+import { authMiddleware } from '../middleware/authMiddleware.js';
+import { professorMiddleware } from '../middleware/adminMiddleware.js';
+
 const router = Router();
+
+router.use(authMiddleware);
+router.use(professorMiddleware);
 
 router.get('/', listCobrancas);
 router.post('/', createCobranca);
