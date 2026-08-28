@@ -8,7 +8,11 @@ import {
   updateAluno,
 } from '../controllers/alunosController.js';
 
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import {
+  authMiddleware,
+  professorMiddleware,
+  alunoScopeMiddleware,
+} from '../middleware/adminMiddleware.js';
 
 const router = Router();
 
@@ -21,6 +25,7 @@ const router = Router();
 router.get(
   '/',
   authMiddleware,
+  professorMiddleware,
   listAlunos
 );
 
@@ -28,6 +33,8 @@ router.get(
 router.get(
   '/:id',
   authMiddleware,
+  professorMiddleware,
+  alunoScopeMiddleware,
   getAluno
 );
 
@@ -35,6 +42,7 @@ router.get(
 router.post(
   '/',
   authMiddleware,
+  professorMiddleware,
   createAluno
 );
 
@@ -42,6 +50,8 @@ router.post(
 router.put(
   '/:id',
   authMiddleware,
+  professorMiddleware,
+  alunoScopeMiddleware,
   updateAluno
 );
 
@@ -49,6 +59,8 @@ router.put(
 router.delete(
   '/:id',
   authMiddleware,
+  professorMiddleware,
+  alunoScopeMiddleware,
   deleteAluno
 );
 

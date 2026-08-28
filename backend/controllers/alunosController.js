@@ -14,7 +14,13 @@ import {
 
 export async function listAlunos(req, res) {
   try {
-    const alunos = await getAlunos();
+    let alunos;
+
+    if (req.usuario.administrador === true) {
+      alunos = await getAlunos();
+    } else {
+      alunos = await getAlunos(Number(req.usuario.id));
+    }
 
     return res.json(alunos);
   } catch (error) {
@@ -106,6 +112,10 @@ export async function createAluno(req, res) {
       ...dadosAluno
     } = aluno;
 
+    if (req.usuario.administrador !== true) {
+      dadosAluno.professor_id = Number(req.usuario.id);
+    }
+
     const novoAluno = await addAluno({
       ...dadosAluno,
       nome: aluno.nome.trim(),
@@ -164,6 +174,11 @@ export async function updateAluno(req, res) {
       password,
       ...dadosAtualizados
     } = aluno;
+
+    if (req.usuario.administrador !== true) {
+      delete dadosAtualizados.professor_id;
+      delete dadosAtualizados.professorId;
+    }
 
     const atualizado =
       await updateAlunoRecord(

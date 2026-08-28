@@ -77,6 +77,68 @@ export function professorMiddleware(req, res, next) {
   next();
 }
 
+export async function alunoScopeMiddleware(req, res, next) {
+  try {
+    if (!req.usuario?.id) {
+      return res.status(401).json({
+        error: 'Usuário não autenticado.',
+      });
+    }
+
+    const { id } = req.params;
+
+    if (!id || !/^[0-9]+$/.test(id)) {
+      return res.status(400).json({
+        error: 'ID de aluno inválido.',
+      });
+    }
+
+    const result = await query(
+      `
+        SELECT
+          professor_id,
+          ativo
+        FROM alunos
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Aluno não encontrado.',
+      });
+    }
+
+    const aluno = result.rows[0];
+
+    if (req.usuario.administrador === true) {
+      return next();
+    }
+
+    if (
+      aluno.professor_id === null ||
+      Number(aluno.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a este aluno.',
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error(
+      'Erro ao verificar escopo do aluno:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Erro ao verificar permissão de acesso.',
+    });
+  }
+}
+
 export async function presencaScopeMiddleware(req, res, next) {
   try {
     if (!req.usuario?.id) {

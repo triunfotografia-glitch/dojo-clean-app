@@ -132,9 +132,9 @@ const ALUNO_PUBLIC_COLUMNS = `
 /**
  * Busca todos os alunos sem retornar senha.
  */
-export async function getAlunos() {
-  const result = await query(
-    `SELECT
+export async function getAlunos(professorId = null) {
+  let sql = `
+    SELECT
       a.id,
       a.nome,
       a.email,
@@ -176,9 +176,21 @@ export async function getAlunos() {
       ) AS cobrancas
      FROM alunos a
      LEFT JOIN cobrancas c ON c.aluno_id = a.id
-     GROUP BY a.id
-     ORDER BY a.id DESC`
-  );
+  `;
+
+  const params = [];
+
+  if (professorId !== null) {
+    sql += ` WHERE a.professor_id = $1`;
+    params.push(professorId);
+  }
+
+  sql += `
+    GROUP BY a.id
+    ORDER BY a.id DESC
+  `;
+
+  const result = await query(sql, params);
 
   return result.rows.map(
     (row) =>
