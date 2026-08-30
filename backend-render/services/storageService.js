@@ -446,14 +446,39 @@ export async function deleteAluno(
    COBRANÃƒâ€¡AS
 ========================= */
 
-export async function getCobrancas() {
-  const result = await query(
-    `SELECT *
-     FROM cobrancas
-     ORDER BY id DESC`
-  );
+export async function getCobrancas(professorId = null) {
+  const params = [];
+  let sql = `SELECT * FROM cobrancas`;
+
+  if (professorId !== null) {
+    sql += `
+     WHERE aluno_id IN (
+       SELECT id FROM alunos
+       WHERE professor_id = $1
+     )`;
+    params.push(professorId);
+  }
+
+  sql += ` ORDER BY id DESC`;
+
+  const result = await query(sql, params);
 
   return result.rows;
+}
+
+export async function getCobrancaComProfessor(id) {
+  const result = await query(
+    `SELECT
+       c.*,
+       a.professor_id
+     FROM cobrancas c
+     JOIN alunos a ON a.id = c.aluno_id
+     WHERE c.id = $1
+     LIMIT 1`,
+    [id]
+  );
+
+  return result.rows[0] || null;
 }
 
 
@@ -585,12 +610,18 @@ export async function deleteCobranca(
    PROFESSORES
 ========================= */
 
-export async function getProfessores() {
-  const result = await query(
-    `SELECT *
-     FROM professores
-     ORDER BY id DESC`
-  );
+export async function getProfessores(professorId = null) {
+  let sql = `SELECT * FROM professores`;
+  const params = [];
+
+  if (professorId !== null) {
+    sql += ` WHERE id = $1`;
+    params.push(professorId);
+  }
+
+  sql += ` ORDER BY id DESC`;
+
+  const result = await query(sql, params);
 
   return result.rows;
 }
@@ -1240,6 +1271,21 @@ export async function getGraduacoes() {
   );
 
   return result.rows;
+}
+
+export async function getGraduacao(id) {
+  const result = await query(
+    `SELECT
+       g.*,
+       a.professor_id
+     FROM graduacoes g
+     JOIN alunos a ON a.id = g.aluno_id
+     WHERE g.id = $1
+     LIMIT 1`,
+    [id]
+  );
+
+  return result.rows[0] || null;
 }
 
 

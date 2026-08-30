@@ -14,15 +14,37 @@ import {
 
 export async function listAlunos(req, res) {
   try {
-    let alunos;
+    const professorId = Number(req.usuario.id);
+    const alunos =
+      req.usuario.administrador === true
+        ? await getAlunos()
+        : await getAlunos(professorId);
 
-    if (req.usuario.administrador === true) {
-      alunos = await getAlunos();
-    } else {
-      alunos = await getAlunos(Number(req.usuario.id));
-    }
+    const alunosSanitizados = alunos.map((aluno) => {
+      if (req.usuario.administrador === true) {
+        return aluno;
+      }
 
-    return res.json(alunos);
+      const isProprietario =
+        Number(aluno.professor_id) === professorId;
+
+      if (isProprietario) {
+        return aluno;
+      }
+
+      const {
+        cobrancas,
+        valor_mensalidade,
+        proxima_cobranca,
+        dia_vencimento,
+        mensalidade,
+        ...dadosPublicos
+      } = aluno;
+
+      return dadosPublicos;
+    });
+
+    return res.json(alunosSanitizados);
   } catch (error) {
     console.error(
       'Erro ao buscar alunos:',
@@ -59,6 +81,17 @@ export async function getAluno(req, res) {
       return res.status(404).json({
         error: 'Aluno não encontrado.',
       });
+    }
+
+    if (req.usuario.administrador !== true) {
+      const professorId = Number(req.usuario.id);
+      const isProprietario = Number(aluno.professor_id) === professorId;
+
+      if (!isProprietario) {
+        return res.status(403).json({
+          error: 'Acesso negado a este aluno.',
+        });
+      }
     }
 
     return res.json(aluno);

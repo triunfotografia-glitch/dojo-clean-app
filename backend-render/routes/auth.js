@@ -19,7 +19,7 @@ const authLimiter = rateLimit({
 
 router.post('/login', authLimiter, login);
 router.post('/esqueci-senha', authLimiter, esqueciSenha);
-router.post('/redefinir-senha', redefinirSenha);
+router.post('/redefinir-senha', authLimiter, redefinirSenha);
 router.post('/solicitar-recuperacao-email', authLimiter, solicitarRecuperacaoEmail);
 router.post('/solicitar-recuperacao-whatsapp', authLimiter, solicitarRecuperacaoWhatsApp);
 router.post('/validar-otp', authLimiter, validarOtp);

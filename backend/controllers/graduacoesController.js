@@ -1,6 +1,8 @@
 import {
   addGraduacao,
   deleteGraduacao as deleteGraduacaoRecord,
+  getAluno,
+  getGraduacao,
   getGraduacoes,
   updateGraduacao as updateGraduacaoRecord,
 } from '../services/storageService.js';
@@ -9,7 +11,6 @@ import {
 /* =========================================================
    LISTAR GRADUAÇÕES
 ========================================================= */
-
 export async function listGraduacoes(req, res) {
   try {
     const graduacoes = await getGraduacoes();
@@ -31,7 +32,6 @@ export async function listGraduacoes(req, res) {
 /* =========================================================
    CRIAR GRADUAÇÃO
 ========================================================= */
-
 export async function createGraduacao(req, res) {
   try {
     const graduacao = req.body;
@@ -97,6 +97,28 @@ export async function createGraduacao(req, res) {
 
 
     /* =====================================================
+       VERIFICAR PROPRIEDADE DO ALUNO
+    ===================================================== */
+
+    const aluno = await getAluno(Number(alunoId));
+
+    if (!aluno) {
+      return res.status(404).json({
+        error: 'Aluno não encontrado.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(aluno.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Não autorizado a criar graduação para este aluno.',
+      });
+    }
+
+
+    /* =====================================================
        CRIAR GRADUAÇÃO
     ===================================================== */
 
@@ -137,7 +159,6 @@ export async function createGraduacao(req, res) {
 /* =========================================================
    ATUALIZAR GRADUAÇÃO
 ========================================================= */
-
 export async function updateGraduacao(req, res) {
   try {
     const { id } = req.params;
@@ -173,48 +194,42 @@ export async function updateGraduacao(req, res) {
     }
 
 
+    /* =====================================================
+       VERIFICAR PROPRIEDADE DA GRADUAÇÃO
+    ===================================================== */
+
+    const graduacaoAtual = await getGraduacao(Number(id));
+
+    if (!graduacaoAtual) {
+      return res.status(404).json({
+        error: 'Graduação não encontrada.',
+      });
+    }
+
+    const alunoAtual = await getAluno(graduacaoAtual.aluno_id);
+
+    if (!alunoAtual) {
+      return res.status(404).json({
+        error: 'Aluno associado à graduação não encontrado.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(alunoAtual.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a esta graduação.',
+      });
+    }
+
+
     const dadosAtualizados = {};
 
 
     /* =====================================================
-       ALUNO
+       ALUNO — BLOQUEADO (não confiar no frontend)
     ===================================================== */
-
-    if (
-      graduacao.aluno_id !== undefined
-    ) {
-      if (
-        !/^[0-9]+$/.test(
-          String(graduacao.aluno_id)
-        )
-      ) {
-        return res.status(400).json({
-          error: 'Aluno inválido.',
-        });
-      }
-
-      dadosAtualizados.aluno_id =
-        Number(graduacao.aluno_id);
-    }
-
-
-    if (
-      graduacao.alunoId !== undefined
-    ) {
-      if (
-        !/^[0-9]+$/.test(
-          String(graduacao.alunoId)
-        )
-      ) {
-        return res.status(400).json({
-          error: 'Aluno inválido.',
-        });
-      }
-
-      dadosAtualizados.aluno_id =
-        Number(graduacao.alunoId);
-    }
-
 
     /* =====================================================
        FAIXA
@@ -289,6 +304,14 @@ export async function updateGraduacao(req, res) {
     if (
       !Object.keys(dadosAtualizados).length
     ) {
+      if (
+        graduacao.aluno_id !== undefined ||
+        graduacao.alunoId !== undefined ||
+        graduacao.aluno !== undefined
+      ) {
+        return res.json(graduacaoAtual);
+      }
+
       return res.status(400).json({
         error: 'Nenhum campo válido para atualizar.',
       });
@@ -330,7 +353,6 @@ export async function updateGraduacao(req, res) {
 /* =========================================================
    DELETAR GRADUAÇÃO
 ========================================================= */
-
 export async function deleteGraduacao(req, res) {
   try {
     const { id } = req.params;
@@ -342,6 +364,36 @@ export async function deleteGraduacao(req, res) {
     ) {
       return res.status(400).json({
         error: 'ID de graduação inválido.',
+      });
+    }
+
+
+    /* =====================================================
+       VERIFICAR PROPRIEDADE DA GRADUAÇÃO
+    ===================================================== */
+
+    const graduacaoAtual = await getGraduacao(Number(id));
+
+    if (!graduacaoAtual) {
+      return res.status(404).json({
+        error: 'Graduação não encontrada.',
+      });
+    }
+
+    const alunoAtual = await getAluno(graduacaoAtual.aluno_id);
+
+    if (!alunoAtual) {
+      return res.status(404).json({
+        error: 'Aluno associado à graduação não encontrado.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(alunoAtual.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a esta graduação.',
       });
     }
 

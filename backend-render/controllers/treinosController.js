@@ -2,6 +2,7 @@ import {
   addTreino,
   deleteTreino as deleteTreinoRecord,
   getTreino as getTreinoRecord,
+  getTurma,
   getTreinos,
   updateTreino as updateTreinoRecord,
 } from '../services/storageService.js';
@@ -45,7 +46,6 @@ function normalizarRelacionamentos(treino) {
 /* =========================================================
    LISTAR TREINOS
 ========================================================= */
-
 export async function listTreinos(req, res) {
   try {
     const treinos = await getTreinos();
@@ -63,7 +63,6 @@ export async function listTreinos(req, res) {
 /* =========================================================
    BUSCAR TREINO POR ID
 ========================================================= */
-
 export async function getTreino(req, res) {
   try {
     const { id } = req.params;
@@ -101,7 +100,6 @@ export async function getTreino(req, res) {
 /* =========================================================
    CRIAR TREINO
 ========================================================= */
-
 export async function createTreino(req, res) {
   try {
     const treino = req.body;
@@ -119,10 +117,43 @@ export async function createTreino(req, res) {
       });
     }
 
-    const novoTreino = await addTreino(normalizarRelacionamentos({
-      ...treino,
+    const { professor_id, ...dadosTreino } = treino;
+
+    if (
+      dadosTreino.turma_id !== undefined &&
+      dadosTreino.turma_id !== null
+    ) {
+      const turma =
+        await getTurma(
+          Number(dadosTreino.turma_id)
+        );
+
+      if (!turma) {
+        return res.status(404).json({
+          error: 'Turma não encontrada.',
+        });
+      }
+
+      if (
+        req.usuario.administrador !== true &&
+        Number(turma.professor_id) !== Number(req.usuario.id)
+      ) {
+        return res.status(403).json({
+          error: 'Não autorizado a criar treino para esta turma.',
+        });
+      }
+    }
+
+    const dadosProcessados = normalizarRelacionamentos({
+      ...dadosTreino,
       nome: treino.nome.trim(),
-    }));
+      professor_id:
+        req.usuario.administrador === true
+          ? Number(professor_id) || Number(req.usuario.id)
+          : Number(req.usuario.id),
+    });
+
+    const novoTreino = await addTreino(dadosProcessados);
 
     return res.status(201).json(novoTreino);
   } catch (error) {
@@ -140,7 +171,6 @@ export async function createTreino(req, res) {
 /* =========================================================
    ATUALIZAR TREINO
 ========================================================= */
-
 export async function updateTreino(req, res) {
   try {
     const { id } = req.params;
@@ -165,7 +195,24 @@ export async function updateTreino(req, res) {
       });
     }
 
-    const dadosAtualizados = normalizarRelacionamentos(treino);
+    const treinoAtual = await getTreinoRecord(id);
+
+    if (!treinoAtual) {
+      return res.status(404).json({
+        error: 'Treino não encontrado.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(treinoAtual.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a este treino.',
+      });
+    }
+
+    const { professor_id, ...dadosAtualizados } = normalizarRelacionamentos(treino);
 
     if (
       dadosAtualizados.nome !== undefined
@@ -211,7 +258,6 @@ export async function updateTreino(req, res) {
 /* =========================================================
    DELETAR TREINO
 ========================================================= */
-
 export async function deleteTreino(req, res) {
   try {
     const { id } = req.params;
@@ -222,6 +268,23 @@ export async function deleteTreino(req, res) {
     ) {
       return res.status(400).json({
         error: 'ID de treino inválido.',
+      });
+    }
+
+    const treinoAtual = await getTreinoRecord(id);
+
+    if (!treinoAtual) {
+      return res.status(404).json({
+        error: 'Treino não encontrado.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(treinoAtual.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a este treino.',
       });
     }
 

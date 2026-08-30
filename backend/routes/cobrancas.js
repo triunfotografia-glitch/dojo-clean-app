@@ -8,7 +8,7 @@ import {
 } from '../controllers/cobrancasController.js';
 
 import { authMiddleware } from '../middleware/authMiddleware.js';
-import { professorMiddleware } from '../middleware/adminMiddleware.js';
+import { professorMiddleware, cobrancaScopeMiddleware } from '../middleware/adminMiddleware.js';
 
 const router = Router();
 
@@ -17,7 +17,7 @@ router.use(professorMiddleware);
 
 router.get('/', listCobrancas);
 router.post('/', createCobranca);
-router.put('/:id', updateCobranca);
-router.delete('/:id', deleteCobranca);
+router.put('/:id', cobrancaScopeMiddleware, updateCobranca);
+router.delete('/:id', cobrancaScopeMiddleware, deleteCobranca);
 
 export default router;

@@ -7,12 +7,12 @@ import {
   updateProfessor,
 } from '../controllers/professoresController.js';
 
-import {
-  authMiddleware,
-} from '../middleware/authMiddleware.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 
 import {
+  professorMiddleware,
   adminMiddleware,
+  professorScopeMiddleware,
 } from '../middleware/adminMiddleware.js';
 
 const router = Router();
@@ -21,11 +21,12 @@ const router = Router();
 // LISTAR PROFESSORES
 // ==============================
 // Qualquer professor autenticado
-// pode consultar a lista.
+// pode consultar a lista (filtrada por escopo).
 
 router.get(
   '/',
   authMiddleware,
+  professorMiddleware,
   listProfessores
 );
 
@@ -37,6 +38,7 @@ router.get(
 router.post(
   '/',
   authMiddleware,
+  professorMiddleware,
   adminMiddleware,
   createProfessor
 );
@@ -44,24 +46,28 @@ router.post(
 // ==============================
 // ATUALIZAR PROFESSOR
 // ==============================
-// Somente administrador.
+// Somente administrador, com escopo por ID.
 
 router.put(
   '/:id',
   authMiddleware,
-  adminMiddleware,
+  professorMiddleware,
+  professorScopeMiddleware,
   updateProfessor
 );
 
 // ==============================
 // DELETAR PROFESSOR
 // ==============================
-// Somente administrador.
+// Somente administrador, com escopo por ID
+// e proteção contra auto-exclusão.
 
 router.delete(
   '/:id',
   authMiddleware,
+  professorMiddleware,
   adminMiddleware,
+  professorScopeMiddleware,
   deleteProfessor
 );
 

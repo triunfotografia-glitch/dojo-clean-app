@@ -8,8 +8,9 @@ import {
   updateAluno,
 } from '../controllers/alunosController.js';
 
+import { authMiddleware } from '../middleware/authMiddleware.js';
+
 import {
-  authMiddleware,
   professorMiddleware,
   alunoScopeMiddleware,
 } from '../middleware/adminMiddleware.js';

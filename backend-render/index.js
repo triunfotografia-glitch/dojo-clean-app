@@ -5,6 +5,7 @@ import express from 'express';
 
 // Middleware de autenticação JWT
 import { authMiddleware } from './middleware/authMiddleware.js';
+import { adminMiddleware } from './middleware/adminMiddleware.js';
 
 // Rotas
 import alunosRoutes from './routes/alunos.js';
@@ -160,7 +161,7 @@ app.use(
 // DIAGNÓSTICO SMTP
 // ==============================
 
-app.get('/diagnostico/smtp', async (req, res) => {
+app.get('/diagnostico/smtp', authMiddleware, adminMiddleware, async (req, res) => {
   console.log('[DIAG SMTP] Iniciando teste de conexão SMTP...');
 
   if (!isEmailConfigured()) {

@@ -41,7 +41,12 @@ function normalizarNumeroPositivo(valor) {
 
 export async function listCobrancas(req, res) {
   try {
-    const cobrancas = await getCobrancas();
+    const professorId =
+      req.usuario.administrador === true
+        ? null
+        : Number(req.usuario.id);
+
+    const cobrancas = await getCobrancas(professorId);
 
     res.json(cobrancas);
   } catch (error) {
@@ -83,6 +88,15 @@ export async function createCobranca(req, res) {
     if (!aluno) {
       return res.status(400).json({
         error: 'Aluno informado não existe.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(aluno.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Não autorizado a criar cobrança para este aluno.',
       });
     }
 

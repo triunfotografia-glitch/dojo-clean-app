@@ -1,15 +1,67 @@
 ﻿import {
   addTurma,
   deleteTurma as deleteTurmaRecord,
+  getAluno,
   getTurma as getTurmaRecord,
   getTurmas,
   updateTurma as updateTurmaRecord,
 } from '../services/storageService.js';
 
+function normalizarIdAluno(valor) {
+  if (typeof valor === 'number' && Number.isInteger(valor) && valor > 0) {
+    return valor;
+  }
+
+  if (typeof valor === 'string' && /^\d+$/.test(valor)) {
+    const num = Number(valor);
+
+    if (Number.isInteger(num) && num > 0) {
+      return num;
+    }
+  }
+
+  return null;
+}
+
+function extrairAlunoIds(turma) {
+  const candidatos = [
+    ...(Array.isArray(turma?.alunos) ? turma.alunos : []),
+    ...(Array.isArray(turma?.aluno_ids) ? turma.aluno_ids : []),
+    ...(Array.isArray(turma?.alunoIds) ? turma.alunoIds : []),
+  ];
+
+  const ids = candidatos
+    .map(normalizarIdAluno)
+    .filter((id) => id !== null);
+
+  return [...new Set(ids)];
+}
+
+async function validarAlunosDaTurma(req, alunoIds) {
+  if (req.usuario.administrador === true) {
+    return null;
+  }
+
+  const professorId = Number(req.usuario.id);
+
+  for (const alunoId of alunoIds) {
+    const aluno = await getAluno(alunoId);
+
+    if (!aluno) {
+      return { erro: 'Aluno não encontrado.', status: 404 };
+    }
+
+    if (Number(aluno.professor_id) !== professorId) {
+      return { erro: 'Acesso negado a este aluno.', status: 403 };
+    }
+  }
+
+  return null;
+}
+
 /* =========================================================
    LISTAR TURMAS
 ========================================================= */
-
 export async function listTurmas(req, res) {
   try {
     const turmas = await getTurmas();
@@ -30,7 +82,6 @@ export async function listTurmas(req, res) {
 /* =========================================================
    BUSCAR TURMA POR ID
 ========================================================= */
-
 export async function getTurma(req, res) {
   try {
     const { id } = req.params;
@@ -68,7 +119,6 @@ export async function getTurma(req, res) {
 /* =========================================================
    CRIAR TURMA
 ========================================================= */
-
 export async function createTurma(req, res) {
   try {
     const turma = req.body;
@@ -86,10 +136,27 @@ export async function createTurma(req, res) {
       });
     }
 
-    const novaTurma = await addTurma({
-      ...turma,
+    const { professor_id, ...dadosTurma } = turma;
+
+    const dadosComProfessor = {
+      ...dadosTurma,
       nome: turma.nome.trim(),
-    });
+      professor_id:
+        req.usuario.administrador === true
+          ? Number(professor_id) || Number(req.usuario.id)
+          : Number(req.usuario.id),
+    };
+
+    const alunoIds = extrairAlunoIds(dadosComProfessor);
+
+    if (alunoIds.length > 0) {
+      const validacao = await validarAlunosDaTurma(req, alunoIds);
+      if (validacao) {
+        return res.status(validacao.status).json({ error: validacao.erro });
+      }
+    }
+
+    const novaTurma = await addTurma(dadosComProfessor);
 
     return res.status(201).json(novaTurma);
   } catch (error) {
@@ -107,7 +174,6 @@ export async function createTurma(req, res) {
 /* =========================================================
    ATUALIZAR TURMA
 ========================================================= */
-
 export async function updateTurma(req, res) {
   try {
     const { id } = req.params;
@@ -132,9 +198,24 @@ export async function updateTurma(req, res) {
       });
     }
 
-    const dadosAtualizados = {
-      ...turma,
-    };
+    const turmaAtual = await getTurmaRecord(id);
+
+    if (!turmaAtual) {
+      return res.status(404).json({
+        error: 'Turma não encontrada.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(turmaAtual.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a esta turma.',
+      });
+    }
+
+    const { professor_id, ...dadosAtualizados } = turma;
 
     if (
       dadosAtualizados.nome !== undefined
@@ -150,6 +231,22 @@ export async function updateTurma(req, res) {
 
       dadosAtualizados.nome =
         dadosAtualizados.nome.trim();
+    }
+
+    const temAlteracaoAlunos =
+      dadosAtualizados.alunos !== undefined ||
+      dadosAtualizados.aluno_ids !== undefined ||
+      dadosAtualizados.alunoIds !== undefined;
+
+    if (temAlteracaoAlunos) {
+      const alunoIds = extrairAlunoIds(dadosAtualizados);
+
+      if (alunoIds.length > 0) {
+        const validacao = await validarAlunosDaTurma(req, alunoIds);
+        if (validacao) {
+          return res.status(validacao.status).json({ error: validacao.erro });
+        }
+      }
     }
 
     const atualizado =
@@ -180,7 +277,6 @@ export async function updateTurma(req, res) {
 /* =========================================================
    DELETAR TURMA
 ========================================================= */
-
 export async function deleteTurma(req, res) {
   try {
     const { id } = req.params;
@@ -191,6 +287,23 @@ export async function deleteTurma(req, res) {
     ) {
       return res.status(400).json({
         error: 'ID de turma inválido.',
+      });
+    }
+
+    const turmaAtual = await getTurmaRecord(id);
+
+    if (!turmaAtual) {
+      return res.status(404).json({
+        error: 'Turma não encontrada.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(turmaAtual.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a esta turma.',
       });
     }
 
