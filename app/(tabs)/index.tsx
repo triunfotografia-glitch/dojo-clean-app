@@ -209,6 +209,17 @@ export default function Index() {
         </Text>
       </Pressable>
 
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() =>
+          router.push({ pathname: "/graduacoes/index" })
+        }
+      >
+        <Text style={styles.buttonText}>
+          Gerenciar graduações
+        </Text>
+      </Pressable>
+
       {/* ALUNOS */}
 
       <View style={styles.listaContainer}>

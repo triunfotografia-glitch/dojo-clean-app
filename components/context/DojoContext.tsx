@@ -40,6 +40,7 @@ export interface UserLogado {
 
 export interface Graduacao {
   id: string;
+  alunoId?: string | number;
   faixa: string;
   data: string;
   professor: string;

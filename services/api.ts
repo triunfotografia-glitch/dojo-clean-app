@@ -1183,6 +1183,16 @@ export async function getGraduacoes(): Promise<Graduacao[]> {
 
 }
 
+export async function getGraduacao(
+  id: string | number
+): Promise<Graduacao> {
+
+  return request<Graduacao>(
+    `${API_URL}/graduacoes/${id}`
+  );
+
+}
+
 export async function postGraduacao(
   graduacao: Omit<Graduacao, "id">
 ): Promise<Graduacao> {
@@ -1204,6 +1214,51 @@ export async function postGraduacao(
         JSON.stringify(
           payload
         ),
+
+    }
+  );
+
+}
+
+export async function putGraduacao(
+  id: string,
+  graduacao: Partial<Graduacao>
+): Promise<Graduacao> {
+
+  const payload =
+    convertKeysToSnakeCase(
+      graduacao
+    );
+
+  return request<Graduacao>(
+    `${API_URL}/graduacoes/${id}`,
+    {
+      method: "PUT",
+
+      headers:
+        jsonHeaders(),
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+
+    }
+  );
+
+}
+
+export async function deleteGraduacao(
+  id: string
+): Promise<void> {
+
+  await request<void>(
+    `${API_URL}/graduacoes/${id}`,
+    {
+      method: "DELETE",
+
+      headers:
+        jsonHeaders(),
 
     }
   );
