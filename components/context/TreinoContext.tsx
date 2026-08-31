@@ -11,6 +11,7 @@ import {
   deleteTreino,
   getToken,
   getTreinos,
+  isTokenExpired,
   onAuthLost,
   onAuthChanged,
   postTreino,
@@ -66,6 +67,19 @@ export function TreinoProvider({
       const token = await getToken();
 
       if (!token || !ativo) {
+        return;
+      }
+
+      if (isTokenExpired(token)) {
+        return;
+      }
+
+      const userJson =
+        await AsyncStorage.getItem(
+          '@dojo_user'
+        );
+
+      if (!userJson) {
         return;
       }
 

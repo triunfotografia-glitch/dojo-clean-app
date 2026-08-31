@@ -222,6 +222,29 @@ export async function hasToken(): Promise<boolean> {
   return !!token;
 }
 
+export function isTokenExpired(
+  token: string
+): boolean {
+  try {
+
+    const payload = JSON.parse(
+      atob(
+        token.split('.')[1]
+      )
+    );
+
+    return payload.exp
+      ? payload.exp * 1000 <
+          Date.now()
+      : true;
+
+  } catch {
+
+    return true;
+
+  }
+}
+
 // ==============================
 // CONVERSÃO SNAKE -> CAMEL
 // ==============================

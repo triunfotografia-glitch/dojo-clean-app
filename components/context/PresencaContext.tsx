@@ -3,6 +3,7 @@
   getPresencas,
   getPresencasPorTreino,
   getToken,
+  isTokenExpired,
   onAuthLost,
   onAuthChanged,
   postPresenca,
@@ -16,6 +17,8 @@ import {
   useEffect,
   useState,
 } from 'react';
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type StatusPresenca =
   'presente' |
@@ -103,6 +106,19 @@ export function PresencaProvider({
       const token = await getToken();
 
       if (!token || !ativo) {
+        return;
+      }
+
+      if (isTokenExpired(token)) {
+        return;
+      }
+
+      const userJson =
+        await AsyncStorage.getItem(
+          '@dojo_user'
+        );
+
+      if (!userJson) {
         return;
       }
 

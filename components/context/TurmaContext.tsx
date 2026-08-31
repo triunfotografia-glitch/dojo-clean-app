@@ -3,6 +3,7 @@ import {
   deleteTurma,
   getToken,
   getTurmas,
+  isTokenExpired,
   onAuthLost,
   onAuthChanged,
   postTurma,
@@ -79,6 +80,19 @@ export function TurmaProvider({
       const token = await getToken();
 
       if (!token || !ativo) {
+        return;
+      }
+
+      if (isTokenExpired(token)) {
+        return;
+      }
+
+      const userJson =
+        await AsyncStorage.getItem(
+          '@dojo_user'
+        );
+
+      if (!userJson) {
         return;
       }
 

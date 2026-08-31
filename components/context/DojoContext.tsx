@@ -6,6 +6,7 @@ import {
   deleteCobranca,
   getAlunos,
   getToken,
+  isTokenExpired,
   loginProfessor,
   notifyAuthLost,
   onAuthLost,
@@ -412,6 +413,27 @@ export function DojoProvider({
           setAlunos([]);
 
           return;
+        }
+
+        // ==========================
+        // VERIFICAR EXPIRAÇÃO DO JWT
+        // ==========================
+
+        if (
+          isTokenExpired(token)
+        ) {
+
+          await AsyncStorage.removeItem(
+            USER_STORAGE_KEY
+          );
+
+          await removeToken();
+
+          setUserLogado(null);
+          setAlunos([]);
+
+          return;
+
         }
 
         // ==========================
