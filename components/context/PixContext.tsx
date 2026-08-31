@@ -38,11 +38,6 @@ interface PixContextData {
   chavesPix: PixChave[];
   carregarChavesPix: () => Promise<void>;
   carregarTodasChavesPix: () => Promise<void>;
-  salvarConfiguracaoPix: (
-    chave: string,
-    nome: string,
-    cidade: string
-  ) => Promise<void>;
 
   salvarChavePix: (
     chave: Omit<PixChave, "id">
@@ -201,66 +196,6 @@ export function PixProvider({
   }, []);
 
 
-  async function salvarConfiguracaoPix(
-    chave:string,
-    nome:string,
-    cidade:string
-  ){
-
-    const configuracao = {
-
-      chavePix:
-        chave.trim(),
-
-      nomeRecebedor:
-        nome.trim() || "DOJO LB",
-
-      cidadeRecebedor:
-        cidade.trim() || "SAO PAULO",
-
-    };
-
-
-    setChavePix(
-      configuracao.chavePix
-    );
-
-
-    setNomeRecebedor(
-      configuracao.nomeRecebedor
-    );
-
-
-    setCidadeRecebedor(
-      configuracao.cidadeRecebedor
-    );
-
-    try {
-
-      await updatePixConfig({
-        chave_pix: configuracao.chavePix,
-        nome_recebedor: configuracao.nomeRecebedor,
-        cidade_recebedor: configuracao.cidadeRecebedor,
-      });
-
-    } catch (error) {
-
-      console.error(
-        "Erro ao salvar PIX no backend:",
-        error
-      );
-
-    } finally {
-
-      await AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(configuracao)
-      );
-
-    }
-
-  }
-
   async function salvarChavePix(
     chave: Omit<PixChave, "id">
   ): Promise<PixChave> {
@@ -310,8 +245,6 @@ export function PixProvider({
           carregarChavesPix,
 
           carregarTodasChavesPix,
-
-          salvarConfiguracaoPix,
 
           salvarChavePix,
 

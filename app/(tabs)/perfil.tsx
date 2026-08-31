@@ -22,7 +22,6 @@ export default function Perfil() {
     chavePix,
     nomeRecebedor,
     cidadeRecebedor,
-    salvarConfiguracaoPix,
     chavesPix,
     carregarTodasChavesPix,
     salvarChavePix,
@@ -32,10 +31,6 @@ export default function Perfil() {
 
   const { userLogado, logout } = useDojo();
 
-
-  const [chave, setChave] = useState('');
-  const [nome, setNome] = useState('');
-  const [cidade, setCidade] = useState('');
 
   const [modalChaveAberta, setModalChaveAberta] =
     useState(false);
@@ -47,19 +42,6 @@ export default function Perfil() {
   const [novoTipo, setNovoTipo] = useState('aleatoria');
   const [novaDescricao, setNovaDescricao] =
     useState('');
-
-
-  useEffect(() => {
-
-    setChave(chavePix);
-    setNome(nomeRecebedor);
-    setCidade(cidadeRecebedor);
-
-  }, [
-    chavePix,
-    nomeRecebedor,
-    cidadeRecebedor
-  ]);
 
 
   useEffect(() => {
@@ -76,45 +58,6 @@ export default function Perfil() {
   useEffect(() => {
   }, [userLogado]);
 
-
-  async function salvar() {
-
-    if (!chave.trim()) {
-
-      Alert.alert(
-        'Chave PIX obrigatória',
-        'Informe uma chave PIX para receber pagamentos.'
-      );
-
-      return;
-
-    }
-
-    try {
-
-      await salvarConfiguracaoPix(
-        chave,
-        nome || 'DOJO LB',
-        cidade || 'SAO PAULO'
-      );
-
-      Alert.alert(
-        'PIX configurado',
-        'Agora os alunos poderão gerar pagamentos PIX pelo financeiro.'
-      );
-
-    } catch (error) {
-
-      console.error(error);
-
-      Alert.alert(
-        'Erro',
-        'Não foi possível salvar a configuração PIX.'
-      );
-
-    }
-
-  }
 
   function abrirModalNovaChave() {
     setEditandoChaveId(null);
