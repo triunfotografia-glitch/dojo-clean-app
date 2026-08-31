@@ -1,4 +1,5 @@
 import { query, transaction } from './databaseService.js';
+import crypto from 'crypto';
 
 /* =========================
    HELPERS
@@ -1747,11 +1748,6 @@ export async function criarOtp(
 }
 
 export async function buscarOtpValido(professorId, codigoHash) {
-  console.log('[DIAG OTP] buscarOtpValido:', {
-    professorId,
-    codigoHash,
-  });
-
   const result = await query(
     `SELECT *
      FROM otp_recovery
@@ -1764,19 +1760,6 @@ export async function buscarOtpValido(professorId, codigoHash) {
     [professorId, codigoHash]
   );
 
-  console.log('[DIAG OTP] buscarOtpValido rows:', result.rows.length);
-
-  if (result.rows.length > 0) {
-    const otp = result.rows[0];
-    console.log('[DIAG OTP] OTP encontrado:', {
-      id: otp.id,
-      professor_id: otp.professor_id,
-      email: otp.email,
-      expires_at: otp.expires_at,
-      used_at: otp.used_at,
-    });
-  }
-
   return result.rows[0] || null;
 }
 
@@ -1787,6 +1770,51 @@ export async function marcarOtpComoUsado(id) {
      WHERE id = $1 AND used_at IS NULL
      RETURNING *`,
     [id]
+  );
+
+  return result.rows[0] || null;
+}
+
+/* =========================
+   JTI — RESET TOKEN ÚNICO
+   ========================= */
+
+async function garantirTabelaResetTokenJti() {
+  await query(
+    `CREATE TABLE IF NOT EXISTS reset_token_jti (
+      jti_hash VARCHAR(64) PRIMARY KEY,
+      professor_id INTEGER NOT NULL REFERENCES professores(id),
+      expires_at TIMESTAMP NOT NULL,
+      used_at TIMESTAMP NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )`
+  );
+}
+
+export async function criarResetTokenJti(professorId, jti) {
+  await garantirTabelaResetTokenJti();
+
+  const jtiHash = crypto.createHash('sha256').update(jti).digest('hex');
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await query(
+    `INSERT INTO reset_token_jti (jti_hash, professor_id, expires_at)
+     VALUES ($1, $2, $3)`,
+    [jtiHash, professorId, expiresAt]
+  );
+
+  return jtiHash;
+}
+
+export async function marcarResetTokenJtiComoUsado(jtiHash) {
+  await garantirTabelaResetTokenJti();
+
+  const result = await query(
+    `UPDATE reset_token_jti
+     SET used_at = NOW()
+     WHERE jti_hash = $1 AND used_at IS NULL
+     RETURNING *`,
+    [jtiHash]
   );
 
   return result.rows[0] || null;

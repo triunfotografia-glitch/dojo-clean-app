@@ -11,6 +11,8 @@ import {
   criarOtp,
   buscarOtpValido,
   marcarOtpComoUsado,
+  criarResetTokenJti,
+  marcarResetTokenJtiComoUsado,
 } from '../services/storageService.js';
 import { sendPasswordResetEmail, sendOtpEmail, isEmailConfigured } from '../services/emailService.js';
 import { sendOtpWhatsApp, isWhatsAppConfigured } from '../services/whatsappService.js';
@@ -269,9 +271,18 @@ export async function redefinirSenha(req, res) {
         });
       }
 
-      if (!decoded || !decoded.professorId || !decoded.resetPassword) {
+      if (!decoded || !decoded.professorId || !decoded.resetPassword || !decoded.jti) {
         return res.status(400).json({
           error: 'Token de redefinição inválido.',
+        });
+      }
+
+      const jtiHash = crypto.createHash('sha256').update(decoded.jti).digest('hex');
+      const usado = await marcarResetTokenJtiComoUsado(jtiHash);
+
+      if (!usado) {
+        return res.status(400).json({
+          error: 'Token inválido, expirado ou já utilizado.',
         });
       }
 
@@ -482,17 +493,10 @@ export async function validarOtp(req, res) {
   try {
     const { email, telefone, codigo } = req.body;
 
-    console.log('[DIAG OTP] validarOtp entrada:', {
-      hasEmail: Boolean(email && email.trim()),
-      hasTelefone: Boolean(telefone && telefone.trim()),
-      codigoLength: typeof codigo === 'string' ? codigo.trim().length : 0,
-    });
-
     if (
       (!email || !email.trim()) &&
       (!telefone || !telefone.trim())
     ) {
-      console.log('[DIAG OTP] Faltou email e telefone.');
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
@@ -504,7 +508,6 @@ export async function validarOtp(req, res) {
       typeof codigo !== 'string' ||
       !codigo.trim()
     ) {
-      console.log('[DIAG OTP] Código vazio ou inválido.');
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
@@ -513,39 +516,29 @@ export async function validarOtp(req, res) {
 
     const codigoHash = crypto.createHash('sha256').update(codigo.trim()).digest('hex');
 
-    console.log('[DIAG OTP] codigoHash:', codigoHash);
-
     let professorResult;
 
     if (email && typeof email === 'string' && email.trim()) {
       const emailNormalizado = email.trim().toLowerCase();
-      console.log('[DIAG OTP] Buscando professor por email:', emailNormalizado);
 
       professorResult = await query(
         `SELECT id FROM professores WHERE LOWER(email) = LOWER($1) LIMIT 1`,
         [emailNormalizado]
       );
-
-      console.log('[DIAG OTP] Professor encontrado por email:', professorResult.rows.length);
     } else if (telefone && typeof telefone === 'string' && telefone.trim()) {
       const telefoneNormalizado = normalizarTelefone(telefone);
       if (!telefoneNormalizado) {
-        console.log('[DIAG OTP] Telefone inválido após normalização.');
         return res.status(200).json({
           success: false,
           message: 'Código de recuperação inválido ou expirado.',
         });
       }
-      console.log('[DIAG OTP] Buscando professor por telefone:', telefoneNormalizado);
 
       professorResult = await query(
         `SELECT id FROM professores WHERE regexp_replace(telefone, '\D', '', 'g') = regexp_replace($1, '\D', '', 'g') LIMIT 1`,
         [telefoneNormalizado]
       );
-
-      console.log('[DIAG OTP] Professor encontrado por telefone:', professorResult.rows.length);
     } else {
-      console.log('[DIAG OTP] Nenhum dado de busca válido.');
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
@@ -553,7 +546,6 @@ export async function validarOtp(req, res) {
     }
 
     if (professorResult.rows.length === 0) {
-      console.log('[DIAG OTP] Professor NÃO encontrado.');
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
@@ -561,38 +553,41 @@ export async function validarOtp(req, res) {
     }
 
     const professorId = professorResult.rows[0].id;
-    console.log('[DIAG OTP] professorId:', professorId);
 
     const otp = await buscarOtpValido(professorId, codigoHash);
 
-    console.log('[DIAG OTP] buscarOtpValido resultado:', otp ? {
-      id: otp.id,
-      professor_id: otp.professor_id,
-      email: otp.email,
-      expires_at: otp.expires_at,
-      used_at: otp.used_at,
-    } : null);
-
     if (!otp) {
-      console.log('[DIAG OTP] OTP NÃO encontrado ou inválido/expirado.');
       return res.status(200).json({
         success: false,
         message: 'Código de recuperação inválido ou expirado.',
       });
     }
 
+    const marcado = await marcarOtpComoUsado(otp.id);
+
+    if (!marcado) {
+      return res.status(200).json({
+        success: false,
+        message: 'Código de recuperação inválido ou expirado.',
+      });
+    }
+
+    const jti = crypto.randomUUID();
+
     const resetToken = jwt.sign(
-      { professorId, resetPassword: true },
+      { professorId, resetPassword: true, jti },
       process.env.JWT_SECRET,
       { expiresIn: '10m' }
     );
+
+    await criarResetTokenJti(professorId, jti);
 
     return res.status(200).json({
       success: true,
       resetToken,
     });
   } catch (error) {
-    console.error('[DIAG OTP] Erro ao validar OTP:', error);
+    console.error('Erro ao validar OTP:', error);
 
     return res.status(200).json({
       success: false,

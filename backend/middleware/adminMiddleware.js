@@ -233,7 +233,11 @@ export async function presencaScopeMiddleware(req, res, next) {
 
     const presenca = result.rows[0];
 
-    if (presenca.professor_id && Number(presenca.professor_id) !== Number(req.usuario.id)) {
+    if (req.usuario.administrador === true) {
+      return next();
+    }
+
+    if (!presenca.professor_id || Number(presenca.professor_id) !== Number(req.usuario.id)) {
       return res.status(403).json({
         error: 'Acesso negado a esta presença.',
       });
