@@ -1,6 +1,7 @@
 import { COLORS } from "@/components/Colors";
 import { useDojo } from "@/components/context/DojoContext";
 import { useProfessores } from "@/components/context/ProfessorContext";
+import { useTreinos } from "@/components/context/TreinoContext";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -14,6 +15,7 @@ import {
 export default function Index() {
   const { alunos, userLogado } = useDojo();
   const { professores } = useProfessores();
+  const { treinos } = useTreinos();
 
   const [listaAlunosVisivel, setListaAlunosVisivel] =
     useState(true);
@@ -61,7 +63,21 @@ export default function Index() {
     0
   );
 
-  const treinosHoje = 0;
+  const diasSemana = [
+    "Domingo",
+    "Segunda",
+    "Terça",
+    "Quarta",
+    "Quinta",
+    "Sexta",
+    "Sábado",
+  ];
+
+  const diaHoje = diasSemana[new Date().getDay()];
+
+  const treinosHoje = treinos.filter(
+    (treino) => treino.dia === diaHoje
+  ).length;
 
   return (
     <ScrollView
