@@ -20,9 +20,13 @@ export default function Index() {
   const [listaAlunosVisivel, setListaAlunosVisivel] =
     useState(true);
 
-  const totalAlunos = alunos.length;
+  const totalAlunos = alunos.filter(
+    (aluno) => aluno.ativo
+  ).length;
 
-  const totalProfessores = professores.length;
+  const totalProfessores = professores.filter(
+    (professor) => professor.ativo
+  ).length;
 
   const hoje = new Date()
     .toISOString()

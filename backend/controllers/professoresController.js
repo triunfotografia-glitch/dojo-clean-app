@@ -160,6 +160,10 @@ export async function updateProfessor(req, res) {
       camposPermitidos.push('administrador');
     }
 
+    if (professor.senha && typeof professor.senha === 'string') {
+      camposPermitidos.push('senha');
+    }
+
     const dadosAtualizados = {};
 
     Object.keys(professor).forEach((key) => {
@@ -167,6 +171,10 @@ export async function updateProfessor(req, res) {
         dadosAtualizados[key] = professor[key];
       }
     });
+
+    if (dadosAtualizados.senha && typeof dadosAtualizados.senha === 'string') {
+      dadosAtualizados.senha = await bcrypt.hash(dadosAtualizados.senha, 10);
+    }
 
     if (professor.administrador !== undefined && req.usuario.administrador === true) {
       dadosAtualizados.administrador = Boolean(professor.administrador);

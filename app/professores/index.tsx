@@ -29,7 +29,7 @@ export default function Professores() {
             onPress: async () => {
               try {
                 for (const aluno of alunosVinculados) {
-                  await editarAluno({ ...aluno, professorId: undefined });
+                  await editarAluno({ ...aluno, professorId: null });
                 }
                 await excluirProfessor(id);
               } catch (error) {

@@ -7,7 +7,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-const hoje = new Date().toISOString().slice(0, 10);
+
 const opcoes: { status: StatusPresenca; texto: string }[] = [
   { status: 'presente', texto: 'Presente' },
   { status: 'falta', texto: 'Falta' },
@@ -53,6 +53,15 @@ export default function PresencaTreino() {
 
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [hoje, setHoje] = useState(() => new Date().toISOString().slice(0, 10));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHoje(new Date().toISOString().slice(0, 10));
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const totalAlunos = alunosDaTurma.length;
   const presentes = presencas.filter((item) => normalizarData(item.data) === hoje && item.status === 'presente').length;

@@ -72,7 +72,7 @@ export interface Aluno {
   graus: number;
   historicoGraduacao: Graduacao[];
   turma: string;
-  professorId?: string;
+  professorId?: string | null;
   dataEntrada: string;
   ativo: boolean;
   mensalidade: string;
