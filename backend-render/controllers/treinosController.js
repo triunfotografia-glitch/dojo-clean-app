@@ -84,6 +84,15 @@ export async function getTreino(req, res) {
       });
     }
 
+    if (
+      req.usuario.administrador !== true &&
+      Number(treino.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a este treino.',
+      });
+    }
+
     return res.json(treino);
   } catch (error) {
     console.error(

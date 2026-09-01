@@ -161,45 +161,47 @@ app.use(
 // DIAGNÓSTICO SMTP
 // ==============================
 
-app.get('/diagnostico/smtp', authMiddleware, adminMiddleware, async (req, res) => {
-  console.log('[DIAG SMTP] Iniciando teste de conexão SMTP...');
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/diagnostico/smtp', authMiddleware, adminMiddleware, async (req, res) => {
+    console.log('[DIAG SMTP] Iniciando teste de conexão SMTP...');
 
-  if (!isEmailConfigured()) {
-    console.log('[DIAG SMTP] E-mail não configurado.');
-    return res.status(500).json({
-      success: false,
-      error: 'E-mail não configurado.',
-    });
-  }
+    if (!isEmailConfigured()) {
+      console.log('[DIAG SMTP] E-mail não configurado.');
+      return res.status(500).json({
+        success: false,
+        error: 'E-mail não configurado.',
+      });
+    }
 
-  try {
-    const result = await transporter.verify();
+    try {
+      const result = await transporter.verify();
 
-    console.log('[DIAG SMTP] Conexão SMTP OK');
+      console.log('[DIAG SMTP] Conexão SMTP OK');
 
-    res.json({
-      success: true,
-      host: process.env.EMAIL_HOST || '',
-      port: Number(process.env.EMAIL_PORT || '587'),
-      secure: String(process.env.EMAIL_SECURE || 'false').toLowerCase() === 'true',
-      result,
-    });
-  } catch (error) {
-    console.error('[DIAG SMTP] Erro:', error.code, error.command, error.address, error.port);
+      res.json({
+        success: true,
+        host: process.env.EMAIL_HOST || '',
+        port: Number(process.env.EMAIL_PORT || '587'),
+        secure: String(process.env.EMAIL_SECURE || 'false').toLowerCase() === 'true',
+        result,
+      });
+    } catch (error) {
+      console.error('[DIAG SMTP] Erro:', error.code, error.command, error.address, error.port);
 
-    res.status(500).json({
-      success: false,
-      host: process.env.EMAIL_HOST || '',
-      port: Number(process.env.EMAIL_PORT || '587'),
-      secure: String(process.env.EMAIL_SECURE || 'false').toLowerCase() === 'true',
-      error: error.message,
-      code: error.code,
-      command: error.command,
-      address: error.address,
-      port: error.port,
-    });
-  }
-});
+      res.status(500).json({
+        success: false,
+        host: process.env.EMAIL_HOST || '',
+        port: Number(process.env.EMAIL_PORT || '587'),
+        secure: String(process.env.EMAIL_SECURE || 'false').toLowerCase() === 'true',
+        error: error.message,
+        code: error.code,
+        command: error.command,
+        address: error.address,
+        port: error.port,
+      });
+    }
+  });
+}
 
 // ==============================
 // 404

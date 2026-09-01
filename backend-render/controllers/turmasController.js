@@ -103,6 +103,15 @@ export async function getTurma(req, res) {
       });
     }
 
+    if (
+      req.usuario.administrador !== true &&
+      Number(turma.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a esta turma.',
+      });
+    }
+
     return res.json(turma);
   } catch (error) {
     console.error(
