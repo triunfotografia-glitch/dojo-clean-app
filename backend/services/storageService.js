@@ -1,4 +1,4 @@
-import { query } from './databaseService.js';
+﻿import { query } from './databaseService.js';
 
 /* =========================
    HELPERS
@@ -97,12 +97,12 @@ function prepareFields(data) {
 ========================= */
 
 /**
- * Colunas pÃƒÂºblicas da tabela alunos.
+ * Colunas pÃƒÆ’Ã‚Âºblicas da tabela alunos.
  *
  * IMPORTANTE:
- * senha NÃƒÆ’O estÃƒÂ¡ aqui.
+ * senha NÃƒÆ’Ã†â€™O estÃƒÆ’Ã‚Â¡ aqui.
  *
- * Assim a senha nunca ÃƒÂ© retornada
+ * Assim a senha nunca ÃƒÆ’Ã‚Â© retornada
  * pela API de alunos.
  */
 const ALUNO_PUBLIC_COLUMNS = `
@@ -208,10 +208,10 @@ export async function getAlunos(professorId = null) {
  * Cria um novo aluno.
  *
  * A senha pode ser recebida aqui porque
- * o controller jÃƒÂ¡ deve fazer o hash bcrypt.
+ * o controller jÃƒÆ’Ã‚Â¡ deve fazer o hash bcrypt.
  *
- * PorÃƒÂ©m a resposta enviada ao frontend
- * nunca contÃƒÂ©m a senha.
+ * PorÃƒÆ’Ã‚Â©m a resposta enviada ao frontend
+ * nunca contÃƒÆ’Ã‚Â©m a senha.
  */
 export async function getAluno(
   id
@@ -241,7 +241,7 @@ export async function addAluno(
   aluno
 ) {
   /*
-   * ALUNOS NÃO POSSUEM SENHA.
+   * ALUNOS NÃƒO POSSUEM SENHA.
    *
    * Remove qualquer campo antigo de senha
    * antes de preparar os dados para o INSERT.
@@ -270,7 +270,7 @@ const fields =
 
   if (!fields.length) {
     throw new Error(
-      'Dados de aluno invÃƒÂ¡lidos.'
+      'Dados de aluno invÃƒÆ’Ã‚Â¡lidos.'
     );
   }
 
@@ -324,7 +324,7 @@ const fields =
  * Atualiza aluno.
  *
  * A senha pode ser atualizada normalmente,
- * mas nunca serÃƒÂ¡ devolvida na resposta.
+ * mas nunca serÃƒÆ’Ã‚Â¡ devolvida na resposta.
  */
 export async function updateAluno(
   id,
@@ -373,7 +373,7 @@ export async function updateAluno(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃƒÂ¡lido para atualizar.'
+      'Nenhum campo vÃƒÆ’Ã‚Â¡lido para atualizar.'
     );
   }
 
@@ -425,7 +425,7 @@ export async function updateAluno(
 /**
  * Exclui aluno.
  *
- * A resposta tambÃƒÂ©m nÃƒÂ£o retorna senha.
+ * A resposta tambÃƒÆ’Ã‚Â©m nÃƒÆ’Ã‚Â£o retorna senha.
  */
 export async function deleteAluno(
   id
@@ -443,7 +443,7 @@ export async function deleteAluno(
 
 
 /* =========================
-   COBRANÃƒâ€¡AS
+   COBRANÃƒÆ’Ã¢â‚¬Â¡AS
 ========================= */
 
 export async function getCobrancas(professorId = null) {
@@ -496,7 +496,7 @@ export async function addCobranca(
    * FK:
    *
    * cobrancas.aluno_id
-   *        Ã¢â€ â€œ
+   *        ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Å“
    * alunos.id
    */
 
@@ -508,7 +508,7 @@ export async function addCobranca(
     mappedCobranca.aluno_id === ''
   ) {
     throw new Error(
-      'aluno_id ÃƒÂ© obrigatÃƒÂ³rio para criar uma cobranÃƒÂ§a.'
+      'aluno_id ÃƒÆ’Ã‚Â© obrigatÃƒÆ’Ã‚Â³rio para criar uma cobranÃƒÆ’Ã‚Â§a.'
     );
   }
 
@@ -519,7 +519,7 @@ export async function addCobranca(
 
   if (!fields.length) {
     throw new Error(
-      'Dados de cobranÃƒÂ§a invÃƒÂ¡lidos.'
+      'Dados de cobranÃƒÆ’Ã‚Â§a invÃƒÆ’Ã‚Â¡lidos.'
     );
   }
 
@@ -564,7 +564,7 @@ export async function updateCobranca(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃƒÂ¡lido para atualizar.'
+      'Nenhum campo vÃƒÆ’Ã‚Â¡lido para atualizar.'
     );
   }
 
@@ -684,7 +684,7 @@ export async function updateProfessor(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃƒÂ¡lido para atualizar.'
+      'Nenhum campo vÃƒÆ’Ã‚Â¡lido para atualizar.'
     );
   }
 
@@ -732,27 +732,39 @@ export async function deleteProfessor(
    TURMAS
 ========================= */
 
-export async function getTurmas() {
-  const result = await query(
-    `SELECT
-       t.*,
-       COALESCE(p.nome, t.professor) AS professor,
-       COALESCE(
-         JSON_AGG(
-           JSON_BUILD_OBJECT(
-             'aluno_id', ta.aluno_id
-           )
-         ) FILTER (WHERE ta.aluno_id IS NOT NULL),
-         '[]'::json
-       ) AS turma_alunos
-     FROM turmas t
-     LEFT JOIN professores p
-       ON p.id = t.professor_id
-     LEFT JOIN turma_alunos ta
-       ON ta.turma_id = t.id
-     GROUP BY t.id, p.nome
-     ORDER BY t.id DESC`
-  );
+export async function getTurmas(professorId = null) {
+  let sql = `
+    SELECT
+      t.*,
+      COALESCE(p.nome, t.professor) AS professor,
+      COALESCE(
+        JSON_AGG(
+          JSON_BUILD_OBJECT(
+            'aluno_id', ta.aluno_id
+          )
+        ) FILTER (WHERE ta.aluno_id IS NOT NULL),
+        '[]'::json
+      ) AS turma_alunos
+    FROM turmas t
+    LEFT JOIN professores p
+      ON p.id = t.professor_id
+    LEFT JOIN turma_alunos ta
+      ON ta.turma_id = t.id
+  `;
+
+  const params = [];
+
+  if (professorId !== null) {
+    sql += ` WHERE t.professor_id = $1`;
+    params.push(professorId);
+  }
+
+  sql += `
+    GROUP BY t.id, p.nome
+    ORDER BY t.id DESC`
+  `;
+
+  const result = await query(sql, params);
 
   return result.rows.map(
     (row) =>
@@ -903,12 +915,21 @@ export async function deleteTurma(
     ['alunos']
   );
 }
-export async function getTreinos() {
-  const result = await query(
-    `SELECT *
+export async function getTreinos(professorId = null) {
+  let sql = `
+    SELECT *
      FROM treinos
-     ORDER BY id DESC`
-  );
+  `;
+  const params = [];
+
+  if (professorId !== null) {
+    sql += ` WHERE professor_id = $1`;
+    params.push(professorId);
+  }
+
+  sql += ` ORDER BY id DESC`;
+
+  const result = await query(sql, params);
 
   return result.rows;
 }
@@ -1039,17 +1060,49 @@ export async function deleteTreino(
   return result.rows[0];
 }
 /* =========================
-   PRESENÇAS
+   PRESENÃ‡AS
 ========================= */
 
-export async function getPresencas() {
+export async function getPresencas(professorId = null) {
+  let sql = `
+    SELECT
+      p.id,
+      p.aluno_id,
+      p.treino_id,
+      p.data,
+      p.status,
+      p.criado_em,
+      a.nome AS aluno_nome
+    FROM presencas p
+    JOIN alunos a ON a.id = p.aluno_id
+    JOIN treinos t ON t.id = p.treino_id
+  `;
+  const params = [];
+
+  if (professorId !== null) {
+    sql += ` WHERE t.professor_id = $1`;
+    params.push(professorId);
+  }
+
+  sql += ` ORDER BY p.data DESC, a.nome ASC`;
+
+  const result = await query(sql, params);
+  return result.rows;
+}
+
+export async function getPresenca(id) {
   const result = await query(
-    `SELECT *
-     FROM presencas
-     ORDER BY id DESC`
+    `SELECT
+       p.*,
+       t.professor_id
+     FROM presencas p
+     JOIN treinos t ON t.id = p.treino_id
+     WHERE p.id = $1
+     LIMIT 1`,
+    [id]
   );
 
-  return result.rows;
+  return result.rows[0] || null;
 }
 
 
@@ -1125,7 +1178,7 @@ export async function updatePresenca(id, dados) {
   }
 
   if (fields.length === 0) {
-    throw new Error('Nenhum campo válido para atualizar.');
+    throw new Error('Nenhum campo vÃ¡lido para atualizar.');
   }
 
   fields.push(`atualizado_em = NOW()`);
@@ -1150,7 +1203,7 @@ export async function deletePresenca(id) {
 
 
 /* =========================
-   GRADUAÃƒâ€¡Ãƒâ€¢ES
+   GRADUAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES
    ========================= */
 
 export async function getGraduacoes() {
@@ -1223,7 +1276,7 @@ export async function updateGraduacao(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃƒÂ¡lido para atualizar.'
+      'Nenhum campo vÃƒÆ’Ã‚Â¡lido para atualizar.'
     );
   }
 
@@ -1299,7 +1352,7 @@ export async function updatePixConfig(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo válido para atualizar.'
+      'Nenhum campo vÃ¡lido para atualizar.'
     );
   }
 
@@ -1340,7 +1393,7 @@ export async function updateFirstPixConfig(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo válido para atualizar.'
+      'Nenhum campo vÃ¡lido para atualizar.'
     );
   }
 
@@ -1389,7 +1442,7 @@ export async function updateFirstPixConfig(
 }
 
 /* =========================
-   PIX CHAVES (múltiplas chaves)
+   PIX CHAVES (mÃºltiplas chaves)
    ========================= */
 
 export async function getPixChaves() {
@@ -1457,7 +1510,7 @@ export async function addPixChave(chave) {
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo válido para adicionar chave PIX.'
+      'Nenhum campo vÃ¡lido para adicionar chave PIX.'
     );
   }
 
@@ -1497,7 +1550,7 @@ export async function updatePixChave(id, chave) {
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo válido para atualizar chave PIX.'
+      'Nenhum campo vÃ¡lido para atualizar chave PIX.'
     );
   }
 

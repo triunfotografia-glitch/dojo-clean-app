@@ -1,6 +1,7 @@
-import {
+﻿import {
   addPresenca,
   deletePresenca as deletePresencaRecord,
+  getPresenca,
   getPresencas,
   getPresencasPorTreino,
   updatePresenca as updatePresencaRecord,
@@ -10,17 +11,22 @@ import { query } from '../services/databaseService.js';
 
 export async function listPresencas(req, res) {
   try {
-    const presencas = await getPresencas();
+    const professorId =
+      req.usuario.administrador === true
+        ? null
+        : Number(req.usuario.id);
+
+    const presencas = await getPresencas(professorId);
 
     return res.json(presencas);
   } catch (error) {
     console.error(
-      'Erro ao buscar presenças:',
+      'Erro ao buscar presenÃ§as:',
       error
     );
 
     return res.status(500).json({
-      error: 'Erro ao buscar presenças.',
+      error: 'Erro ao buscar presenÃ§as.',
     });
   }
 }
@@ -35,7 +41,7 @@ export async function listPresencasPorTreino(req, res) {
       !/^[0-9]+$/.test(String(treinoId))
     ) {
       return res.status(400).json({
-        error: 'ID do treino inválido.',
+        error: 'ID do treino invÃ¡lido.',
       });
     }
 
@@ -56,9 +62,29 @@ export async function listPresencasPorTreino(req, res) {
         !/^\d{2}$/.test(partes[2])
       ) {
         return res.status(400).json({
-          error: 'Data inválida. Use o formato YYYY-MM-DD.',
+          error: 'Data invÃ¡lida. Use o formato YYYY-MM-DD.',
         });
       }
+    }
+
+    const treinoResult = await query(
+      `SELECT professor_id FROM treinos WHERE id = $1`,
+      [treinoIdNumero]
+    );
+
+    if (treinoResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Treino nÃ£o encontrado.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(treinoResult.rows[0].professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a este treino.',
+      });
     }
 
     const presencas = await getPresencasPorTreino(
@@ -69,12 +95,12 @@ export async function listPresencasPorTreino(req, res) {
     return res.json(presencas);
   } catch (error) {
     console.error(
-      'Erro ao buscar presenças por treino:',
+      'Erro ao buscar presenÃ§as por treino:',
       error
     );
 
     return res.status(500).json({
-      error: 'Erro ao buscar presenças por treino.',
+      error: 'Erro ao buscar presenÃ§as por treino.',
     });
   }
 }
@@ -89,7 +115,7 @@ export async function createPresenca(req, res) {
       Array.isArray(presenca)
     ) {
       return res.status(400).json({
-        error: 'Dados de presença inválidos.',
+        error: 'Dados de presenÃ§a invÃ¡lidos.',
       });
     }
 
@@ -114,7 +140,7 @@ export async function createPresenca(req, res) {
       alunoIdNumero <= 0
     ) {
       return res.status(400).json({
-        error: 'ID do aluno inválido.',
+        error: 'ID do aluno invÃ¡lido.',
       });
     }
 
@@ -123,7 +149,7 @@ export async function createPresenca(req, res) {
       treinoIdNumero <= 0
     ) {
       return res.status(400).json({
-        error: 'ID do treino inválido.',
+        error: 'ID do treino invÃ¡lido.',
       });
     }
 
@@ -132,7 +158,7 @@ export async function createPresenca(req, res) {
       !data.trim()
     ) {
       return res.status(400).json({
-        error: 'Data da presença é obrigatória.',
+        error: 'Data da presenÃ§a Ã© obrigatÃ³ria.',
       });
     }
 
@@ -147,7 +173,7 @@ export async function createPresenca(req, res) {
       !statusPermitido.includes(status.trim())
     ) {
       return res.status(400).json({
-        error: 'Status de presença inválido.',
+        error: 'Status de presenÃ§a invÃ¡lido.',
         permitidos: statusPermitido,
       });
     }
@@ -159,7 +185,7 @@ export async function createPresenca(req, res) {
 
     if (treinoResult.rows.length === 0) {
       return res.status(400).json({
-        error: 'Treino informado não existe.',
+        error: 'Treino informado nÃ£o existe.',
       });
     }
 
@@ -172,7 +198,7 @@ export async function createPresenca(req, res) {
       );
 
       if (turmaAlunoResult.rows.length === 0) {
-        console.warn('[PRESENCAS] Validação aluno-turma falhou:', {
+        console.warn('[PRESENCAS] ValidaÃ§Ã£o aluno-turma falhou:', {
           aluno_id: alunoIdNumero,
           treino_id: treinoIdNumero,
           turma_id: turmaIdDoTreino,
@@ -180,7 +206,7 @@ export async function createPresenca(req, res) {
 
         return res.status(400).json({
           error:
-            'Aluno não pertence à turma associada a este treino.',
+            'Aluno nÃ£o pertence Ã  turma associada a este treino.',
         });
       }
     }
@@ -196,25 +222,25 @@ export async function createPresenca(req, res) {
 
   } catch (error) {
     console.error(
-      'Erro ao criar presença:',
+      'Erro ao criar presenÃ§a:',
       error
     );
 
     if (error?.code === '23505') {
       return res.status(409).json({
         error:
-          'Já existe uma presença registrada para este aluno, treino e data.',
+          'JÃ¡ existe uma presenÃ§a registrada para este aluno, treino e data.',
       });
     }
 
     if (error?.code === '23503') {
       return res.status(400).json({
-        error: 'Aluno ou treino informado não existe.',
+        error: 'Aluno ou treino informado nÃ£o existe.',
       });
     }
 
     return res.status(500).json({
-      error: 'Erro ao criar presença.',
+      error: 'Erro ao criar presenÃ§a.',
     });
   }
 }
@@ -225,25 +251,42 @@ export async function updatePresenca(req, res) {
 
     if (!id || !/^[0-9]+$/.test(id)) {
       return res.status(400).json({
-        error: 'ID de presença inválido.',
+        error: 'ID de presenÃ§a invÃ¡lido.',
       });
     }
 
-    const presenca = req.body;
+    const presenca = await getPresenca(id);
+
+    if (!presenca) {
+      return res.status(404).json({
+        error: 'PresenÃ§a nÃ£o encontrada.',
+      });
+    }
 
     if (
-      !presenca ||
-      typeof presenca !== 'object' ||
-      Array.isArray(presenca)
+      req.usuario.administrador !== true &&
+      Number(presenca.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a esta presenÃ§a.',
+      });
+    }
+
+    const body = req.body;
+
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      Array.isArray(body)
     ) {
       return res.status(400).json({
-        error: 'Dados de presença inválidos.',
+        error: 'Dados de presenÃ§a invÃ¡lidos.',
       });
     }
 
     const dadosAtualizados = {};
 
-    if (presenca.status !== undefined) {
+    if (body.status !== undefined) {
       const statusPermitido = [
         'presente',
         'falta',
@@ -251,34 +294,34 @@ export async function updatePresenca(req, res) {
       ];
 
       if (
-        typeof presenca.status !== 'string' ||
-        !statusPermitido.includes(presenca.status.trim())
+        typeof body.status !== 'string' ||
+        !statusPermitido.includes(body.status.trim())
       ) {
         return res.status(400).json({
-          error: 'Status de presença inválido.',
+          error: 'Status de presenÃ§a invÃ¡lido.',
           permitidos: statusPermitido,
         });
       }
 
-      dadosAtualizados.status = presenca.status.trim();
+      dadosAtualizados.status = body.status.trim();
     }
 
-    if (presenca.data !== undefined) {
+    if (body.data !== undefined) {
       if (
-        typeof presenca.data !== 'string' ||
-        !presenca.data.trim()
+        typeof body.data !== 'string' ||
+        !body.data.trim()
       ) {
         return res.status(400).json({
-          error: 'Data da presença é obrigatória.',
+          error: 'Data da presenÃ§a Ã© obrigatÃ³ria.',
         });
       }
 
-      dadosAtualizados.data = presenca.data.trim();
+      dadosAtualizados.data = body.data.trim();
     }
 
     if (!Object.keys(dadosAtualizados).length) {
       return res.status(400).json({
-        error: 'Nenhum campo válido para atualizar.',
+        error: 'Nenhum campo vÃ¡lido para atualizar.',
       });
     }
 
@@ -289,19 +332,19 @@ export async function updatePresenca(req, res) {
 
     if (!atualizada) {
       return res.status(404).json({
-        error: 'Presença não encontrada.',
+        error: 'PresenÃ§a nÃ£o encontrada.',
       });
     }
 
     return res.json(atualizada);
   } catch (error) {
     console.error(
-      'Erro ao atualizar presença:',
+      'Erro ao atualizar presenÃ§a:',
       error
     );
 
     return res.status(500).json({
-      error: 'Erro ao atualizar presença.',
+      error: 'Erro ao atualizar presenÃ§a.',
     });
   }
 }
@@ -312,7 +355,24 @@ export async function deletePresenca(req, res) {
 
     if (!id || !/^[0-9]+$/.test(id)) {
       return res.status(400).json({
-        error: 'ID de presença inválido.',
+        error: 'ID de presenÃ§a invÃ¡lido.',
+      });
+    }
+
+    const presenca = await getPresenca(id);
+
+    if (!presenca) {
+      return res.status(404).json({
+        error: 'PresenÃ§a nÃ£o encontrada.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(presenca.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a esta presenÃ§a.',
       });
     }
 
@@ -320,19 +380,19 @@ export async function deletePresenca(req, res) {
 
     if (!excluida) {
       return res.status(404).json({
-        error: 'Presença não encontrada.',
+        error: 'PresenÃ§a nÃ£o encontrada.',
       });
     }
 
     return res.status(204).send();
   } catch (error) {
     console.error(
-      'Erro ao excluir presença:',
+      'Erro ao excluir presenÃ§a:',
       error
     );
 
     return res.status(500).json({
-      error: 'Erro ao excluir presença.',
+      error: 'Erro ao excluir presenÃ§a.',
     });
   }
 }

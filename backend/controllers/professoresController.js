@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+﻿import bcrypt from 'bcrypt';
 
 import {
   addProfessor,
@@ -8,7 +8,7 @@ import {
 } from '../services/storageService.js';
 
 /* =========================
-   REMOVER DADOS SENSÍVEIS
+   REMOVER DADOS SENSÃVEIS
 ========================= */
 
 function professorSeguro(professor) {
@@ -37,7 +37,11 @@ export async function listProfessores(req, res) {
   try {
     let professores;
 
-    professores = await getProfessores();
+    if (req.usuario.administrador === true) {
+      professores = await getProfessores();
+    } else {
+      professores = await getProfessores(Number(req.usuario.id));
+    }
 
     const professoresSeguros =
       Array.isArray(professores)
@@ -77,7 +81,7 @@ export async function createProfessor(req, res) {
       typeof professor.senha !== 'string'
     ) {
       return res.status(400).json({
-        error: 'Dados de professor inválidos.',
+        error: 'Dados de professor invÃ¡lidos.',
       });
     }
 
@@ -136,13 +140,13 @@ export async function updateProfessor(req, res) {
 
     if (!id || !/^[0-9]+$/.test(id)) {
       return res.status(400).json({
-        error: 'ID de professor inválido.',
+        error: 'ID de professor invÃ¡lido.',
       });
     }
 
     if (!professor || typeof professor !== 'object') {
       return res.status(400).json({
-        error: 'Dados de professor inválidos.',
+        error: 'Dados de professor invÃ¡lidos.',
       });
     }
 
@@ -186,7 +190,7 @@ export async function updateProfessor(req, res) {
 
     if (!Object.keys(dadosAtualizados).length) {
       return res.status(400).json({
-        error: 'Nenhum campo válido para atualizar.',
+        error: 'Nenhum campo vÃ¡lido para atualizar.',
       });
     }
 
@@ -198,7 +202,7 @@ export async function updateProfessor(req, res) {
 
     if (!atualizado) {
       return res.status(404).json({
-        error: 'Professor não encontrado.',
+        error: 'Professor nÃ£o encontrado.',
       });
     }
 
@@ -232,13 +236,13 @@ export async function deleteProfessor(req, res) {
 
     if (!id || !/^[0-9]+$/.test(id)) {
       return res.status(400).json({
-        error: 'ID de professor inválido.',
+        error: 'ID de professor invÃ¡lido.',
       });
     }
 
     if (req.usuario.administrador === true && Number(id) === Number(req.usuario.id)) {
       return res.status(403).json({
-        error: 'Não é permitido excluir a própria conta administrativa.',
+        error: 'NÃ£o Ã© permitido excluir a prÃ³pria conta administrativa.',
       });
     }
 
@@ -247,7 +251,7 @@ export async function deleteProfessor(req, res) {
 
     if (!excluido) {
       return res.status(404).json({
-        error: 'Professor não encontrado.',
+        error: 'Professor nÃ£o encontrado.',
       });
     }
 

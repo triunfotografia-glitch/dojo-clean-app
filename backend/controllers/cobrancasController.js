@@ -210,6 +210,23 @@ export async function updateCobranca(req, res) {
       });
     }
 
+    const cobrancaExistente = await getCobrancaComProfessor(id);
+
+    if (!cobrancaExistente) {
+      return res.status(404).json({
+        error: 'Cobrança não encontrada.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(cobrancaExistente.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Não autorizado a alterar esta cobrança.',
+      });
+    }
+
     const dadosAtualizados = {};
 
     if (cobranca.descricao !== undefined) {
@@ -288,6 +305,23 @@ export async function deleteCobranca(req, res) {
     if (!id || !/^[0-9]+$/.test(id)) {
       return res.status(400).json({
         error: 'ID de cobrança inválido.',
+      });
+    }
+
+    const cobrancaExistente = await getCobrancaComProfessor(id);
+
+    if (!cobrancaExistente) {
+      return res.status(404).json({
+        error: 'Cobrança não encontrada.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(cobrancaExistente.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Não autorizado a excluir esta cobrança.',
       });
     }
 

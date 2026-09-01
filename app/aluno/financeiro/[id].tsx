@@ -2,6 +2,7 @@ import { COLORS } from '@/components/Colors';
 import { Cobranca, useDojo } from '@/components/context/DojoContext';
 import { usePix } from '@/components/context/PixContext';
 import { enviarCobrancaWhatsApp } from '@/components/whatsapp';
+import { getStatusCobranca } from '@/utils/financeiro';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useEffect, useState } from 'react';
@@ -39,20 +40,7 @@ function paraData(data: string) {
   return new Date(ano, mes - 1, dia);
 }
 
-const getStatusInfo = (cobranca: Cobranca) => {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
 
-  if (cobranca.status === 'pago') {
-    return { text: 'PAGO', color: '#22c55e' }; // verde
-  }
-
-  if ((paraData(cobranca.vencimento)?.getTime() || 0) < hoje.getTime()) {
-    return { text: 'ATRASADO', color: '#ef4444' }; // vermelho
-  }
-
-  return { text: 'PENDENTE', color: '#eab308' }; // amarelo
-};
 
 
 function formatarData(data?: string) {
@@ -766,7 +754,7 @@ onPress: async () => {
 
 
 
-            const statusInfo = getStatusInfo(cobranca);
+            const statusInfo = getStatusCobranca(cobranca);
 
             return (
               <View key={cobranca.id} style={styles.chargeCard}>
@@ -775,11 +763,11 @@ onPress: async () => {
                 <Text style={styles.chargeDate}>
                   Vencimento: {formatarData(cobranca.vencimento)}
                 </Text>
-                <Text style={[styles.status, { color: statusInfo.color }]}>
-                  {statusInfo.text}
+                <Text style={[styles.status, { color: statusInfo.cor }]}>
+                  {statusInfo.texto}
                 </Text>
                 <View style={styles.actions}>
-                  {statusInfo.text !== 'PAGO' && (
+                  {statusInfo.texto !== 'Pago' && (
                     <>
                       <Pressable
                         style={styles.btnPix}

@@ -232,7 +232,7 @@ export default function Index() {
       <Pressable
         style={styles.secondaryButton}
         onPress={() =>
-          router.push({ pathname: "/graduacoes/index" })
+          router.push("/graduacoes")
         }
       >
         <Text style={styles.buttonText}>

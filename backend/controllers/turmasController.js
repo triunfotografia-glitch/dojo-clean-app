@@ -64,7 +64,12 @@ async function validarAlunosDaTurma(req, alunoIds) {
 ========================================================= */
 export async function listTurmas(req, res) {
   try {
-    const turmas = await getTurmas();
+    const professorId =
+      req.usuario.administrador === true
+        ? null
+        : Number(req.usuario.id);
+
+    const turmas = await getTurmas(professorId);
 
     return res.json(turmas);
   } catch (error) {
@@ -100,6 +105,15 @@ export async function getTurma(req, res) {
     if (!turma) {
       return res.status(404).json({
         error: 'Turma não encontrada.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(turma.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a esta turma.',
       });
     }
 

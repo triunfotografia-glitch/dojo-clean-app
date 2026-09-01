@@ -1,4 +1,4 @@
-import {
+﻿import {
   addTreino,
   deleteTreino as deleteTreinoRecord,
   getTreino as getTreinoRecord,
@@ -48,7 +48,12 @@ function normalizarRelacionamentos(treino) {
 ========================================================= */
 export async function listTreinos(req, res) {
   try {
-    const treinos = await getTreinos();
+    const professorId =
+      req.usuario.administrador === true
+        ? null
+        : Number(req.usuario.id);
+
+    const treinos = await getTreinos(professorId);
 
     return res.json(treinos);
   } catch (error) {
@@ -72,7 +77,7 @@ export async function getTreino(req, res) {
       !/^[0-9]+$/.test(id)
     ) {
       return res.status(400).json({
-        error: 'ID de treino inválido.',
+        error: 'ID de treino invÃ¡lido.',
       });
     }
 
@@ -80,7 +85,16 @@ export async function getTreino(req, res) {
 
     if (!treino) {
       return res.status(404).json({
-        error: 'Treino não encontrado.',
+        error: 'Treino nÃ£o encontrado.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(treino.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a este treino.',
       });
     }
 
@@ -113,7 +127,7 @@ export async function createTreino(req, res) {
       !treino.nome.trim()
     ) {
       return res.status(400).json({
-        error: 'Dados de treino inválidos.',
+        error: 'Dados de treino invÃ¡lidos.',
       });
     }
 
@@ -130,7 +144,7 @@ export async function createTreino(req, res) {
 
       if (!turma) {
         return res.status(404).json({
-          error: 'Turma não encontrada.',
+          error: 'Turma nÃ£o encontrada.',
         });
       }
 
@@ -139,7 +153,7 @@ export async function createTreino(req, res) {
         Number(turma.professor_id) !== Number(req.usuario.id)
       ) {
         return res.status(403).json({
-          error: 'Não autorizado a criar treino para esta turma.',
+          error: 'NÃ£o autorizado a criar treino para esta turma.',
         });
       }
     }
@@ -181,7 +195,7 @@ export async function updateTreino(req, res) {
       !/^[0-9]+$/.test(id)
     ) {
       return res.status(400).json({
-        error: 'ID de treino inválido.',
+        error: 'ID de treino invÃ¡lido.',
       });
     }
 
@@ -191,7 +205,7 @@ export async function updateTreino(req, res) {
       Array.isArray(treino)
     ) {
       return res.status(400).json({
-        error: 'Dados de treino inválidos.',
+        error: 'Dados de treino invÃ¡lidos.',
       });
     }
 
@@ -199,7 +213,7 @@ export async function updateTreino(req, res) {
 
     if (!treinoAtual) {
       return res.status(404).json({
-        error: 'Treino não encontrado.',
+        error: 'Treino nÃ£o encontrado.',
       });
     }
 
@@ -222,7 +236,7 @@ export async function updateTreino(req, res) {
         !dadosAtualizados.nome.trim()
       ) {
         return res.status(400).json({
-          error: 'Nome do treino inválido.',
+          error: 'Nome do treino invÃ¡lido.',
         });
       }
 
@@ -238,7 +252,7 @@ export async function updateTreino(req, res) {
 
     if (!atualizado) {
       return res.status(404).json({
-        error: 'Treino não encontrado.',
+        error: 'Treino nÃ£o encontrado.',
       });
     }
 
@@ -267,7 +281,7 @@ export async function deleteTreino(req, res) {
       !/^[0-9]+$/.test(id)
     ) {
       return res.status(400).json({
-        error: 'ID de treino inválido.',
+        error: 'ID de treino invÃ¡lido.',
       });
     }
 
@@ -275,7 +289,7 @@ export async function deleteTreino(req, res) {
 
     if (!treinoAtual) {
       return res.status(404).json({
-        error: 'Treino não encontrado.',
+        error: 'Treino nÃ£o encontrado.',
       });
     }
 
@@ -293,7 +307,7 @@ export async function deleteTreino(req, res) {
 
     if (!excluido) {
       return res.status(404).json({
-        error: 'Treino não encontrado.',
+        error: 'Treino nÃ£o encontrado.',
       });
     }
 

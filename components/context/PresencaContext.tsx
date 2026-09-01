@@ -283,7 +283,23 @@ export function PresencaProvider({
           : [];
 
       setPresencas(
-        normalizadas
+        (lista) => {
+          const mapa = new Map(
+            lista.map((item) => [
+              `${item.treinoId}-${item.alunoId}-${item.data}`,
+              item,
+            ])
+          );
+
+          for (const presenca of normalizadas) {
+            mapa.set(
+              `${presenca.treinoId}-${presenca.alunoId}-${presenca.data}`,
+              presenca
+            );
+          }
+
+          return Array.from(mapa.values());
+        }
       );
     } catch (error) {
       console.error(
