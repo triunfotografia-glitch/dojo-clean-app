@@ -20,31 +20,7 @@ export async function listAlunos(req, res) {
         ? await getAlunos()
         : await getAlunos(professorId);
 
-    const alunosSanitizados = alunos.map((aluno) => {
-      if (req.usuario.administrador === true) {
-        return aluno;
-      }
-
-      const isProprietario =
-        Number(aluno.professor_id) === professorId;
-
-      if (isProprietario) {
-        return aluno;
-      }
-
-      const {
-        cobrancas,
-        valor_mensalidade,
-        proxima_cobranca,
-        dia_vencimento,
-        mensalidade,
-        ...dadosPublicos
-      } = aluno;
-
-      return dadosPublicos;
-    });
-
-    return res.json(alunosSanitizados);
+    return res.json(alunos);
   } catch (error) {
     console.error(
       'Erro ao buscar alunos:',
@@ -252,6 +228,24 @@ export async function deleteAluno(req, res) {
     ) {
       return res.status(400).json({
         error: 'ID de aluno inválido.',
+      });
+    }
+
+    const aluno =
+      await getAlunoRecord(id);
+
+    if (!aluno) {
+      return res.status(404).json({
+        error: 'Aluno não encontrado.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(aluno.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a este aluno.',
       });
     }
 

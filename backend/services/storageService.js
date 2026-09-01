@@ -1206,12 +1206,24 @@ export async function deletePresenca(id) {
    GRADUAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES
    ========================= */
 
-export async function getGraduacoes() {
-  const result = await query(
-    `SELECT *
-     FROM graduacoes
-     ORDER BY id DESC`
-  );
+export async function getGraduacoes(professorId = null) {
+  let sql = `
+    SELECT
+      g.*,
+      a.professor_id
+    FROM graduacoes g
+    JOIN alunos a ON a.id = g.aluno_id
+  `;
+  const params = [];
+
+  if (professorId !== null) {
+    sql += ` WHERE a.professor_id = $1`;
+    params.push(professorId);
+  }
+
+  sql += ` ORDER BY g.id DESC`;
+
+  const result = await query(sql, params);
 
   return result.rows;
 }

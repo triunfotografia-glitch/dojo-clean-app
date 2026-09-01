@@ -8,9 +8,13 @@ import {
     updatePresenca,
 } from '../controllers/presencasController.js';
 
+import { authMiddleware } from '../middleware/authMiddleware.js';
 import { professorMiddleware, presencaScopeMiddleware } from '../middleware/adminMiddleware.js';
 
 const router = Router();
+
+router.use(authMiddleware);
+router.use(professorMiddleware);
 
 router.get(
   '/',
@@ -24,20 +28,17 @@ router.get(
 
 router.post(
   '/',
-  professorMiddleware,
   createPresenca
 );
 
 router.put(
   '/:id',
-  professorMiddleware,
   presencaScopeMiddleware,
   updatePresenca
 );
 
 router.delete(
   '/:id',
-  professorMiddleware,
   presencaScopeMiddleware,
   deletePresenca
 );

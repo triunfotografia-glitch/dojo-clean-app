@@ -13,7 +13,13 @@ import {
 ========================================================= */
 export async function listGraduacoes(req, res) {
   try {
-    const graduacoes = await getGraduacoes();
+    const professorId =
+      req.usuario.administrador === true
+        ? null
+        : Number(req.usuario.id);
+
+    const graduacoes =
+      await getGraduacoes(professorId);
 
     return res.json(graduacoes);
   } catch (error) {

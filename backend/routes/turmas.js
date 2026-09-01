@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 
 import {
   listTurmas,
@@ -8,7 +8,13 @@ import {
   deleteTurma,
 } from '../controllers/turmasController.js';
 
+import { authMiddleware } from '../middleware/authMiddleware.js';
+import { professorMiddleware } from '../middleware/adminMiddleware.js';
+
 const router = Router();
+
+router.use(authMiddleware);
+router.use(professorMiddleware);
 
 router.get('/', listTurmas);
 router.get('/:id', getTurma);
