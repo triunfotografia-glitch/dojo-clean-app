@@ -25,7 +25,16 @@ export async function getPix(req, res) {
       });
     }
 
-    return res.json(config);
+    const isAdmin =
+      req.usuario?.administrador === true;
+
+    if (isAdmin) {
+      return res.json(config);
+    }
+
+    const { chave_pix, ...configPublica } = config;
+
+    return res.json(configPublica);
   } catch (error) {
     console.error(
       'Erro ao buscar configuração PIX:',
