@@ -1,6 +1,8 @@
 import {
   deleteProfessor,
   getProfessores,
+  getToken,
+  onAuthChanged,
   onAuthLost,
   postProfessor,
   updateProfessor,
@@ -181,6 +183,31 @@ export function ProfessorProvider({
   useEffect(() => {
     const cleanup = onAuthLost(() => {
       setProfessores([]);
+    });
+
+    return cleanup;
+  }, []);
+
+  // ==============================
+  // AUTH CHANGED LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthChanged(async () => {
+      const token = await getToken();
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        await recarregarProfessores();
+      } catch (error) {
+        console.error(
+          'Erro ao recarregar professores:',
+          error
+        );
+      }
     });
 
     return cleanup;

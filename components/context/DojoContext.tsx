@@ -8,9 +8,10 @@ import {
   getToken,
   isTokenExpired,
   loginProfessor,
-  notifyAuthLost,
-  onAuthLost,
   notifyAuthChanged,
+  notifyAuthLost,
+  onAuthChanged,
+  onAuthLost,
   postAluno,
   postCobranca,
   removeToken,
@@ -628,6 +629,50 @@ export function DojoProvider({
       AsyncStorage.removeItem(
         USER_STORAGE_KEY
       ).catch(() => {});
+    });
+
+    return cleanup;
+  }, []);
+
+  // ==============================
+  // AUTH CHANGED LISTENER
+  // ==============================
+
+  useEffect(() => {
+    const cleanup = onAuthChanged(async () => {
+      const token = await getToken();
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        const dados = await getAlunos();
+
+        const normalizados =
+          Array.isArray(dados)
+            ? normalizarAlunos(dados)
+            : [];
+
+        setAlunos(normalizados);
+
+        try {
+          await AsyncStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify(normalizados)
+          );
+        } catch (error) {
+          console.warn(
+            'Erro ao salvar alunos localmente:',
+            error
+          );
+        }
+      } catch (error) {
+        console.error(
+          'Erro ao recarregar alunos:',
+          error
+        );
+      }
     });
 
     return cleanup;
