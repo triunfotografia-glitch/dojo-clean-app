@@ -33,7 +33,7 @@ export interface Treino {
 
 interface TreinoContextData {
   treinos: Treino[];
-  adicionarTreino: (treino: Treino) => Promise<void>;
+  adicionarTreino: (treino: Omit<Treino, "id">) => Promise<void>;
   editarTreino: (treino: Treino) => Promise<void>;
   excluirTreino: (id: string) => Promise<void>;
   buscarTreino: (id: string) => Treino | undefined;
@@ -218,7 +218,7 @@ export function TreinoProvider({
   }
 
   async function adicionarTreino(
-    treino: Treino,
+    treino: Omit<Treino, "id">,
   ) {
     try {
       const novoTreino = await postTreino(
@@ -228,18 +228,17 @@ export function TreinoProvider({
       const normalizado =
         normalizarTreino(novoTreino);
 
-      setTreinos((lista) => [
+      const treinosAtualizados = [
         normalizado,
-        ...lista,
-      ]);
+        ...treinos,
+      ];
+
+      setTreinos(treinosAtualizados);
 
       try {
         await AsyncStorage.setItem(
           TREINOS_STORAGE_KEY,
-          JSON.stringify([
-            normalizado,
-            ...treinos,
-          ])
+          JSON.stringify(treinosAtualizados)
         );
       } catch (error) {
         console.warn(
@@ -270,24 +269,19 @@ export function TreinoProvider({
       const normalizado =
         normalizarTreino(atualizado);
 
-      setTreinos((lista) =>
-        lista.map((item) =>
+      const treinosAtualizados = treinos.map(
+        (item) =>
           item.id === treino.id
             ? normalizado
-            : item,
-        ),
+            : item
       );
+
+      setTreinos(treinosAtualizados);
 
       try {
         await AsyncStorage.setItem(
           TREINOS_STORAGE_KEY,
-          JSON.stringify(
-            treinos.map((item) =>
-              item.id === treino.id
-                ? normalizado
-                : item
-            )
-          )
+          JSON.stringify(treinosAtualizados)
         );
       } catch (error) {
         console.warn(

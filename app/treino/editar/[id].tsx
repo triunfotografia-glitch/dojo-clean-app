@@ -3,7 +3,7 @@ import { useProfessores } from '@/components/context/ProfessorContext';
 import { useTreinos } from '@/components/context/TreinoContext';
 import { useTurmas } from '@/components/context/TurmaContext';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 const dias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -16,13 +16,24 @@ export default function EditarTreino() {
   const { professores } = useProfessores();
   const treino = id ? buscarTreino(id) : undefined;
   const [nome, setNome] = useState(''); const [dia, setDia] = useState(''); const [horario, setHorario] = useState(''); const [turmaId, setTurmaId] = useState(''); const [professorId, setProfessorId] = useState('');
+  const inicializadoRef = useRef(false);
 
   useEffect(() => {
     if (!treino) return;
     setNome(treino.nome); setDia(treino.dia); setHorario(treino.horario);
+  }, [treino?.id]);
+
+  useEffect(() => {
+    inicializadoRef.current = false;
+  }, [treino?.id]);
+
+  useEffect(() => {
+    if (!treino) return;
+    if (inicializadoRef.current) return;
+    inicializadoRef.current = true;
     setTurmaId(treino.turmaId || turmas.find((item) => item.nome.toLowerCase() === treino.turma.toLowerCase())?.id || '');
     setProfessorId(treino.professorId || professores.find((item) => item.nome === treino.professor)?.id || '');
-  }, [treino, turmas, professores]);
+  }, [treino?.id, turmas, professores]);
 
   function selecionarTurma(idTurma: string) {
     const turma = turmas.find((item) => item.id === idTurma);
@@ -36,7 +47,16 @@ export default function EditarTreino() {
     const professor = professores.find((item) => item.id === professorId);
     try {
       await editarTreino({ ...treino, nome: nome.trim(), dia, horario: horario.trim(), turma: turma?.nome || treino.turma, professor: professor?.nome || treino.professor, turmaId: turmaId || undefined, professorId: professorId || undefined });
-      Alert.alert('Sucesso', 'Treino atualizado!'); router.back();
+      Alert.alert(
+        'Sucesso',
+        'Treino atualizado!',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.back(),
+          },
+        ]
+      );
     } catch (error) {
       console.error('Erro ao editar treino:', error);
       Alert.alert('Erro', 'Não foi possível atualizar o treino. Tente novamente.');

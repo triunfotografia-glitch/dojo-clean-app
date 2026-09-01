@@ -36,10 +36,17 @@ export default function Treinos() {
       return;
     }
     const professor = professores.find((item) => item.id === professorId);
-    const baseId = Date.now();
     try {
-      for (const [indice, dia] of diasSelecionados.entries()) {
-      const treino: Treino = { id: `${baseId}-${indice}`, nome: nome.trim(), dia, horario: horario.trim(), turma: turmaSelecionada?.nome || '', professor: professor?.nome || '', turmaId: turmaId || undefined, professorId: professorId || undefined };
+      for (const dia of diasSelecionados) {
+        const treino = {
+          nome: nome.trim(),
+          dia,
+          horario: horario.trim(),
+          turma: turmaSelecionada?.nome || '',
+          professor: professor?.nome || '',
+          turmaId: turmaId || undefined,
+          professorId: professorId || undefined,
+        } as Omit<Treino, 'id'>;
         await adicionarTreino(treino);
       }
       Alert.alert('Sucesso', `${diasSelecionados.length} treino(s) cadastrado(s)!`);
