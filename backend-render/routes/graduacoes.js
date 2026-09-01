@@ -7,50 +7,17 @@ import {
     updateGraduacao,
 } from '../controllers/graduacoesController.js';
 
+import { authMiddleware } from '../middleware/authMiddleware.js';
+import { professorMiddleware } from '../middleware/adminMiddleware.js';
+
 const router = Router();
 
-/* =========================================================
-   ROTAS DE GRADUAÇÕES
-   O authMiddleware é aplicado no index.js
-========================================================= */
+router.use(authMiddleware);
+router.use(professorMiddleware);
 
-/*
- * GET /graduacoes
- * Lista todas as graduações
- */
-router.get(
-  '/',
-  listGraduacoes
-);
-
-
-/*
- * POST /graduacoes
- * Cria uma nova graduação
- */
-router.post(
-  '/',
-  createGraduacao
-);
-
-
-/*
- * PUT /graduacoes/:id
- * Atualiza uma graduação
- */
-router.put(
-  '/:id',
-  updateGraduacao
-);
-
-
-/*
- * DELETE /graduacoes/:id
- * Exclui uma graduação
- */
-router.delete(
-  '/:id',
-  deleteGraduacao
-);
+router.get('/', listGraduacoes);
+router.post('/', createGraduacao);
+router.put('/:id', updateGraduacao);
+router.delete('/:id', deleteGraduacao);
 
 export default router;
