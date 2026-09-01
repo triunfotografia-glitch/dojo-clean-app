@@ -53,7 +53,7 @@ export default function Financeiro() {
   const { chavesPix } = usePix();
   const [competencia, setCompetencia] = useState(competenciaAtual());
   const [mensagemPadrao, setMensagemPadrao] = useState(
-    'OlÃ¡ {{nome}}, sua mensalidade no valor de R$ {{valor}} vence em {{data}}.'
+    'Olá {{nome}}, sua mensalidade no valor de R$ {{valor}} vence em {{data}}.'
   );
   const [mostrarEditorMensagem, setMostrarEditorMensagem] = useState(false);
 
@@ -69,7 +69,7 @@ export default function Financeiro() {
   function confirmarGeracao() {
     Alert.alert(
       'Gerar mensalidades',
-      `Deseja executar a rotina de cobranÃ§as automÃ¡ticas? O sistema irÃ¡ gerar mensalidades para alunos ativos cuja data de prÃ³xima cobranÃ§a jÃ¡ passou.`,
+      `Deseja executar a rotina de cobranças automáticas? O sistema irá gerar mensalidades para alunos ativos cuja data de Próxima cobrança já passou.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -81,12 +81,12 @@ export default function Financeiro() {
     if (quantidade > 0) {
       Alert.alert(
         'Mensalidades geradas',
-        `${quantidade} cobranÃ§a(s) criada(s) com sucesso.`
+        `${quantidade} cobrança(s) criada(s) com sucesso.`
       );
     } else {
       Alert.alert(
-        'Nenhuma cobranÃ§a gerada',
-        'Todos os alunos ativos estÃ£o com as cobranÃ§as em dia.'
+        'Nenhuma cobrança gerada',
+        'Todos os alunos ativos estão com as cobranças em dia.'
       );
     }
   },
@@ -97,7 +97,7 @@ export default function Financeiro() {
 
   function enviarPendentesWhatsApp() {
     if (resumo.pendentes.length === 0) {
-      Alert.alert('Nenhuma cobranÃ§a pendente', 'NÃ£o hÃ¡ cobranÃ§as pendentes para enviar no momento.');
+      Alert.alert('Nenhuma cobrança pendente', 'Não há cobranças pendentes para enviar no momento.');
       return;
     }
 
@@ -135,7 +135,7 @@ export default function Financeiro() {
                 'Erro',
                 error instanceof Error
                   ? error.message
-                  : 'NÃ£o foi possÃ­vel registrar o pagamento. Tente novamente.'
+                  : 'Não foi possível registrar o pagamento. Tente novamente.'
               );
             }
           },
@@ -148,14 +148,14 @@ export default function Financeiro() {
     const cobrancaPendente = aluno.cobrancas.find(c => c.status === 'pendente' || c.status === 'atrasado');
 
     if (!cobrancaPendente) {
-      Alert.alert('Sem cobranÃ§a pendente', 'Este aluno nÃ£o possui cobranÃ§as pendentes ou atrasadas no momento.');
+      Alert.alert('Sem cobrança pendente', 'Este aluno não possui cobranças pendentes ou atrasadas no momento.');
       return;
     }
 
     const telefone = aluno.telefone?.trim();
 
     if (!telefone) {
-      Alert.alert('Telefone nÃ£o cadastrado', 'Este aluno nÃ£o possui telefone/WhatsApp cadastrado. Cadastre o telefone no perfil do aluno para enviar a cobranÃ§a.');
+      Alert.alert('Telefone não cadastrado', 'Este aluno não possui telefone/WhatsApp cadastrado. Cadastre o telefone no perfil do aluno para enviar a cobrança.');
       return;
     }
 
@@ -181,29 +181,29 @@ export default function Financeiro() {
     <Text style={styles.subtitle}>Resumo de {competencia}</Text>
 
     <View style={styles.grid}>
-      <View style={styles.card}><Text style={styles.label}>Recebido no mÃªs</Text><Text style={styles.received}>{moeda(resumo.recebidos)}</Text></View>
+      <View style={styles.card}><Text style={styles.label}>Recebido no mês</Text><Text style={styles.received}>{moeda(resumo.recebidos)}</Text></View>
       <View style={styles.card}><Text style={styles.label}>Em aberto</Text><Text style={styles.value}>{moeda(resumo.emAberto)}</Text></View>
-      <View style={[styles.card, resumo.atrasadas.length > 0 && styles.overdueCard]}><Text style={styles.label}>Em atraso</Text><Text style={styles.overdue}>{resumo.atrasadas.length} cobranÃ§a(s)</Text></View>
-      <View style={styles.card}><Text style={styles.label}>Pendentes</Text><Text style={styles.value}>{resumo.pendentes.length} cobranÃ§a(s)</Text></View>
+      <View style={[styles.card, resumo.atrasadas.length > 0 && styles.overdueCard]}><Text style={styles.label}>Em atraso</Text><Text style={styles.overdue}>{resumo.atrasadas.length} cobrança(s)</Text></View>
+      <View style={styles.card}><Text style={styles.label}>Pendentes</Text><Text style={styles.value}>{resumo.pendentes.length} cobrança(s)</Text></View>
     </View>
 
     <View style={styles.generationContainer}>
       <Pressable style={styles.generateButton} onPress={confirmarGeracao}>
-        <Text style={styles.buttonText}>Executar CobranÃ§as AutomÃ¡ticas</Text>
+        <Text style={styles.buttonText}>Executar cobranças Automáticas</Text>
       </Pressable>
       <Pressable style={[styles.generateButton, styles.whatsappButton]} onPress={enviarPendentesWhatsApp}>
         <Text style={styles.buttonText}>Enviar pendentes por WhatsApp</Text>
       </Pressable>
       <Pressable style={[styles.generateButton, styles.configButton]} onPress={() => setMostrarEditorMensagem(!mostrarEditorMensagem)}>
         <Text style={styles.buttonText}>
-          {mostrarEditorMensagem ? 'Fechar configuraÃ§Ã£o' : 'Configurar mensagem de envio'}
+          {mostrarEditorMensagem ? 'Fechar configuração' : 'Configurar mensagem de envio'}
         </Text>
       </Pressable>
       {mostrarEditorMensagem ? (
         <View style={styles.messageEditor}>
           <Text style={styles.label}>Modelo de mensagem</Text>
           <Text style={styles.helper}>
-            {'Use {{nome}}, {{valor}} e {{data}} para personalizar cada cobranÃ§a.'}
+            {'Use {{nome}}, {{valor}} e {{data}} para personalizar cada cobrança.'}
           </Text>
           <TextInput
             style={styles.messageInput}
@@ -214,10 +214,10 @@ export default function Financeiro() {
           />
         </View>
       ) : null}
-      <Text style={styles.helper}>A geraÃ§Ã£o usa o valor e o dia de vencimento definidos no cadastro de cada aluno, sem duplicar cobranÃ§as do mesmo mÃªs.</Text>
+      <Text style={styles.helper}>A geração usa o valor e o dia de vencimento definidos no cadastro de cada aluno, sem duplicar cobranças do mesmo mês.</Text>
     </View>
 
-    <Text style={styles.sectionTitle}>SituaÃ§Ã£o dos Alunos</Text>
+    <Text style={styles.sectionTitle}>Situação dos Alunos</Text>
     {alunos.filter(a => a.ativo).length === 0 ? (
       <Text style={styles.empty}>Nenhum aluno ativo cadastrado.</Text>
     ) : (
@@ -229,7 +229,7 @@ export default function Financeiro() {
           <View style={{ flex: 1 }}>
             <View style={styles.statusContainer}><View style={[styles.statusIndicator, { backgroundColor: status.cor }]} /><Text style={[styles.statusText, { color: status.cor }]}>{status.texto}</Text></View>
             <Text style={styles.studentName} numberOfLines={1}>{aluno.nome}</Text>
-            <Text style={styles.studentInfo}>PrÃ³xima cobranÃ§a: {formatarData(aluno.proximaCobranca)}</Text>
+            <Text style={styles.studentInfo}>Próxima cobrança: {formatarData(aluno.proximaCobranca)}</Text>
           </View>
           {cobrancaPendente && (
             <>

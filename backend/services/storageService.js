@@ -97,12 +97,12 @@ function prepareFields(data) {
 ========================= */
 
 /**
- * Colunas pÃƒÆ’Ã‚Âºblicas da tabela alunos.
+ * Colunas públicas da tabela alunos.
  *
  * IMPORTANTE:
- * senha NÃƒÆ’Ã†â€™O estÃƒÆ’Ã‚Â¡ aqui.
+ * senha NÃO está aqui.
  *
- * Assim a senha nunca ÃƒÆ’Ã‚Â© retornada
+ * Assim a senha nunca é retornada
  * pela API de alunos.
  */
 const ALUNO_PUBLIC_COLUMNS = `
@@ -208,10 +208,10 @@ export async function getAlunos(professorId = null) {
  * Cria um novo aluno.
  *
  * A senha pode ser recebida aqui porque
- * o controller jÃƒÆ’Ã‚Â¡ deve fazer o hash bcrypt.
+ * o controller já deve fazer o hash bcrypt.
  *
- * PorÃƒÆ’Ã‚Â©m a resposta enviada ao frontend
- * nunca contÃƒÆ’Ã‚Â©m a senha.
+ * Porém a resposta enviada ao frontend
+ * nunca contém a senha.
  */
 export async function getAluno(
   id
@@ -241,7 +241,7 @@ export async function addAluno(
   aluno
 ) {
   /*
-   * ALUNOS NÃƒO POSSUEM SENHA.
+   * ALUNOS NÃO POSSUEM SENHA.
    *
    * Remove qualquer campo antigo de senha
    * antes de preparar os dados para o INSERT.
@@ -270,7 +270,7 @@ const fields =
 
   if (!fields.length) {
     throw new Error(
-      'Dados de aluno invÃƒÆ’Ã‚Â¡lidos.'
+      'Dados de aluno inválidos.'
     );
   }
 
@@ -324,7 +324,7 @@ const fields =
  * Atualiza aluno.
  *
  * A senha pode ser atualizada normalmente,
- * mas nunca serÃƒÆ’Ã‚Â¡ devolvida na resposta.
+ * mas nunca será devolvida na resposta.
  */
 export async function updateAluno(
   id,
@@ -373,7 +373,7 @@ export async function updateAluno(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃƒÆ’Ã‚Â¡lido para atualizar.'
+      'Nenhum campo válido para atualizar.'
     );
   }
 
@@ -425,7 +425,7 @@ export async function updateAluno(
 /**
  * Exclui aluno.
  *
- * A resposta tambÃƒÆ’Ã‚Â©m nÃƒÆ’Ã‚Â£o retorna senha.
+ * A resposta também não retorna senha.
  */
 export async function deleteAluno(
   id
@@ -443,7 +443,7 @@ export async function deleteAluno(
 
 
 /* =========================
-   COBRANÃƒÆ’Ã¢â‚¬Â¡AS
+   COBRANÇAS
 ========================= */
 
 export async function getCobrancas(professorId = null) {
@@ -488,17 +488,17 @@ export async function addCobranca(
   const mappedCobranca =
     mapObjectKeys(cobranca);
 
-  /*
-   * A tabela cobrancas possui:
-   *
-   * aluno_id INTEGER NOT NULL
-   *
-   * FK:
-   *
-   * cobrancas.aluno_id
-   *        ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Å“
-   * alunos.id
-   */
+   /*
+    * A tabela cobrancas possui:
+    *
+    * aluno_id INTEGER NOT NULL
+    *
+    * FK:
+    *
+    * cobrancas.aluno_id
+    *        →
+    * alunos.id
+    */
 
   if (
     mappedCobranca.aluno_id ===
@@ -508,7 +508,7 @@ export async function addCobranca(
     mappedCobranca.aluno_id === ''
   ) {
     throw new Error(
-      'aluno_id ÃƒÆ’Ã‚Â© obrigatÃƒÆ’Ã‚Â³rio para criar uma cobranÃƒÆ’Ã‚Â§a.'
+      'aluno_id é obrigatório para criar uma cobrança.'
     );
   }
 
@@ -519,7 +519,7 @@ export async function addCobranca(
 
   if (!fields.length) {
     throw new Error(
-      'Dados de cobranÃƒÆ’Ã‚Â§a invÃƒÆ’Ã‚Â¡lidos.'
+      'Dados de cobrança inválidos.'
     );
   }
 
@@ -564,7 +564,7 @@ export async function updateCobranca(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃƒÆ’Ã‚Â¡lido para atualizar.'
+      'Nenhum campo válido para atualizar.'
     );
   }
 
@@ -684,7 +684,7 @@ export async function updateProfessor(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃƒÆ’Ã‚Â¡lido para atualizar.'
+      'Nenhum campo válido para atualizar.'
     );
   }
 
@@ -1060,7 +1060,7 @@ export async function deleteTreino(
   return result.rows[0];
 }
 /* =========================
-   PRESENÃ‡AS
+   PRESENÇAS
 ========================= */
 
 export async function getPresencas(professorId = null) {
@@ -1178,7 +1178,7 @@ export async function updatePresenca(id, dados) {
   }
 
   if (fields.length === 0) {
-    throw new Error('Nenhum campo vÃ¡lido para atualizar.');
+    throw new Error('Nenhum campo válido para atualizar.');
   }
 
   fields.push(`atualizado_em = NOW()`);
@@ -1203,8 +1203,8 @@ export async function deletePresenca(id) {
 
 
 /* =========================
-   GRADUAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES
-   ========================= */
+   GRADUAÇÕES
+========================= */
 
 export async function getGraduacoes(professorId = null) {
   let sql = `
@@ -1288,7 +1288,7 @@ export async function updateGraduacao(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃƒÆ’Ã‚Â¡lido para atualizar.'
+      'Nenhum campo válido para atualizar.'
     );
   }
 
@@ -1364,7 +1364,7 @@ export async function updatePixConfig(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃ¡lido para atualizar.'
+      'Nenhum campo válido para atualizar.'
     );
   }
 
@@ -1405,7 +1405,7 @@ export async function updateFirstPixConfig(
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃ¡lido para atualizar.'
+      'Nenhum campo válido para atualizar.'
     );
   }
 
@@ -1454,7 +1454,7 @@ export async function updateFirstPixConfig(
 }
 
 /* =========================
-   PIX CHAVES (mÃºltiplas chaves)
+   PIX CHAVES (múltiplas chaves)
    ========================= */
 
 export async function getPixChaves() {
@@ -1522,7 +1522,7 @@ export async function addPixChave(chave) {
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃ¡lido para adicionar chave PIX.'
+      'Nenhum campo válido para adicionar chave PIX.'
     );
   }
 
@@ -1562,7 +1562,7 @@ export async function updatePixChave(id, chave) {
 
   if (!fields.length) {
     throw new Error(
-      'Nenhum campo vÃ¡lido para atualizar chave PIX.'
+      'Nenhum campo válido para atualizar chave PIX.'
     );
   }
 

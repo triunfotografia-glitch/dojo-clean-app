@@ -8,7 +8,7 @@ import {
 } from '../services/storageService.js';
 
 /* =========================
-   REMOVER DADOS SENSÃVEIS
+   REMOVER DADOS SENSÍVEIS
 ========================= */
 
 function professorSeguro(professor) {
@@ -81,7 +81,7 @@ export async function createProfessor(req, res) {
       typeof professor.senha !== 'string'
     ) {
       return res.status(400).json({
-        error: 'Dados de professor invÃ¡lidos.',
+        error: 'Dados de professor inválidos.',
       });
     }
 
@@ -140,13 +140,13 @@ export async function updateProfessor(req, res) {
 
     if (!id || !/^[0-9]+$/.test(id)) {
       return res.status(400).json({
-        error: 'ID de professor invÃ¡lido.',
+        error: 'ID de professor inválido.',
       });
     }
 
     if (!professor || typeof professor !== 'object') {
       return res.status(400).json({
-        error: 'Dados de professor invÃ¡lidos.',
+        error: 'Dados de professor inválidos.',
       });
     }
 
@@ -190,7 +190,7 @@ export async function updateProfessor(req, res) {
 
     if (!Object.keys(dadosAtualizados).length) {
       return res.status(400).json({
-        error: 'Nenhum campo vÃ¡lido para atualizar.',
+        error: 'Nenhum campo válido para atualizar.',
       });
     }
 
@@ -202,7 +202,7 @@ export async function updateProfessor(req, res) {
 
     if (!atualizado) {
       return res.status(404).json({
-        error: 'Professor nÃ£o encontrado.',
+        error: 'Professor não encontrado.',
       });
     }
 
@@ -236,13 +236,13 @@ export async function deleteProfessor(req, res) {
 
     if (!id || !/^[0-9]+$/.test(id)) {
       return res.status(400).json({
-        error: 'ID de professor invÃ¡lido.',
+        error: 'ID de professor inválido.',
       });
     }
 
     if (req.usuario.administrador === true && Number(id) === Number(req.usuario.id)) {
       return res.status(403).json({
-        error: 'NÃ£o Ã© permitido excluir a prÃ³pria conta administrativa.',
+        error: 'Não é permitido excluir a própria conta administrativa.',
       });
     }
 
@@ -251,7 +251,7 @@ export async function deleteProfessor(req, res) {
 
     if (!excluido) {
       return res.status(404).json({
-        error: 'Professor nÃ£o encontrado.',
+        error: 'Professor não encontrado.',
       });
     }
 
