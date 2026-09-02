@@ -5,6 +5,7 @@ import {
   deleteCobranca as deleteCobrancaRecord,
   getAluno,
   getPixChave,
+  getCobrancaComProfessor,
 } from '../services/storageService.js';
 import { enviarCobrancaWhatsApp } from '../services/whatsappService.js';
 const STATUS_COBRANCA_PERMITIDOS = ['pendente', 'pago', 'atrasado'];
@@ -125,8 +126,24 @@ export async function updateCobranca(req, res) {
       return res.status(400).json({ error: 'ID de cobran�a inv�lido.' });
     }
     if (!cobranca || typeof cobranca !== 'object') {
-      return res.status(400).json({ error: 'Dados de cobran�a inv�lidos.' });
+      return res.status(400).json({ error: 'Dados de cobrança inválidos.' });
     }
+
+    const cobrancaExistente = await getCobrancaComProfessor(id);
+
+    if (!cobrancaExistente) {
+      return res.status(404).json({ error: 'Cobrança não encontrada.' });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(cobrancaExistente.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Não autorizado a alterar esta cobrança.',
+      });
+    }
+
     const dadosAtualizados = {};
     if (cobranca.descricao !== undefined) {
       dadosAtualizados.descricao = String(cobranca.descricao).trim();
@@ -134,14 +151,14 @@ export async function updateCobranca(req, res) {
     if (cobranca.valor !== undefined) {
       const valor = normalizarNumeroPositivo(cobranca.valor);
       if (valor === null) {
-        return res.status(400).json({ error: 'Valor da cobran�a inv�lido.' });
+        return res.status(400).json({ error: 'Valor da cobrança inválido.' });
       }
       dadosAtualizados.valor = valor;
     }
     if (cobranca.vencimento !== undefined) {
       const vencimento = normalizarDataISO(cobranca.vencimento);
       if (vencimento === null) {
-        return res.status(400).json({ error: 'Data de vencimento inv�lida.' });
+        return res.status(400).json({ error: 'Data de vencimento inválida.' });
       }
       dadosAtualizados.vencimento = vencimento;
     }
@@ -151,11 +168,21 @@ export async function updateCobranca(req, res) {
         return res
           .status(400)
           .json({
-            error: 'Status de cobran�a inv�lido.',
+            error: 'Status de cobrança inválido.',
             permitidos: STATUS_COBRANCA_PERMITIDOS,
           });
       }
       dadosAtualizados.status = status;
+    }
+    if (cobranca.forma_pagamento !== undefined) {
+      dadosAtualizados.forma_pagamento = String(cobranca.forma_pagamento).trim();
+    }
+    if (cobranca.pago_em !== undefined) {
+      const pagoEm = normalizarDataISO(cobranca.pago_em);
+      if (pagoEm === null) {
+        return res.status(400).json({ error: 'Data de pagamento inválida.' });
+      }
+      dadosAtualizados.pago_em = pagoEm;
     }
     if (!Object.keys(dadosAtualizados).length) {
       return res
@@ -176,8 +203,24 @@ export async function deleteCobranca(req, res) {
   try {
     const { id } = req.params;
     if (!id || !/^[0-9]+$/.test(id)) {
-      return res.status(400).json({ error: 'ID de cobran�a inv�lido.' });
+      return res.status(400).json({ error: 'ID de cobrança inválido.' });
     }
+
+    const cobrancaExistente = await getCobrancaComProfessor(id);
+
+    if (!cobrancaExistente) {
+      return res.status(404).json({ error: 'Cobrança não encontrada.' });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(cobrancaExistente.professor_id) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Não autorizado a excluir esta cobrança.',
+      });
+    }
+
     const excluida = await deleteCobrancaRecord(id);
     if (!excluida) {
       return res.status(404).json({ error: 'Cobran�a n�o encontrada.' });

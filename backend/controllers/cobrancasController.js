@@ -5,6 +5,7 @@
   deleteCobranca as deleteCobrancaRecord,
   getAluno,
   getPixChave,
+  getCobrancaComProfessor,
 } from '../services/storageService.js';
 
 import { enviarCobrancaWhatsApp } from '../services/whatsappService.js';
@@ -268,6 +269,22 @@ export async function updateCobranca(req, res) {
       }
 
       dadosAtualizados.status = status;
+    }
+
+    if (cobranca.forma_pagamento !== undefined) {
+      dadosAtualizados.forma_pagamento = String(cobranca.forma_pagamento).trim();
+    }
+
+    if (cobranca.pago_em !== undefined) {
+      const pagoEm = normalizarDataISO(cobranca.pago_em);
+
+      if (pagoEm === null) {
+        return res.status(400).json({
+          error: 'Data de pagamento inválida.',
+        });
+      }
+
+      dadosAtualizados.pago_em = pagoEm;
     }
 
     if (!Object.keys(dadosAtualizados).length) {
