@@ -65,7 +65,7 @@ export default function Alunos() {
   return (
     <View style={styles.container}>
       <Text style={styles.logo}>Alunos</Text>
-      <Text style={styles.subtitle}>Gerenciamento dos alunos do DOJO LB</Text>
+      <Text style={styles.subtitle}>Gerenciamento dos alunos do MEU DOJO</Text>
 
       <Pressable
         style={styles.button}

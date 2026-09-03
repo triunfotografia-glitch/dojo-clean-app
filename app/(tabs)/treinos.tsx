@@ -1,4 +1,5 @@
 import { COLORS } from '@/components/Colors';
+import { CompactSelector } from '@/components/CompactSelector';
 import { useProfessores } from '@/components/context/ProfessorContext';
 import { Treino, useTreinos } from '@/components/context/TreinoContext';
 import { useTurmas } from '@/components/context/TurmaContext';
@@ -19,10 +20,6 @@ export default function Treinos() {
   const [professorId, setProfessorId] = useState('');
 
   const turmaSelecionada = turmas.find((item) => item.id === turmaId);
-
-  function alternarDia(dia: string) {
-    setDiasSelecionados((lista) => lista.includes(dia) ? lista.filter((item) => item !== dia) : [...lista, dia]);
-  }
 
   function selecionarTurma(id: string) {
     const turma = turmas.find((item) => item.id === id);
@@ -79,13 +76,37 @@ export default function Treinos() {
       ListHeaderComponent={<>
       <Text style={styles.title}>Treinos</Text>
       <TextInput style={styles.input} placeholder="Nome do treino" placeholderTextColor={COLORS.muted} value={nome} onChangeText={setNome} />
-      <Text style={styles.label}>Dias da semana</Text>
-      <View style={styles.options}>{dias.map((item) => <Pressable key={item} style={[styles.option, diasSelecionados.includes(item) && styles.selected]} onPress={() => alternarDia(item)}><Text style={styles.optionText}>{item}</Text></Pressable>)}</View>
+      <CompactSelector
+        label="Dias da semana"
+        value={diasSelecionados}
+        options={dias}
+        onChange={setDiasSelecionados}
+        placeholder="Selecionar dias"
+        multiple
+      />
       <TextInput style={styles.input} placeholder="Horário (ex.: 19:00)" placeholderTextColor={COLORS.muted} value={horario} onChangeText={setHorario} />
-      <Text style={styles.label}>Turma</Text>
-      <View style={styles.options}>{turmas.map((item) => <Pressable key={item.id} style={[styles.option, turmaId === item.id && styles.selected]} onPress={() => selecionarTurma(item.id)}><Text style={styles.optionText}>{item.nome}</Text></Pressable>)}</View>
-      <Text style={styles.label}>Professor</Text>
-      <View style={styles.options}>{professores.filter((item) => item.ativo).map((item) => <Pressable key={item.id} style={[styles.option, professorId === item.id && styles.selected]} onPress={() => setProfessorId(item.id)}><Text style={styles.optionText}>{item.nome}</Text></Pressable>)}</View>
+      <CompactSelector
+        label="Turma"
+        value={turmaId}
+        options={turmas.map((item) => ({
+          value: item.id?.toString() || item.nome,
+          label: item.nome,
+        }))}
+        onChange={(id) => selecionarTurma(id)}
+        placeholder="Selecionar turma"
+      />
+      <CompactSelector
+        label="Professor"
+        value={professorId}
+        options={professores
+          .filter((item) => item.ativo)
+          .map((item) => ({
+            value: item.id?.toString() || item.nome,
+            label: item.nome,
+          }))}
+        onChange={setProfessorId}
+        placeholder="Selecionar professor"
+      />
       <Pressable style={styles.button} onPress={salvar}><Text style={styles.buttonText}>Salvar treino</Text></Pressable>
       </>}
       renderItem={({ item }) => (
@@ -102,5 +123,5 @@ export default function Treinos() {
 }
 
 const styles = StyleSheet.create({
-  content: { backgroundColor: COLORS.background, flexGrow: 1, padding: 25, paddingTop: 70 }, title: { color: COLORS.white, fontSize: 32, fontWeight: 'bold', marginBottom: 20 }, input: { backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 14, borderWidth: 1, color: COLORS.white, marginBottom: 12, padding: 14 }, label: { color: COLORS.white, fontWeight: 'bold', marginBottom: 8 }, options: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }, option: { backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 14, borderWidth: 1, marginBottom: 8, marginRight: 8, padding: 10 }, selected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary }, optionText: { color: COLORS.white }, button: { alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 14, marginBottom: 20, padding: 15 }, buttonText: { color: COLORS.white, fontWeight: 'bold' }, card: { backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 15, borderWidth: 1, marginBottom: 10, padding: 15 }, name: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' }, info: { color: COLORS.textSecondary, marginTop: 5 }, actions: { flexDirection: 'row', gap: 10, marginTop: 15 },   editButton: { alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 10, flex: 1, padding: 10 }, editText: { color: COLORS.white, fontWeight: 'bold' }, presencaButton: { alignItems: 'center', backgroundColor: '#1B5E20', borderColor: '#2E7D32', borderRadius: 10, borderWidth: 1, flex: 1, padding: 10 }, presencaText: { color: '#FFFFFF', fontWeight: 'bold' }, deleteButton: { alignItems: 'center', borderColor: '#E53935', borderRadius: 10, borderWidth: 1, flex: 1, padding: 10 }, deleteText: { color: '#FF6B6B', fontWeight: 'bold' }, empty: { color: COLORS.muted, marginTop: 25, textAlign: 'center' },
+  content: { backgroundColor: COLORS.background, flexGrow: 1, padding: 25, paddingTop: 70 }, title: { color: COLORS.white, fontSize: 32, fontWeight: 'bold', marginBottom: 20 }, input: { backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 14, borderWidth: 1, color: COLORS.white, marginBottom: 12, padding: 14 }, button: { alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 14, marginBottom: 20, padding: 15 }, buttonText: { color: COLORS.white, fontWeight: 'bold' }, card: { backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 15, borderWidth: 1, marginBottom: 10, padding: 15 }, name: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' }, info: { color: COLORS.textSecondary, marginTop: 5 }, actions: { flexDirection: 'row', gap: 10, marginTop: 15 },   editButton: { alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 10, flex: 1, padding: 10 }, editText: { color: COLORS.white, fontWeight: 'bold' }, presencaButton: { alignItems: 'center', backgroundColor: '#1B5E20', borderColor: '#2E7D32', borderRadius: 10, borderWidth: 1, flex: 1, padding: 10 }, presencaText: { color: '#FFFFFF', fontWeight: 'bold' }, deleteButton: { alignItems: 'center', borderColor: '#E53935', borderRadius: 10, borderWidth: 1, flex: 1, padding: 10 }, deleteText: { color: '#FF6B6B', fontWeight: 'bold' }, empty: { color: COLORS.muted, marginTop: 25, textAlign: 'center' },
 });

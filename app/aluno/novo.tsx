@@ -1,4 +1,5 @@
 import { COLORS } from "@/components/Colors";
+import { CompactSelector } from "@/components/CompactSelector";
 import { useDojo } from "@/components/context/DojoContext";
 import { useProfessores } from "@/components/context/ProfessorContext";
 import * as ImagePicker from "expo-image-picker";
@@ -314,29 +315,13 @@ export default function NovoAluno() {
           Graduação
         </Text>
 
-        <Text style={styles.label}>
-          Faixa atual
-        </Text>
-
-        <View style={styles.row}>
-          {faixas.map((item) => (
-            <Pressable
-              key={item}
-              style={[
-                styles.option,
-                faixa === item &&
-                  styles.optionActive,
-              ]}
-              onPress={() =>
-                setFaixa(item)
-              }
-            >
-              <Text style={styles.optionText}>
-                {item}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <CompactSelector
+          label="Faixa atual"
+          value={faixa}
+          options={faixas}
+          onChange={setFaixa}
+          placeholder="Selecionar faixa"
+        />
 
         <Text style={styles.label}>
           Graus
@@ -376,29 +361,13 @@ export default function NovoAluno() {
           Academia
         </Text>
 
-        <Text style={styles.label}>
-          Turma
-        </Text>
-
-        <View style={styles.row}>
-          {turmas.map((item) => (
-            <Pressable
-              key={item}
-              style={[
-                styles.option,
-                turma === item &&
-                  styles.optionActive,
-              ]}
-              onPress={() =>
-                setTurma(item)
-              }
-            >
-              <Text style={styles.optionText}>
-                {item}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <CompactSelector
+          label="Turma"
+          value={turma}
+          options={turmas}
+          onChange={setTurma}
+          placeholder="Selecionar turma"
+        />
 
         <Text style={styles.label}>
           Professor responsável
@@ -415,29 +384,20 @@ export default function NovoAluno() {
 
         ) : (
 
-          <View style={styles.row}>
-            {professores
+          <CompactSelector
+            label=""
+            value={professorId}
+            options={professores
               .filter(
                 (item) => item.ativo
               )
-              .map((item) => (
-                <Pressable
-                  key={item.id}
-                  style={[
-                    styles.option,
-                    professorId === item.id &&
-                      styles.optionActive,
-                  ]}
-                  onPress={() =>
-                    setProfessorId(item.id)
-                  }
-                >
-                  <Text style={styles.optionText}>
-                    {item.nome}
-                  </Text>
-                </Pressable>
-              ))}
-          </View>
+              .map((item) => ({
+                value: item.id?.toString() || item.nome,
+                label: item.nome,
+              }))}
+            onChange={setProfessorId}
+            placeholder="Selecionar professor"
+          />
         )}
 
         <Text style={styles.section}>
@@ -462,25 +422,13 @@ export default function NovoAluno() {
           onChangeText={setDiaVencimento}
         />
 
-        <View style={styles.row}>
-          {mensalidades.map((item) => (
-            <Pressable
-              key={item}
-              style={[
-                styles.option,
-                mensalidade === item &&
-                  styles.optionActive,
-              ]}
-              onPress={() =>
-                setMensalidade(item)
-              }
-            >
-              <Text style={styles.optionText}>
-                {item}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <CompactSelector
+          label="Mensalidade"
+          value={mensalidade}
+          options={mensalidades}
+          onChange={setMensalidade}
+          placeholder="Selecionar status"
+        />
 
         <Text style={styles.section}>
           Observações

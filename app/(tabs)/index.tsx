@@ -95,7 +95,7 @@ export default function Index() {
       <View style={styles.header}>
         <View>
           <Text style={styles.logo}>
-            DOJO LB
+            MEU DOJO
           </Text>
 
           <Text style={styles.subtitle}>
@@ -307,7 +307,7 @@ export default function Index() {
 
         <Text style={styles.footerText}>
           Cadastre alunos e professores para
-          iniciar a gestão do DOJO LB.
+          iniciar a gestão do MEU DOJO.
         </Text>
       </View>
     </ScrollView>

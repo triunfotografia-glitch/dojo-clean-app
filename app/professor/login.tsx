@@ -71,7 +71,7 @@ export default function Login() {
       // LOGIN APROVADO
 
 router.replace("/(tabs)");
-    
+
     } catch (error) {
       console.error(
         "Erro ao realizar login:",
@@ -90,7 +90,7 @@ router.replace("/(tabs)");
   return (
     <View style={styles.container}>
       <Text style={styles.logo}>
-        DOJO LB
+        MEU DOJO
       </Text>
 
       <Text style={styles.subtitulo}>
@@ -175,48 +175,55 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 25,
-    backgroundColor: "#fff",
+    backgroundColor: "#000000",
   },
 
   logo: {
-    fontSize: 52,
+    fontSize: 40,
     fontWeight: "900",
     textAlign: "center",
-    color: "#000",
+    color: "#FFFFFF",
     marginBottom: 8,
     letterSpacing: 2,
   },
 
   subtitulo: {
     textAlign: "center",
-    color: "#666",
+    color: "#888888",
     fontSize: 17,
     marginBottom: 45,
   },
 
   card: {
     width: "100%",
+    backgroundColor: "#111111",
+    borderWidth: 1,
+    borderColor: "#333333",
+    borderRadius: 18,
+    padding: 20,
   },
 
   titulo: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#000",
+    color: "#FFFFFF",
     textAlign: "center",
     marginBottom: 25,
   },
 
   input: {
-    backgroundColor: "#eeeeee",
-    padding: 15,
+    backgroundColor: "#000000",
+    borderColor: "#333333",
+    borderWidth: 1,
     borderRadius: 12,
-    marginBottom: 15,
+    padding: 15,
     fontSize: 16,
-    color: "#000",
+    color: "#FFFFFF",
+    marginBottom: 15,
   },
 
   botao: {
-    backgroundColor: "#000",
+    backgroundColor: "#D90429",
     padding: 18,
     borderRadius: 12,
     marginTop: 10,
@@ -230,7 +237,7 @@ const styles = StyleSheet.create({
   },
 
   botaoTexto: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 17,
     fontWeight: "700",
   },
@@ -241,7 +248,7 @@ const styles = StyleSheet.create({
   },
 
   forgotPasswordText: {
-    color: "#666",
+    color: "#888888",
     fontSize: 14,
     textDecorationLine: "underline",
   },
