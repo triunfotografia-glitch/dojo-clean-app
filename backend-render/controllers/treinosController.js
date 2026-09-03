@@ -50,6 +50,25 @@ export async function listTreinos(req, res) {
   try {
     const treinos = await getTreinos();
 
+    if (
+      req.usuario.administrador !== true
+    ) {
+      const professorId =
+        Number(req.usuario.id);
+
+      const treinosFiltrados =
+        treinos.filter(
+          (treino) =>
+            Number(
+              treino.professor_id
+            ) === professorId
+        );
+
+      return res.json(
+        treinosFiltrados
+      );
+    }
+
     return res.json(treinos);
   } catch (error) {
     console.error('Erro ao buscar treinos:', error);

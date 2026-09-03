@@ -66,6 +66,25 @@ export async function listTurmas(req, res) {
   try {
     const turmas = await getTurmas();
 
+    if (
+      req.usuario.administrador !== true
+    ) {
+      const professorId =
+        Number(req.usuario.id);
+
+      const turmasFiltradas =
+        turmas.filter(
+          (turma) =>
+            Number(
+              turma.professor_id
+            ) === professorId
+        );
+
+      return res.json(
+        turmasFiltradas
+      );
+    }
+
     return res.json(turmas);
   } catch (error) {
     console.error(

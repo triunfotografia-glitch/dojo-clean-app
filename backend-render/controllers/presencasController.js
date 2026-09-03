@@ -14,9 +14,31 @@ import {
 
 export async function listPresencas(req, res) {
   try {
-    const presencas = await getPresencas();
+    if (
+      req.usuario.administrador === true
+    ) {
+      const presencas =
+        await getPresencas();
 
-    return res.json(presencas);
+      return res.json(presencas);
+    }
+
+    const professorId =
+      Number(req.usuario.id);
+
+    const result = await query(
+      `
+        SELECT p.*
+        FROM presencas p
+        JOIN treinos t
+          ON t.id = p.treino_id
+        WHERE t.professor_id = $1
+        ORDER BY p.id DESC
+      `,
+      [professorId]
+    );
+
+    return res.json(result.rows);
   } catch (error) {
     console.error(
       'Erro ao buscar presenças:',
@@ -231,6 +253,40 @@ export async function listPresencasPorTreino(req, res) {
 
     const treinoIdNumero =
       Number(treinoId);
+
+    const treinoResult =
+      await query(
+        `
+          SELECT
+            professor_id
+          FROM treinos
+          WHERE id = $1
+          LIMIT 1
+        `,
+        [treinoIdNumero]
+      );
+
+    if (
+      treinoResult.rows.length === 0
+    ) {
+      return res.status(404).json({
+        error:
+          'Treino não encontrado.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(
+        treinoResult.rows[0]
+          .professor_id
+      ) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error:
+          'Acesso negado a este treino.',
+      });
+    }
 
     const dataStr =
       typeof data === 'string' &&
