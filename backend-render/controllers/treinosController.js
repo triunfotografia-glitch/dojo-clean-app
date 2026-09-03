@@ -147,13 +147,15 @@ export async function createTreino(req, res) {
 
     const { professor_id, ...dadosTreino } = treino;
 
+    const turmaId = dadosTreino.turma_id ?? dadosTreino.turmaId;
+
     if (
-      dadosTreino.turma_id !== undefined &&
-      dadosTreino.turma_id !== null
+      turmaId !== undefined &&
+      turmaId !== null
     ) {
       const turma =
         await getTurma(
-          Number(dadosTreino.turma_id)
+          Number(turmaId)
         );
 
       if (!turma) {
@@ -171,6 +173,8 @@ export async function createTreino(req, res) {
         });
       }
     }
+
+    dadosTreino.turma_id = turmaId;
 
     const dadosProcessados = normalizarRelacionamentos({
       ...dadosTreino,

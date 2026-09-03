@@ -146,7 +146,7 @@ export async function createPresenca(req, res) {
     ===================================================== */
 
     const treinoResult = await query(
-      `SELECT turma_id FROM treinos WHERE id = $1`,
+      `SELECT turma_id, professor_id FROM treinos WHERE id = $1`,
       [treinoIdNumero]
     );
 
@@ -157,6 +157,16 @@ export async function createPresenca(req, res) {
     }
 
     const turmaIdDoTreino = treinoResult.rows[0].turma_id;
+    const professorIdDoTreino = treinoResult.rows[0].professor_id;
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(professorIdDoTreino) !== Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a este treino.',
+      });
+    }
 
     if (turmaIdDoTreino) {
       const turmaAlunoResult = await query(
