@@ -4,6 +4,7 @@ import {
   getAluno,
   getGraduacao,
   getGraduacoes,
+  getGraduacoesPorProfessor,
   updateGraduacao as updateGraduacaoRecord,
 } from '../services/storageService.js';
 
@@ -13,7 +14,22 @@ import {
 ========================================================= */
 export async function listGraduacoes(req, res) {
   try {
-    const graduacoes = await getGraduacoes();
+    let graduacoes;
+
+    if (
+      req.usuario.administrador !== true
+    ) {
+      const professorId =
+        Number(req.usuario.id);
+
+      graduacoes =
+        await getGraduacoesPorProfessor(
+          professorId
+        );
+    } else {
+      graduacoes =
+        await getGraduacoes();
+    }
 
     return res.json(graduacoes);
   } catch (error) {
@@ -24,6 +40,63 @@ export async function listGraduacoes(req, res) {
 
     return res.status(500).json({
       error: 'Erro ao buscar graduações.',
+    });
+  }
+}
+
+
+/* =========================================================
+   BUSCAR GRADUAÇÃO POR ID
+========================================================= */
+export async function getGraduacaoPorId(req, res) {
+  try {
+    const { id } =
+      req.params;
+
+    if (
+      !id ||
+      !/^[0-9]+$/.test(id)
+    ) {
+      return res.status(400).json({
+        error: 'ID de graduação inválido.',
+      });
+    }
+
+    const graduacao =
+      await getGraduacao(Number(id));
+
+    if (!graduacao) {
+      return res.status(404).json({
+        error: 'Graduação não encontrada.',
+      });
+    }
+
+    if (
+      req.usuario.administrador !== true &&
+      Number(graduacao.professor_id) !==
+        Number(req.usuario.id)
+    ) {
+      return res.status(403).json({
+        error: 'Acesso negado a esta graduação.',
+      });
+    }
+
+    const {
+      professor_id,
+      ...graduacaoParaExibir
+    } = graduacao;
+
+    return res.json(
+      graduacaoParaExibir
+    );
+  } catch (error) {
+    console.error(
+      'Erro ao buscar graduação:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Erro ao buscar graduação.',
     });
   }
 }

@@ -1274,6 +1274,19 @@ export async function getGraduacoes() {
   return result.rows;
 }
 
+export async function getGraduacoesPorProfessor(professorId) {
+  const result = await query(
+    `SELECT g.*
+     FROM graduacoes g
+     JOIN alunos a ON a.id = g.aluno_id
+     WHERE a.professor_id = $1
+     ORDER BY g.id DESC`,
+    [professorId]
+  );
+
+  return result.rows;
+}
+
 export async function getGraduacao(id) {
   const result = await query(
     `SELECT

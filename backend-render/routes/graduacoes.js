@@ -3,6 +3,7 @@ import { Router } from 'express';
 import {
     createGraduacao,
     deleteGraduacao,
+    getGraduacaoPorId,
     listGraduacoes,
     updateGraduacao,
 } from '../controllers/graduacoesController.js';
@@ -16,6 +17,7 @@ router.use(authMiddleware);
 router.use(professorMiddleware);
 
 router.get('/', listGraduacoes);
+router.get('/:id', getGraduacaoPorId);
 router.post('/', createGraduacao);
 router.put('/:id', updateGraduacao);
 router.delete('/:id', deleteGraduacao);
