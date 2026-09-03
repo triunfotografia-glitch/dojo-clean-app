@@ -1,11 +1,18 @@
-import { COLORS } from '@/components/Colors';
-import { CompactSelector } from '@/components/CompactSelector';
-import { useProfessores } from '@/components/context/ProfessorContext';
-import { Treino, useTreinos } from '@/components/context/TreinoContext';
-import { useTurmas } from '@/components/context/TurmaContext';
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { COLORS } from "@/components/Colors";
+import { CompactSelector } from "@/components/CompactSelector";
+import { useProfessores } from "@/components/context/ProfessorContext";
+import { Treino, useTreinos } from "@/components/context/TreinoContext";
+import { useTurmas } from "@/components/context/TurmaContext";
+import { router } from "expo-router";
+import { useState } from "react";
+import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Defs,
+  LinearGradient,
+  Rect,
+  Stop,
+  Svg,
+} from "react-native-svg";
 
 const dias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -68,14 +75,49 @@ export default function Treinos() {
   }
 
   return (
-    <FlatList
-      contentContainerStyle={styles.content}
-      data={treinos}
-      keyExtractor={(item) => item.id}
-      ListEmptyComponent={<Text style={styles.empty}>Nenhum treino cadastrado.</Text>}
-      ListHeaderComponent={<>
-      <Text style={styles.title}>Treinos</Text>
-      <TextInput style={styles.input} placeholder="Nome do treino" placeholderTextColor={COLORS.muted} value={nome} onChangeText={setNome} />
+    <View style={styles.backgroundContainer}>
+      <Svg
+        width="100%"
+        height="100%"
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      >
+        <Defs>
+          <LinearGradient
+            id="gradient-bg"
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
+            <Stop
+              offset="0%"
+              stopColor="#000000"
+            />
+            <Stop
+              offset="100%"
+              stopColor="#121212"
+            />
+          </LinearGradient>
+        </Defs>
+        <Rect
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
+          fill="url(#gradient-bg)"
+        />
+      </Svg>
+
+      <FlatList
+        contentContainerStyle={styles.content}
+        data={treinos}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={<Text style={styles.empty}>Nenhum treino cadastrado.</Text>}
+        ListHeaderComponent={<>
+        <Text style={styles.title}>Treinos</Text>
+        <View style={styles.titleDivider} />
+        <TextInput style={styles.input} placeholder="Nome do treino" placeholderTextColor={COLORS.muted} value={nome} onChangeText={setNome} />
       <CompactSelector
         label="Dias da semana"
         value={diasSelecionados}
@@ -118,10 +160,134 @@ export default function Treinos() {
           <View style={styles.actions}><Pressable style={styles.editButton} onPress={() => router.push({ pathname: '/treino/editar/[id]', params: { id: item.id } })}><Text style={styles.editText}>Editar</Text></Pressable><Pressable style={styles.presencaButton} onPress={() => router.push({ pathname: '/treino/presenca/[id]', params: { id: item.id } })}><Text style={styles.presencaText}>Presença</Text></Pressable><Pressable style={styles.deleteButton} onPress={() => confirmarExclusao(item.id)}><Text style={styles.deleteText}>Apagar</Text></Pressable></View>
         </View>
       )}
-    />
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { backgroundColor: COLORS.background, flexGrow: 1, padding: 25, paddingTop: 70 }, title: { color: COLORS.white, fontSize: 32, fontWeight: 'bold', marginBottom: 20 }, input: { backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 14, borderWidth: 1, color: COLORS.white, marginBottom: 12, padding: 14 }, button: { alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 14, marginBottom: 20, padding: 15 }, buttonText: { color: COLORS.white, fontWeight: 'bold' }, card: { backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 15, borderWidth: 1, marginBottom: 10, padding: 15 }, name: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' }, info: { color: COLORS.textSecondary, marginTop: 5 }, actions: { flexDirection: 'row', gap: 10, marginTop: 15 },   editButton: { alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 10, flex: 1, padding: 10 }, editText: { color: COLORS.white, fontWeight: 'bold' }, presencaButton: { alignItems: 'center', backgroundColor: '#1B5E20', borderColor: '#2E7D32', borderRadius: 10, borderWidth: 1, flex: 1, padding: 10 }, presencaText: { color: '#FFFFFF', fontWeight: 'bold' }, deleteButton: { alignItems: 'center', borderColor: '#E53935', borderRadius: 10, borderWidth: 1, flex: 1, padding: 10 }, deleteText: { color: '#FF6B6B', fontWeight: 'bold' }, empty: { color: COLORS.muted, marginTop: 25, textAlign: 'center' },
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  content: {
+    backgroundColor: "transparent",
+    flexGrow: 1,
+    padding: 25,
+    paddingTop: 32,
+  },
+
+  title: {
+    color: COLORS.primary,
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+
+  titleDivider: {
+    width: 24,
+    height: 2,
+    backgroundColor: COLORS.primary,
+    borderRadius: 1,
+    alignSelf: "flex-start",
+    marginBottom: 16,
+  },
+
+  input: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    borderWidth: 1,
+    color: COLORS.white,
+    marginBottom: 12,
+    padding: 14,
+  },
+
+  button: {
+    alignItems: "center",
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    marginBottom: 20,
+    padding: 15,
+  },
+
+  buttonText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+  },
+
+  card: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 10,
+    padding: 15,
+  },
+
+  name: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+
+  info: {
+    color: COLORS.muted,
+    marginTop: 5,
+  },
+
+  actions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 15,
+  },
+
+  editButton: {
+    alignItems: "center",
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    flex: 1,
+    padding: 10,
+  },
+
+  editText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+  },
+
+  presencaButton: {
+    alignItems: "center",
+    backgroundColor: COLORS.success,
+    borderColor: COLORS.successBorder,
+    borderRadius: 10,
+    borderWidth: 1,
+    flex: 1,
+    padding: 10,
+  },
+
+  presencaText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+  },
+
+  deleteButton: {
+    alignItems: "center",
+    borderColor: COLORS.danger,
+    borderRadius: 10,
+    borderWidth: 1,
+    flex: 1,
+    padding: 10,
+  },
+
+  deleteText: {
+    color: COLORS.dangerText,
+    fontWeight: "bold",
+  },
+
+  empty: {
+    color: COLORS.muted,
+    marginTop: 25,
+    textAlign: "center",
+  },
 });

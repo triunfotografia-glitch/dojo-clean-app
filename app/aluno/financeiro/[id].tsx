@@ -1,11 +1,11 @@
-import { COLORS } from '@/components/Colors';
-import { Cobranca, useDojo } from '@/components/context/DojoContext';
-import { usePix } from '@/components/context/PixContext';
-import { enviarCobrancaWhatsApp } from '@/components/whatsapp';
-import { getStatusCobranca } from '@/utils/financeiro';
-import * as Clipboard from 'expo-clipboard';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useEffect, useState } from 'react';
+import { COLORS } from "@/components/Colors";
+import { Cobranca, useDojo } from "@/components/context/DojoContext";
+import { usePix } from "@/components/context/PixContext";
+import { enviarCobrancaWhatsApp } from "@/components/whatsapp";
+import { getStatusCobranca } from "@/utils/financeiro";
+import * as Clipboard from "expo-clipboard";
+import { router, useLocalSearchParams } from "expo-router";
+import { useMemo, useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -15,9 +15,14 @@ import {
   TextInput,
   View,
   Modal,
-} from 'react-native';
-
-import Svg, { Rect } from 'react-native-svg';
+} from "react-native";
+import {
+  Defs,
+  LinearGradient,
+  Rect,
+  Stop,
+  Svg,
+} from "react-native-svg";
 
 const QrCore = require('qrcode/lib/core/qrcode');
 
@@ -263,8 +268,42 @@ export default function FinanceiroAluno(){
 
   if (!alunoEncontrado) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.title}>Aluno não encontrado</Text>
+      <View style={styles.backgroundContainer}>
+        <Svg
+          width="100%"
+          height="100%"
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        >
+          <Defs>
+            <LinearGradient
+              id="gradient-bg"
+              x1="0%"
+              y1="0%"
+              x2="0%"
+              y2="100%"
+            >
+              <Stop
+                offset="0%"
+                stopColor="#000000"
+              />
+              <Stop
+                offset="100%"
+                stopColor="#121212"
+              />
+            </LinearGradient>
+          </Defs>
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#gradient-bg)"
+          />
+        </Svg>
+        <View style={styles.centered}>
+          <Text style={styles.title}>Aluno não encontrado</Text>
+        </View>
       </View>
     );
   }
@@ -580,18 +619,50 @@ onPress: async () => {
   }
 
     return (
-      <ScrollView
-        contentContainerStyle={styles.container}
-      >
+      <View style={styles.backgroundContainer}>
+        <Svg
+          width="100%"
+          height="100%"
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        >
+          <Defs>
+            <LinearGradient
+              id="gradient-bg"
+              x1="0%"
+              y1="0%"
+              x2="0%"
+              y2="100%"
+            >
+              <Stop
+                offset="0%"
+                stopColor="#000000"
+              />
+              <Stop
+                offset="100%"
+                stopColor="#121212"
+              />
+            </LinearGradient>
+          </Defs>
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#gradient-bg)"
+          />
+        </Svg>
 
+        <ScrollView
+          contentContainerStyle={styles.container}
+        >
         <Text style={styles.title}>
           Financeiro
         </Text>
-
-
-      <Text style={styles.subtitle}>
-        {aluno.nome}
-      </Text>
+        <View style={styles.titleDivider} />
+        <Text style={styles.subtitle}>
+          {aluno.nome}
+        </Text>
 
       {pendentes.length > 0 && (
         <Pressable
@@ -963,141 +1034,143 @@ onPress: async () => {
 
 
     </ScrollView>
+      </View>
   );
 
 }
 
 const styles = StyleSheet.create({
 
-  container:{
-    backgroundColor:COLORS.background,
-    flexGrow:1,
-    padding:25,
-    paddingTop:60,
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
 
-
-  centered:{
-    flex:1,
-    justifyContent:'center',
-    alignItems:'center',
-    backgroundColor:COLORS.background,
+  container: {
+    backgroundColor: "transparent",
+    flexGrow: 1,
+    padding: 25,
+    paddingTop: 32,
   },
 
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+  },
 
   backButtonText: {
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 16,
   },
 
-  title:{
-    color:COLORS.white,
-    fontSize:32,
-    fontWeight:'bold',
+  title: {
+    color: COLORS.primary,
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginBottom: 4,
   },
 
-
-  subtitle:{
-    color:COLORS.muted,
-    fontSize:16,
-    marginTop:6,
+  titleDivider: {
+    width: 24,
+    height: 2,
+    backgroundColor: COLORS.primary,
+    borderRadius: 1,
+    alignSelf: "flex-start",
+    marginBottom: 16,
   },
 
-
-  summary:{
-    backgroundColor:COLORS.card,
-    borderColor:COLORS.border,
-    borderWidth:1,
-    borderRadius:16,
-    padding:18,
-    marginTop:25,
-    flexDirection:'row',
-    justifyContent:'space-between',
+  subtitle: {
+    color: COLORS.muted,
+    fontSize: 16,
+    marginTop: 0,
   },
 
-
-  label:{
-    color:COLORS.muted,
-    fontSize:13,
+  summary: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 18,
+    marginTop: 25,
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
 
-
-  value:{
-    color:COLORS.white,
-    fontSize:22,
-    fontWeight:'bold',
-    marginTop:5,
+  label: {
+    color: COLORS.muted,
+    fontSize: 13,
   },
 
-
-  danger:{
-    color:'#FF6B6B',
+  value: {
+    color: COLORS.white,
+    fontSize: 22,
+    fontWeight: "bold",
+    marginTop: 5,
   },
 
-
-  sectionTitle:{
-    color:COLORS.white,
-    fontSize:20,
-    fontWeight:'bold',
-    marginTop:30,
-    marginBottom:12,
+  danger: {
+    color: COLORS.dangerText,
   },
 
-
-  card:{
-    backgroundColor:COLORS.card,
-    borderColor:COLORS.border,
-    borderWidth:1,
-    borderRadius:16,
-    padding:16,
-  },
-
-
-  input:{
-    backgroundColor:COLORS.background,
-    borderColor:COLORS.border,
-    borderWidth:1,
-    borderRadius:12,
-    color:COLORS.white,
-    padding:14,
-    marginBottom:12,
-  },
-
-
-  primaryButton:{
-    backgroundColor:COLORS.primary,
-    borderRadius:12,
-    padding:15,
-    alignItems:'center',
-  },
-
-
-  buttonText:{
-    color:COLORS.white,
-    fontWeight:'bold',
-  },
-
-
-  empty:{
-    color:COLORS.muted,
-  },
-
-
-  chargeCard:{
-    backgroundColor: "#111",
-    padding: 16,
-    borderRadius: 12,
+  sectionTitle: {
+    color: COLORS.white,
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 30,
     marginBottom: 12,
-    borderWidth:1,
-    borderColor: "#222",
   },
 
+  card: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+  },
 
-  chargeTitle:{
-    color:COLORS.white,
-    fontSize:16,
-    fontWeight:'bold',
+  input: {
+    backgroundColor: COLORS.background,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 14,
+    color: COLORS.white,
+    padding: 14,
+    marginBottom: 12,
+  },
+
+  primaryButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    padding: 15,
+    alignItems: "center",
+  },
+
+  buttonText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+  },
+
+  empty: {
+    color: COLORS.muted,
+  },
+
+  chargeCard: {
+    backgroundColor: COLORS.card,
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  chargeTitle: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: "bold",
   },
 
   chargeValue: {
@@ -1107,7 +1180,7 @@ const styles = StyleSheet.create({
   },
 
   chargeDate: {
-    color: "#aaa",
+    color: COLORS.muted,
     marginTop: 4,
   },
 
@@ -1118,112 +1191,105 @@ const styles = StyleSheet.create({
 
   actions: {
     flexDirection: "row",
-    // justifyContent: "space-between", // The user example doesn't have this, let's make it more flexible
     gap: 8,
     marginTop: 12,
   },
 
   btnPix: {
-    backgroundColor: "#333",
+    backgroundColor: COLORS.card,
     padding: 8,
     borderRadius: 8,
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
 
   btnPago: {
-    backgroundColor: "#16a34a",
+    backgroundColor: COLORS.successBg,
     padding: 8,
     borderRadius: 8,
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
 
   btnExcluir: {
-    backgroundColor: "#b91c1c",
+    backgroundColor: COLORS.danger,
     padding: 8,
     borderRadius: 8,
   },
 
   btnText: {
-    color: "#fff",
-    fontWeight: 'bold',
+    color: COLORS.white,
+    fontWeight: "bold",
   },
 
-
-  pixCard:{
-    backgroundColor:COLORS.card,
-    borderColor:'#0D9488',
-    borderWidth:1,
-    borderRadius:16,
-    padding:18,
-    marginTop:20,
+  pixCard: {
+    backgroundColor: COLORS.card,
+    borderColor: "#0D9488",
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 18,
+    marginTop: 20,
   },
 
-
-  pixTitle:{
-    color:COLORS.white,
-    fontSize:20,
-    fontWeight:'bold',
-    textAlign:'center',
+  pixTitle: {
+    color: COLORS.white,
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
   },
 
-
-  pixSubtitle:{
-    color:COLORS.textSecondary,
-    textAlign:'center',
-    marginTop:8,
+  pixSubtitle: {
+    color: COLORS.muted,
+    textAlign: "center",
+    marginTop: 8,
   },
 
-
-  qr:{
-    backgroundColor:'#fff',
-    alignItems:'center',
-    borderRadius:12,
-    padding:15,
-    marginVertical:20,
+  qr: {
+    backgroundColor: "#fff",
+    alignItems: "center",
+    borderRadius: 12,
+    padding: 15,
+    marginVertical: 20,
   },
 
-
-  closeButton:{
-    alignItems:'center',
-    padding:12,
-    marginTop:10,
+  closeButton: {
+    alignItems: "center",
+    padding: 12,
+    marginTop: 10,
   },
 
-
-  closeText:{
-    color:COLORS.textSecondary,
-    fontWeight:'bold',
+  closeText: {
+    color: COLORS.textSecondary,
+    fontWeight: "bold",
   },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 25,
   },
 
   modalContent: {
     backgroundColor: COLORS.card,
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 22,
-    width: '100%',
+    width: "100%",
     maxWidth: 420,
-    maxHeight: '80%',
+    maxHeight: "80%",
   },
 
   modalTitle: {
     color: COLORS.white,
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 18,
   },
 
   modalOption: {
     backgroundColor: COLORS.background,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
@@ -1233,19 +1299,19 @@ const styles = StyleSheet.create({
   modalOptionTitle: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 
   modalOptionDetail: {
-    color: COLORS.textSecondary,
+    color: COLORS.muted,
     fontSize: 13,
     marginTop: 4,
   },
 
   modalEmpty: {
-    color: COLORS.textSecondary,
+    color: COLORS.muted,
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     marginVertical: 20,
   },
 

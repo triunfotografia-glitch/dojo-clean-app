@@ -1,11 +1,18 @@
-﻿import { COLORS } from '@/components/Colors';
-import { Aluno, Cobranca, useDojo } from '@/components/context/DojoContext';
-import { usePix } from '@/components/context/PixContext';
-import { enviarCobrancaWhatsApp, enviarCobrancasWhatsApp } from '@/components/whatsapp';
-import { getStatusCobranca } from '@/utils/financeiro';
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+﻿import { COLORS } from "@/components/Colors";
+import { Aluno, Cobranca, useDojo } from "@/components/context/DojoContext";
+import { usePix } from "@/components/context/PixContext";
+import { enviarCobrancaWhatsApp, enviarCobrancasWhatsApp } from "@/components/whatsapp";
+import { getStatusCobranca } from "@/utils/financeiro";
+import { router } from "expo-router";
+import { useMemo, useState } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Defs,
+  LinearGradient,
+  Rect,
+  Stop,
+  Svg,
+} from "react-native-svg";
 
 function competenciaAtual() {
   return new Date().toISOString().slice(0, 7);
@@ -176,9 +183,45 @@ export default function Financeiro() {
     );
   }
 
-  return <ScrollView contentContainerStyle={styles.container}>
-    <Text style={styles.title}>Financeiro</Text>
-    <Text style={styles.subtitle}>Resumo de {competencia}</Text>
+  return (
+    <View style={styles.backgroundContainer}>
+      <Svg
+        width="100%"
+        height="100%"
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      >
+        <Defs>
+          <LinearGradient
+            id="gradient-bg"
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
+            <Stop
+              offset="0%"
+              stopColor="#000000"
+            />
+            <Stop
+              offset="100%"
+              stopColor="#121212"
+            />
+          </LinearGradient>
+        </Defs>
+        <Rect
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
+          fill="url(#gradient-bg)"
+        />
+      </Svg>
+
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Financeiro</Text>
+        <View style={styles.titleDivider} />
+        <Text style={styles.subtitle}>Resumo de {competencia}</Text>
 
     <View style={styles.grid}>
       <View style={styles.card}><Text style={styles.label}>Recebido no mês</Text><Text style={styles.received}>{moeda(resumo.recebidos)}</Text></View>
@@ -244,65 +287,239 @@ export default function Financeiro() {
         </Pressable>
         )
       })
-    )}
-  </ScrollView>;
+      )}
+      </ScrollView>
+    </View>
+  );
 }
 
 
 const styles = StyleSheet.create({
-
-  container:{
-    backgroundColor: COLORS.background, flexGrow: 1, padding: 25, paddingTop: 70
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-  title: { color: COLORS.white, fontSize: 32, fontWeight: 'bold' },
-  subtitle: { color: COLORS.muted, marginTop: 5 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 24 },
-  card: { backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 15, borderWidth: 1, padding: 15, width: '48%' },
-  overdueCard: { borderColor: '#E5484D' },
-  label: { color: COLORS.muted, fontSize: 13, marginBottom: 8 },
-  value: { color: COLORS.white, fontSize: 19, fontWeight: 'bold', marginTop: 8 },
-  received: { color: '#37D67A', fontSize: 19, fontWeight: 'bold', marginTop: 8 },
-  overdue: { color: '#FF6B6B', fontSize: 19, fontWeight: 'bold', marginTop: 8 },
-  generationContainer: { marginTop: 22 },
-  input: { backgroundColor: COLORS.card, color: COLORS.white, borderWidth: 1, borderColor: COLORS.border, borderRadius: 15, padding: 15, marginBottom: 10 },
-  generateButton: { alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 14, padding: 16 },
-  buttonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
-  whatsappButton: { marginTop: 10, backgroundColor: '#128C7E' },
-  configButton: { marginTop: 10, backgroundColor: '#2563EB' },
-  messageEditor: { marginTop: 15, backgroundColor: COLORS.card, borderColor: COLORS.border, borderWidth: 1, borderRadius: 15, padding: 15 },
-  messageInput: { backgroundColor: COLORS.background, color: COLORS.white, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, padding: 12, marginTop: 10, textAlignVertical: 'top' },
-  helper: { color: COLORS.muted, lineHeight: 20, marginTop: 12, fontSize: 12 },
-  sectionTitle: { color: COLORS.white, fontSize: 20, fontWeight: 'bold', marginTop: 30, marginBottom: 12 },
-  empty: { color: COLORS.muted },
-  studentCard: { alignItems: 'center', backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 13, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, padding: 15, gap: 10 },
-  studentName: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
-  studentInfo: { color: COLORS.textSecondary, marginTop: 5 },
+
+  container: {
+    backgroundColor: "transparent",
+    flexGrow: 1,
+    padding: 25,
+    paddingTop: 32,
+  },
+
+  title: {
+    color: COLORS.primary,
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+
+  titleDivider: {
+    width: 24,
+    height: 2,
+    backgroundColor: COLORS.primary,
+    borderRadius: 1,
+    alignSelf: "flex-start",
+    marginBottom: 16,
+  },
+
+  subtitle: {
+    color: COLORS.muted,
+    fontSize: 15,
+    marginTop: 0,
+  },
+
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 24,
+  },
+
+  card: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 15,
+    width: "48%",
+  },
+
+  overdueCard: {
+    borderColor: COLORS.danger,
+  },
+
+  label: {
+    color: COLORS.muted,
+    fontSize: 13,
+    marginBottom: 8,
+  },
+
+  value: {
+    color: COLORS.white,
+    fontSize: 19,
+    fontWeight: "bold",
+    marginTop: 8,
+  },
+
+  received: {
+    color: COLORS.successText,
+    fontSize: 19,
+    fontWeight: "bold",
+    marginTop: 8,
+  },
+
+  overdue: {
+    color: COLORS.dangerText,
+    fontSize: 19,
+    fontWeight: "bold",
+    marginTop: 8,
+  },
+
+  generationContainer: {
+    marginTop: 22,
+  },
+
+  input: {
+    backgroundColor: COLORS.card,
+    color: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    padding: 15,
+    marginBottom: 10,
+  },
+
+  generateButton: {
+    alignItems: "center",
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    padding: 16,
+  },
+
+  buttonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
+  whatsappButton: {
+    marginTop: 10,
+    backgroundColor: COLORS.whatsapp,
+  },
+
+  configButton: {
+    marginTop: 10,
+    backgroundColor: COLORS.info,
+  },
+
+  messageEditor: {
+    marginTop: 15,
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 15,
+  },
+
+  messageInput: {
+    backgroundColor: COLORS.background,
+    color: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 10,
+    textAlignVertical: "top",
+  },
+
+  helper: {
+    color: COLORS.muted,
+    lineHeight: 20,
+    marginTop: 12,
+    fontSize: 12,
+  },
+
+  sectionTitle: {
+    color: COLORS.white,
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 30,
+    marginBottom: 12,
+  },
+
+  empty: {
+    color: COLORS.muted,
+  },
+
+  studentCard: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+    padding: 15,
+    gap: 10,
+  },
+
+  studentName: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
+  studentInfo: {
+    color: COLORS.muted,
+    marginTop: 5,
+  },
+
   statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 5,
   },
+
   statusIndicator: {
     width: 8,
     height: 8,
     borderRadius: 5,
     marginRight: 8,
   },
-  statusText: { fontWeight: 'bold', fontSize: 12 },
+
+  statusText: {
+    fontWeight: "bold",
+    fontSize: 12,
+  },
+
   payButton: {
-    backgroundColor: '#16a34a',
+    backgroundColor: COLORS.successBg,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  payButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 12 },
+
+  payButtonText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+    fontSize: 12,
+  },
+
   studentWhatsAppButton: {
-    backgroundColor: '#128C7E',
+    backgroundColor: COLORS.whatsapp,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  studentWhatsAppButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 12 },
+
+  studentWhatsAppButtonText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+    fontSize: 12,
+  },
 });

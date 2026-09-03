@@ -1,11 +1,18 @@
-import { COLORS } from '@/components/Colors';
-import { CompactSelector } from '@/components/CompactSelector';
-import { useProfessores } from '@/components/context/ProfessorContext';
-import { useTreinos } from '@/components/context/TreinoContext';
-import { useTurmas } from '@/components/context/TurmaContext';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { COLORS } from "@/components/Colors";
+import { CompactSelector } from "@/components/CompactSelector";
+import { useProfessores } from "@/components/context/ProfessorContext";
+import { useTreinos } from "@/components/context/TreinoContext";
+import { useTurmas } from "@/components/context/TurmaContext";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Defs,
+  LinearGradient,
+  Rect,
+  Stop,
+  Svg,
+} from "react-native-svg";
 
 const dias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -84,15 +91,84 @@ export default function EditarTreino() {
 
   if (!treino) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Treino não encontrado</Text>
+      <View style={styles.backgroundContainer}>
+        <Svg
+          width="100%"
+          height="100%"
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        >
+          <Defs>
+            <LinearGradient
+              id="gradient-bg"
+              x1="0%"
+              y1="0%"
+              x2="0%"
+              y2="100%"
+            >
+              <Stop
+                offset="0%"
+                stopColor="#000000"
+              />
+              <Stop
+                offset="100%"
+                stopColor="#121212"
+              />
+            </LinearGradient>
+          </Defs>
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#gradient-bg)"
+          />
+        </Svg>
+        <View style={styles.container}>
+          <Text style={styles.title}>Treino não encontrado</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Editar treino</Text>
+    <View style={styles.backgroundContainer}>
+      <Svg
+        width="100%"
+        height="100%"
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      >
+        <Defs>
+          <LinearGradient
+            id="gradient-bg"
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
+            <Stop
+              offset="0%"
+              stopColor="#000000"
+            />
+            <Stop
+              offset="100%"
+              stopColor="#121212"
+            />
+          </LinearGradient>
+        </Defs>
+        <Rect
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
+          fill="url(#gradient-bg)"
+        />
+      </Svg>
+
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Editar treino</Text>
+        <View style={styles.titleDivider} />
       <TextInput
         style={styles.input}
         placeholder="Nome do treino"
@@ -149,22 +225,39 @@ export default function EditarTreino() {
         <Text style={styles.saveText}>Salvar alterações</Text>
       </Pressable>
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  backgroundContainer: {
+    flex: 1,
     backgroundColor: COLORS.background,
+  },
+
+  container: {
+    backgroundColor: "transparent",
     flexGrow: 1,
     padding: 25,
-    paddingTop: 70,
+    paddingTop: 32,
   },
+
   title: {
-    color: COLORS.white,
-    fontSize: 30,
-    fontWeight: 'bold',
-    marginBottom: 25,
+    color: COLORS.primary,
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 4,
   },
+
+  titleDivider: {
+    width: 24,
+    height: 2,
+    backgroundColor: COLORS.primary,
+    borderRadius: 1,
+    alignSelf: "flex-start",
+    marginBottom: 16,
+  },
+
   input: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
@@ -174,28 +267,32 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     padding: 14,
   },
+
   presencaButton: {
-    alignItems: 'center',
-    backgroundColor: '#1B5E20',
-    borderColor: '#2E7D32',
+    alignItems: "center",
+    backgroundColor: COLORS.success,
+    borderColor: COLORS.successBorder,
     borderRadius: 14,
     borderWidth: 1,
     marginTop: 15,
     padding: 16,
   },
+
   presencaText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: COLORS.white,
+    fontWeight: "bold",
   },
+
   saveButton: {
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: COLORS.primary,
     borderRadius: 14,
     marginTop: 15,
     padding: 16,
   },
+
   saveText: {
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });

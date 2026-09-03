@@ -167,12 +167,12 @@ const styles = StyleSheet.create({
   trigger: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     padding: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   triggerText: {
     color: COLORS.white,
@@ -227,9 +227,9 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   confirmText: {

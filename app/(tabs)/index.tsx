@@ -11,6 +11,14 @@ import {
   Text,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import {
+  Defs,
+  LinearGradient,
+  Rect,
+  Stop,
+  Svg,
+} from "react-native-svg";
 
 export default function Index() {
   const { alunos, userLogado } = useDojo();
@@ -84,12 +92,46 @@ export default function Index() {
   ).length;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={
-        styles.contentContainer
-      }
-    >
+    <View style={styles.backgroundContainer}>
+      <Svg
+        width="100%"
+        height="100%"
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      >
+        <Defs>
+          <LinearGradient
+            id="gradient-bg"
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
+            <Stop
+              offset="0%"
+              stopColor="#000000"
+            />
+            <Stop
+              offset="100%"
+              stopColor="#121212"
+            />
+          </LinearGradient>
+        </Defs>
+        <Rect
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
+          fill="url(#gradient-bg)"
+        />
+      </Svg>
+
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={
+          styles.contentContainer
+        }
+      >
       {/* CABEÇALHO */}
 
       <View style={styles.header}>
@@ -97,6 +139,8 @@ export default function Index() {
           <Text style={styles.logo}>
             MEU DOJO
           </Text>
+
+          <View style={styles.logoDivider} />
 
           <Text style={styles.subtitle}>
             Gestão da Academia
@@ -120,6 +164,7 @@ export default function Index() {
 
       <View style={styles.grid}>
         <View style={styles.card}>
+          <Ionicons name="people-outline" size={18} color={COLORS.textSecondary} style={styles.cardIcon} />
           <Text style={styles.title}>
             Alunos ativos
           </Text>
@@ -130,6 +175,7 @@ export default function Index() {
         </View>
 
         <View style={styles.card}>
+          <Ionicons name="school-outline" size={18} color={COLORS.textSecondary} style={styles.cardIcon} />
           <Text style={styles.title}>
             Professores
           </Text>
@@ -140,6 +186,7 @@ export default function Index() {
         </View>
 
         <View style={styles.card}>
+          <Ionicons name="calendar-outline" size={18} color={COLORS.textSecondary} style={styles.cardIcon} />
           <Text style={styles.title}>
             Treinos hoje
           </Text>
@@ -150,6 +197,7 @@ export default function Index() {
         </View>
 
         <View style={styles.card}>
+          <Ionicons name="trophy-outline" size={18} color={COLORS.textSecondary} style={styles.cardIcon} />
           <Text style={styles.title}>
             Graduações
           </Text>
@@ -311,41 +359,55 @@ export default function Index() {
         </Text>
       </View>
     </ScrollView>
+  </View>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
   container: {
     flex: 1,
-    backgroundColor:
-      COLORS.background,
+    backgroundColor: "transparent",
   },
 
   contentContainer: {
     paddingHorizontal: 25,
-    paddingTop: 45,
-    paddingBottom: 100,
+    paddingTop: 32,
+    paddingBottom: 48,
   },
 
-  header: {
+   header: {
     flexDirection: "row",
     justifyContent:
       "space-between",
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 22,
   },
 
   logo: {
     color: COLORS.primary,
-    fontSize: 40,
-    fontWeight: "900",
+    fontSize: 26,
+    fontWeight: "800",
     letterSpacing: 2,
   },
 
   subtitle: {
     color: COLORS.muted,
     fontSize: 15,
-    marginTop: 4,
+    marginTop: 0,
+  },
+
+  logoDivider: {
+    width: 24,
+    height: 2,
+    backgroundColor: COLORS.primary,
+    borderRadius: 1,
+    alignSelf: "flex-start",
+    marginBottom: 2,
   },
 
   userBox: {
@@ -355,13 +417,14 @@ const styles = StyleSheet.create({
   userName: {
     color: COLORS.white,
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "600",
   },
 
   userRole: {
-    color: COLORS.primary,
-    fontSize: 12,
-    marginTop: 4,
+    color: COLORS.muted,
+    fontSize: 11,
+    marginTop: 2,
+    letterSpacing: 1,
   },
 
   grid: {
@@ -374,21 +437,26 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     width: "48%",
-    padding: 18,
-    borderRadius: 18,
+    padding: 20,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "#1E1E1E",
     marginBottom: 14,
   },
 
+  cardIcon: {
+    marginBottom: 8,
+  },
+
   title: {
-    color: COLORS.muted,
-    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   number: {
     color: COLORS.text,
-    fontSize: 38,
+    fontSize: 34,
     fontWeight: "bold",
     marginTop: 10,
   },
@@ -414,29 +482,32 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor:
       COLORS.primary,
-    borderRadius: 15,
+    borderRadius: 14,
     alignItems: "center",
-    padding: 16,
-    marginTop: 18,
+    padding: 18,
+    marginTop: 16,
   },
 
   secondaryButton: {
+    backgroundColor:
+      COLORS.card,
     borderColor:
-      COLORS.primary,
+      COLORS.border,
     borderWidth: 1,
-    borderRadius: 15,
+    borderRadius: 14,
     alignItems: "center",
-    padding: 16,
-    marginTop: 12,
+    padding: 18,
+    marginTop: 10,
   },
 
   buttonText: {
     color: COLORS.white,
-    fontWeight: "bold",
+    fontSize: 15,
+    fontWeight: "600",
   },
 
   listaContainer: {
-    marginTop: 35,
+    marginTop: 28,
   },
 
   listaHeader: {
@@ -444,18 +515,18 @@ const styles = StyleSheet.create({
     justifyContent:
       "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 14,
   },
 
   listaTitulo: {
     color: COLORS.white,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "bold",
   },
 
   toggleButton: {
     color: COLORS.primary,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
 
   vazio: {
@@ -464,37 +535,37 @@ const styles = StyleSheet.create({
 
   alunoCard: {
     backgroundColor: COLORS.card,
-    padding: 16,
-    borderRadius: 12,
+    padding: 18,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
+    borderColor: "#1E1E1E",
+    marginBottom: 10,
   },
 
   alunoNome: {
     color: COLORS.white,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "bold",
   },
 
   alunoInfo: {
     color: COLORS.muted,
-    marginTop: 6,
+    marginTop: 4,
   },
 
   footerCard: {
-    marginTop: 35,
+    marginTop: 28,
     backgroundColor:
       COLORS.card,
     padding: 20,
-    borderRadius: 20,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "#1E1E1E",
   },
 
   footerTitle: {
     color: COLORS.white,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "bold",
   },
 

@@ -1,5 +1,38 @@
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "@/components/Colors";
 import { Tabs } from "expo-router";
+import { View } from "react-native";
+
+function TabBarIcon({
+  name,
+  color,
+  focused,
+}: {
+  name: string;
+  color: string;
+  focused: boolean;
+}) {
+  return (
+    <View style={{ alignItems: "center" }}>
+      <Ionicons
+        name={name as any}
+        size={20}
+        color={color}
+      />
+      <View
+        style={{
+          width: 20,
+          height: 2,
+          backgroundColor: focused
+            ? COLORS.primary
+            : "transparent",
+          borderRadius: 1,
+          marginTop: 2,
+        }}
+      />
+    </View>
+  );
+}
 
 export default function TabLayout() {
   return (
@@ -8,12 +41,32 @@ export default function TabLayout() {
         headerShown: false,
 
         tabBarStyle: {
-          backgroundColor: "#050505",
-          borderTopColor: "#222",
+          backgroundColor: "#0A0A0A",
+          borderTopColor: "#1E1E1E",
+          borderTopWidth: 1,
+          elevation: 0,
+          shadowColor: "#000000",
+          shadowOffset: {
+            width: 0,
+            height: -2,
+          },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
         },
 
-        tabBarActiveTintColor: "#E10600",
-        tabBarInactiveTintColor: "#FFFFFF",
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.muted,
+
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "600",
+          letterSpacing: 0.3,
+          marginTop: 0,
+        },
+
+        tabBarItemStyle: {
+          alignItems: "center",
+        },
       }}
     >
 
@@ -21,12 +74,11 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Início",
-
-          tabBarIcon: ({ color }) => (
-            <Ionicons
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon
               name="home"
-              size={26}
               color={color}
+              focused={focused}
             />
           ),
         }}
@@ -37,44 +89,39 @@ export default function TabLayout() {
         name="alunos"
         options={{
           title: "Alunos",
-
-          tabBarIcon: ({ color }) => (
-            <Ionicons
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon
               name="people"
-              size={26}
               color={color}
+              focused={focused}
             />
           ),
         }}
       />
-
 
       <Tabs.Screen
         name="agenda"
         options={{
           title: "Agenda",
-
-          tabBarIcon: ({ color }) => (
-            <Ionicons
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon
               name="calendar"
-              size={26}
               color={color}
+              focused={focused}
             />
           ),
         }}
       />
 
-
       <Tabs.Screen
         name="financeiro"
         options={{
           title: "Financeiro",
-
-          tabBarIcon: ({ color }) => (
-            <Ionicons
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon
               name="cash"
-              size={26}
               color={color}
+              focused={focused}
             />
           ),
         }}
@@ -85,12 +132,11 @@ export default function TabLayout() {
         name="treinos"
         options={{
           title: "Treinos",
-
-          tabBarIcon: ({ color }) => (
-            <Ionicons
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon
               name="barbell"
-              size={26}
               color={color}
+              focused={focused}
             />
           ),
         }}
@@ -100,12 +146,11 @@ export default function TabLayout() {
         name="perfil"
         options={{
           title: "Perfil",
-
-          tabBarIcon: ({ color }) => (
-            <Ionicons
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon
               name="clipboard"
-              size={26}
               color={color}
+              focused={focused}
             />
           ),
         }}
