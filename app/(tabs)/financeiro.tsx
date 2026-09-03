@@ -1,11 +1,13 @@
 ﻿import { COLORS } from "@/components/Colors";
+import { CompactSelector } from "@/components/CompactSelector";
 import { Aluno, Cobranca, useDojo } from "@/components/context/DojoContext";
 import { usePix } from "@/components/context/PixContext";
 import { enviarCobrancaWhatsApp, enviarCobrancasWhatsApp } from "@/components/whatsapp";
+import { gerarRelatorioAnual, gerarRelatorioMensal, getMonthOptions, getYearOptions } from "@/services/pdfReport";
 import { getStatusCobranca } from "@/utils/financeiro";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from "react-native";
 import {
   Defs,
   LinearGradient,
@@ -63,6 +65,11 @@ export default function Financeiro() {
     'Olá {{nome}}, sua mensalidade no valor de R$ {{valor}} vence em {{data}}.'
   );
   const [mostrarEditorMensagem, setMostrarEditorMensagem] = useState(false);
+  const [mostrarRelatorio, setMostrarRelatorio] = useState(false);
+  const [tipoSelecionado, setTipoSelecionado] = useState<'mensal' | 'anual' | null>(null);
+  const [mesSelecionado, setMesSelecionado] = useState('');
+  const [anoSelecionado, setAnoSelecionado] = useState('');
+  const [gerandoPdf, setGerandoPdf] = useState(false);
 
   const resumo = useMemo(() => {
     const cobrancas = alunos.flatMap((aluno) => aluno.cobrancas.map((cobranca) => ({ ...cobranca, aluno })));
@@ -117,6 +124,48 @@ export default function Financeiro() {
       })),
       mensagemPadrao
     );
+  }
+
+  async function gerarRelatorioMensalHandler() {
+    if (!mesSelecionado) return;
+    setGerandoPdf(true);
+    try {
+      const resumo = await gerarRelatorioMensal(alunos, mesSelecionado);
+      Alert.alert(
+        'Relatório gerado',
+        `PDF criado com ${resumo.quantidade} pagamento(s) totalizando ${moeda(resumo.total)}. Compartilhado com sucesso.`
+      );
+    } catch (error) {
+      Alert.alert(
+        'Erro',
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível gerar o relatório.'
+      );
+    } finally {
+      setGerandoPdf(false);
+    }
+  }
+
+  async function gerarRelatorioAnualHandler() {
+    if (!anoSelecionado) return;
+    setGerandoPdf(true);
+    try {
+      const resumo = await gerarRelatorioAnual(alunos, anoSelecionado);
+      Alert.alert(
+        'Relatório gerado',
+        `PDF criado com ${resumo.quantidade} pagamento(s) totalizando ${moeda(resumo.total)}. Compartilhado com sucesso.`
+      );
+    } catch (error) {
+      Alert.alert(
+        'Erro',
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível gerar o relatório.'
+      );
+    } finally {
+      setGerandoPdf(false);
+    }
   }
 
   function confirmarPagamento(aluno: Aluno, cobranca: Cobranca) {
@@ -242,6 +291,9 @@ export default function Financeiro() {
           {mostrarEditorMensagem ? 'Fechar configuração' : 'Configurar mensagem de envio'}
         </Text>
       </Pressable>
+      <Pressable style={[styles.generateButton, styles.reportButton]} onPress={() => setMostrarRelatorio(true)}>
+        <Text style={styles.buttonText}>Relatórios (PDF)</Text>
+      </Pressable>
       {mostrarEditorMensagem ? (
         <View style={styles.messageEditor}>
           <Text style={styles.label}>Modelo de mensagem</Text>
@@ -258,6 +310,75 @@ export default function Financeiro() {
         </View>
       ) : null}
       <Text style={styles.helper}>A geração usa o valor e o dia de vencimento definidos no cadastro de cada aluno, sem duplicar cobranças do mesmo mês.</Text>
+
+      {mostrarRelatorio ? (
+        <View style={styles.reportSection}>
+          {!tipoSelecionado ? (
+            <>
+              <Text style={[styles.sectionTitle, { marginTop: 0 }]}>Tipo de relatório</Text>
+              <Pressable style={[styles.generateButton, styles.reportTypeButton]} onPress={() => setTipoSelecionado('mensal')}>
+                <Text style={styles.buttonText}>Mensal</Text>
+              </Pressable>
+              <Pressable style={[styles.generateButton, styles.reportTypeButton, { backgroundColor: COLORS.info }]} onPress={() => setTipoSelecionado('anual')}>
+                <Text style={styles.buttonText}>Anual</Text>
+              </Pressable>
+            </>
+          ) : tipoSelecionado === 'mensal' ? (
+            <>
+              <CompactSelector
+                label="Mês/Ano"
+                value={mesSelecionado}
+                options={getMonthOptions()}
+                onChange={setMesSelecionado}
+                placeholder="Selecione o mês"
+              />
+              <Pressable
+                style={[styles.generateButton, !mesSelecionado && { opacity: 0.5 }]}
+                onPress={gerarRelatorioMensalHandler}
+                disabled={!mesSelecionado || gerandoPdf}
+              >
+                {gerandoPdf ? (
+                  <ActivityIndicator color={COLORS.white} size="small" />
+                ) : (
+                  <Text style={styles.buttonText}>Gerar PDF</Text>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <CompactSelector
+                label="Ano"
+                value={anoSelecionado}
+                options={getYearOptions()}
+                onChange={setAnoSelecionado}
+                placeholder="Selecione o ano"
+              />
+              <Pressable
+                style={[styles.generateButton, !anoSelecionado && { opacity: 0.5 }]}
+                onPress={gerarRelatorioAnualHandler}
+                disabled={!anoSelecionado || gerandoPdf}
+              >
+                {gerandoPdf ? (
+                  <ActivityIndicator color={COLORS.white} size="small" />
+                ) : (
+                  <Text style={styles.buttonText}>Gerar PDF</Text>
+                )}
+              </Pressable>
+            </>
+          )}
+          <Pressable
+            style={[styles.generateButton, styles.configButton, { marginTop: 12 }]}
+            onPress={() => {
+              setMostrarRelatorio(false);
+              setTipoSelecionado(null);
+              setMesSelecionado('');
+              setAnoSelecionado('');
+            }}
+          >
+            <Text style={styles.buttonText}>Fechar</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
 
     <Text style={styles.sectionTitle}>Situação dos Alunos</Text>
@@ -521,5 +642,24 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "bold",
     fontSize: 12,
+  },
+
+  reportButton: {
+    marginTop: 10,
+    backgroundColor: COLORS.info,
+  },
+
+  reportSection: {
+    marginTop: 20,
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 15,
+  },
+
+  reportTypeButton: {
+    marginTop: 10,
+    backgroundColor: COLORS.whatsapp,
   },
 });

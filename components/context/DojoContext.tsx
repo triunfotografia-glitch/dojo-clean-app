@@ -1282,6 +1282,9 @@ export function DojoProvider({
             new Date()
               .toISOString()
               .slice(0, 10),
+
+          formaPagamento:
+            "Manual",
         }
       );
 
