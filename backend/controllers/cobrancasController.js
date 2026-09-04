@@ -130,11 +130,17 @@ export async function createCobranca(req, res) {
     }
 
     const dadosParaSalvar = {
-      ...cobranca,
+      descricao: String(cobranca.descricao).trim(),
       aluno_id,
       valor,
       vencimento,
       status: cobranca.status ? String(cobranca.status).trim() : 'pendente',
+      pix_chave_id:
+        cobranca.pix_chave_id !== undefined &&
+        cobranca.pix_chave_id !== null &&
+        cobranca.pix_chave_id !== ''
+          ? Number(cobranca.pix_chave_id)
+          : null,
     };
 
     const novaCobranca =

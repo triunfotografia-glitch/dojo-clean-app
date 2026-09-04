@@ -286,7 +286,8 @@ export async function cobrancaScopeMiddleware(req, res, next) {
     }
 
     if (
-      cobranca.professor_id &&
+      cobranca.professor_id === null ||
+      cobranca.professor_id === undefined ||
       Number(cobranca.professor_id) !== Number(req.usuario.id)
     ) {
       return res.status(403).json({

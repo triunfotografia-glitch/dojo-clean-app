@@ -513,9 +513,19 @@ export async function addCobranca(
     );
   }
 
+  const COBRANCAS_CREATE_WHITELIST = new Set([
+    'aluno_id',
+    'descricao',
+    'valor',
+    'vencimento',
+    'status',
+    'pix_chave_id',
+  ]);
+
   const fields =
-    prepareFields(
-      mappedCobranca
+    prepareFields(mappedCobranca).filter(
+      ([key]) =>
+        COBRANCAS_CREATE_WHITELIST.has(key)
     );
 
   if (!fields.length) {
