@@ -47,9 +47,34 @@ console.log(
 // MIDDLEWARES GERAIS
 // ==============================
 
+const allowedOrigins = new Set(
+  (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+);
+
+function isOriginAllowed(origin) {
+  if (!origin) return false;
+
+  if (allowedOrigins.size > 0) {
+    return allowedOrigins.has(origin);
+  }
+
+  return true;
+}
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      if (!origin || isOriginAllowed(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Origin not allowed by CORS'), false);
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
