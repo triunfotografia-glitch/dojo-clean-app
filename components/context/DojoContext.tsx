@@ -220,6 +220,14 @@ function normalizarCobranca(
       typeof cobranca?.observacao === 'string'
         ? cobranca.observacao
         : undefined,
+    pixChaveId:
+      typeof cobranca?.pixChaveId === 'string' ||
+      typeof cobranca?.pixChaveId === 'number'
+        ? cobranca.pixChaveId
+        : typeof cobranca?.pix_chave_id === 'string' ||
+          typeof cobranca?.pix_chave_id === 'number'
+          ? cobranca.pix_chave_id
+          : undefined,
   };
 }
 

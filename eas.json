@@ -1,15 +1,14 @@
 {
-  "cli": {
-    "version": ">= 5.0.0"
-  },
   "build": {
-    "android": {
-      "preview": {
-        "distribution": "internal",
+    "preview": {
+      "distribution": "internal",
+      "android": {
         "buildType": "apk"
-      },
-      "production": {
-        "distribution": "store",
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "android": {
         "buildType": "app-bundle"
       }
     }

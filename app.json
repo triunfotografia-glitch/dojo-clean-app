@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Dojo-clean-app",
-    "slug": "Dojo-clean-app",
+    "name": "MEU DOJO",
+    "slug": "dojo-clean-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -35,6 +35,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "49de4099-0c68-415f-8791-3dd592547901"
+      }
+    },
+    "owner": "gabrieltriunfos-team"
   }
 }
