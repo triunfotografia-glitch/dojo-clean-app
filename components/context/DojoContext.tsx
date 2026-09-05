@@ -28,6 +28,19 @@ import React, {
   useState,
 } from "react";
 
+import {
+  cancelarNotificacoesPorCobranca,
+  solicitarPermissaoNotificacao,
+  agendarNotificacao,
+  construirConteudoNotificacao,
+  notificarImediatamente,
+  existeNotificacaoAgendada,
+  foiNotificacaoVencidaEnviada,
+  marcarNotificacaoVencidaEnviada,
+  removerMarcacaoNotificacaoVencida,
+  NotificationTipo,
+} from "@/services/notificationService";
+
 // ==============================
 // TYPES
 // ==============================
@@ -613,6 +626,12 @@ export function DojoProvider({
 
         if (ativo) {
           setCarregado(true);
+
+          processarNotificacoesCobrancas(
+            alunos.flatMap(
+              (aluno) => aluno.cobrancas || []
+            )
+          ).catch(() => {});
         }
 
       }
@@ -663,6 +682,12 @@ export function DojoProvider({
             : [];
 
         setAlunos(normalizados);
+
+        processarNotificacoesCobrancas(
+          normalizados.flatMap(
+            (aluno) => aluno.cobrancas || []
+          )
+        ).catch(() => {});
 
         try {
           await AsyncStorage.setItem(
@@ -1114,6 +1139,25 @@ export function DojoProvider({
           );
 
         if (cobrancaPaga) {
+          await cancelarNotificacoesPorCobranca(
+            cobrancaId
+          );
+
+          await removerMarcacaoNotificacaoVencida(
+            cobrancaId
+          );
+
+          await notificarImediatamente(
+            construirConteudoNotificacao(
+              "MEU DOJO",
+              "Seu pagamento foi confirmado com sucesso.",
+              {
+                tipo: "pagamento_confirmado",
+                cobrancaId: cobrancaId,
+              }
+            )
+          );
+
           const proximoVencimento =
             calcularProximoVencimento({
               ...alunoAtualizado,
@@ -1484,6 +1528,10 @@ export function DojoProvider({
             )
         );
 
+        await processarNotificacoesCobrancas([
+          cobrancaNormalizada,
+        ]);
+
       } catch (error) {
 
         if (
@@ -1500,6 +1548,125 @@ export function DojoProvider({
     }
 
     return quantidadeGerada;
+  }
+
+  // ==============================
+  // NOTIFICAÇÕES DE COBRANÇAS
+  // ==============================
+
+  async function processarNotificacoesCobrancas(
+    cobrancas: Cobranca[]
+  ) {
+    try {
+      const permitido =
+        await solicitarPermissaoNotificacao();
+
+      if (!permitido) {
+        return;
+      }
+
+      const hoje =
+        new Date();
+      const hojeStr =
+        hoje.toISOString().slice(0, 10);
+
+      for (const cobranca of cobrancas) {
+        if (cobranca.status === "pago") {
+          continue;
+        }
+
+        const vencimento =
+          (cobranca.vencimento || "").split("T")[0];
+
+        if (!vencimento) {
+          continue;
+        }
+
+        const [ano, mes, dia] =
+          vencimento.split("-").map(Number);
+
+        const vencimentoDate =
+          new Date(ano, mes - 1, dia);
+
+        const diffMs =
+          vencimentoDate.getTime() -
+          new Date(
+            hoje.getFullYear(),
+            hoje.getMonth(),
+            hoje.getDate()
+          ).getTime();
+
+        const diffDias =
+          Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDias <= 0) {
+          const jaEnviada =
+            await foiNotificacaoVencidaEnviada(
+              cobranca.id
+            );
+
+          if (!jaEnviada) {
+            await notificarImediatamente(
+              construirConteudoNotificacao(
+                "MEU DOJO",
+                `Sua mensalidade está vencida desde ${vencimento.split("-").reverse().join("/")}.`,
+                {
+                  tipo: "mensalidade_vencida",
+                  cobrancaId: cobranca.id,
+                }
+              )
+            );
+
+            await marcarNotificacaoVencidaEnviada(
+              cobranca.id
+            );
+          }
+        } else if (diffDias <= 3) {
+          const jaAgendada =
+            await existeNotificacaoAgendada(
+              cobranca.id,
+              "mensalidade_vencendo"
+            );
+
+          if (!jaAgendada) {
+            await cancelarNotificacoesPorCobranca(
+              cobranca.id
+            );
+
+            const dataAgendamento =
+              new Date(
+                ano,
+                mes - 1,
+                dia - 3
+              );
+
+            await agendarNotificacao(
+              {
+                channelId: "meu-dojo-notificacoes",
+                date: dataAgendamento,
+                hour: 9,
+                minute: 0,
+                second: 0,
+                repeats: false,
+              },
+              construirConteudoNotificacao(
+                "MEU DOJO",
+                `Sua mensalidade vence em ${diffDias} dia(s).`,
+                {
+                  tipo: "mensalidade_vencendo",
+                  cobrancaId: cobranca.id,
+                }
+              )
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Erro ao processar notificacoes:",
+        error
+      );
+    }
   }
 
   // ==============================
