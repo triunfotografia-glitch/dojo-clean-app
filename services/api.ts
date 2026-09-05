@@ -44,9 +44,16 @@ export {
 
 const FALLBACK_API_URL_DEV = "http://192.168.15.64:3000";
 
-export const API_URL =
+const RAW_API_URL =
   process.env.EXPO_PUBLIC_API_URL ??
   (__DEV__ ? FALLBACK_API_URL_DEV : undefined);
+
+function normalizeBaseUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+  return url.replace(/\/+$/, "");
+}
+
+export const API_URL = normalizeBaseUrl(RAW_API_URL);
 
 const TOKEN_KEY = "@dojo_lb:jwt";
 
