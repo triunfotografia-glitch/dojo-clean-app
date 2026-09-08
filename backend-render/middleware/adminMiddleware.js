@@ -14,7 +14,7 @@ export async function adminMiddleware(req, res, next) {
           id,
           administrador,
           ativo
-        FROM professores
+        FROM public.professores
         WHERE id = $1
         LIMIT 1
       `,
@@ -96,7 +96,7 @@ export async function professorScopeMiddleware(req, res, next) {
     const result = await query(
       `
         SELECT id, administrador, ativo
-        FROM professores
+        FROM public.professores
         WHERE id = $1
         LIMIT 1
       `,
@@ -155,7 +155,7 @@ export async function alunoScopeMiddleware(req, res, next) {
         SELECT
           professor_id,
           ativo
-        FROM alunos
+        FROM public.alunos
         WHERE id = $1
         LIMIT 1
       `,
@@ -217,8 +217,8 @@ export async function presencaScopeMiddleware(req, res, next) {
         SELECT
           p.id,
           t.professor_id
-        FROM presencas p
-        JOIN treinos t ON t.id = p.treino_id
+        FROM public.presencas p
+        JOIN public.treinos t ON t.id = p.treino_id
         WHERE p.id = $1
         LIMIT 1
       `,

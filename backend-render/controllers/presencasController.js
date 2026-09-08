@@ -29,8 +29,8 @@ export async function listPresencas(req, res) {
     const result = await query(
       `
         SELECT p.*
-        FROM presencas p
-        JOIN treinos t
+        FROM public.presencas p
+        JOIN public.treinos t
           ON t.id = p.treino_id
         WHERE t.professor_id = $1
         ORDER BY p.id DESC
@@ -146,7 +146,7 @@ export async function createPresenca(req, res) {
     ===================================================== */
 
     const treinoResult = await query(
-      `SELECT turma_id, professor_id FROM treinos WHERE id = $1`,
+      `SELECT turma_id, professor_id FROM public.treinos WHERE id = $1`,
       [treinoIdNumero]
     );
 
@@ -170,7 +170,7 @@ export async function createPresenca(req, res) {
 
     if (turmaIdDoTreino) {
       const turmaAlunoResult = await query(
-        `SELECT 1 FROM turma_alunos WHERE turma_id = $1 AND aluno_id = $2`,
+        `SELECT 1 FROM public.turma_alunos WHERE turma_id = $1 AND aluno_id = $2`,
         [turmaIdDoTreino, alunoIdNumero]
       );
 
@@ -269,7 +269,7 @@ export async function listPresencasPorTreino(req, res) {
         `
           SELECT
             professor_id
-          FROM treinos
+          FROM public.treinos
           WHERE id = $1
           LIMIT 1
         `,

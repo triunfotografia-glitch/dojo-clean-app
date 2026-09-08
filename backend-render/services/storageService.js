@@ -175,8 +175,8 @@ export async function getAlunos(professorId = null) {
         ) FILTER (WHERE c.id IS NOT NULL),
         '[]'::json
       ) AS cobrancas
-     FROM alunos a
-     LEFT JOIN cobrancas c ON c.aluno_id = a.id
+     FROM public.alunos a
+     LEFT JOIN public.cobrancas c ON c.aluno_id = a.id
   `;
 
   const params = [];
@@ -220,7 +220,7 @@ export async function getAluno(
   const result = await query(
     `SELECT
        ${ALUNO_PUBLIC_COLUMNS}
-     FROM alunos
+     FROM public.alunos
      WHERE id = $1`,
     [id]
   );
@@ -402,7 +402,7 @@ export async function updateAluno(
     );
 
   const result = await query(
-    `UPDATE alunos
+    `UPDATE public.alunos
      SET
        ${columns.join(', ')}
      WHERE id = $${values.length + 1}
@@ -432,7 +432,7 @@ export async function deleteAluno(
   id
 ) {
   const result = await query(
-    `DELETE FROM alunos
+    `DELETE FROM public.alunos
      WHERE id = $1
      RETURNING
        ${ALUNO_PUBLIC_COLUMNS}`,
@@ -449,12 +449,12 @@ export async function deleteAluno(
 
 export async function getCobrancas(professorId = null) {
   const params = [];
-  let sql = `SELECT * FROM cobrancas`;
+  let sql = `SELECT * FROM public.cobrancas`;
 
   if (professorId !== null) {
     sql += `
      WHERE aluno_id IN (
-       SELECT id FROM alunos
+       SELECT id FROM public.alunos
        WHERE professor_id = $1
      )`;
     params.push(professorId);
@@ -472,8 +472,8 @@ export async function getCobrancaComProfessor(id) {
     `SELECT
        c.*,
        a.professor_id
-     FROM cobrancas c
-     JOIN alunos a ON a.id = c.aluno_id
+     FROM public.cobrancas c
+     JOIN public.alunos a ON a.id = c.aluno_id
      WHERE c.id = $1
      LIMIT 1`,
     [id]
@@ -550,7 +550,7 @@ export async function addCobranca(
     );
 
   const result = await query(
-    `INSERT INTO cobrancas
+    `INSERT INTO public.cobrancas
       (${columns})
      VALUES
       (${placeholders})
@@ -591,7 +591,7 @@ export async function updateCobranca(
     );
 
   const result = await query(
-    `UPDATE cobrancas
+    `UPDATE public.cobrancas
      SET
        ${columns.join(', ')}
      WHERE id = $${values.length + 1}
@@ -609,7 +609,7 @@ export async function deleteCobranca(
   id
 ) {
   const result = await query(
-    `DELETE FROM cobrancas
+    `DELETE FROM public.cobrancas
      WHERE id = $1
      RETURNING *`,
     [id]
@@ -622,7 +622,7 @@ export async function deleteCobranca(
 ========================= */
 
 export async function getProfessores(professorId = null) {
-  let sql = `SELECT * FROM professores`;
+  let sql = `SELECT * FROM public.professores`;
   const params = [];
 
   if (professorId !== null) {
@@ -642,11 +642,11 @@ export async function addProfessor(
   professor
 ) {
   const result = await query(
-    `INSERT INTO professores
-     (
-       nome,
-       email,
-       senha,
+    `INSERT INTO public.professores
+      (
+        nome,
+        email,
+        senha,
        telefone,
        faixa,
        graus,
@@ -711,7 +711,7 @@ export async function updateProfessor(
     );
 
   const result = await query(
-    `UPDATE professores
+    `UPDATE public.professores
      SET
        ${columns.join(', ')}
      WHERE id = $${values.length + 1}
@@ -731,7 +731,7 @@ export async function deleteProfessor(
   id
 ) {
   const result = await query(
-    `DELETE FROM professores
+    `DELETE FROM public.professores
      WHERE id = $1
      RETURNING *`,
     [id]
@@ -765,10 +765,10 @@ export async function getTurmas() {
        ) AS aluno_ids,
        t.criado_em,
        t.atualizado_em
-     FROM turmas t
-     LEFT JOIN turma_alunos ta ON ta.turma_id = t.id
-     GROUP BY t.id
-     ORDER BY t.id DESC`
+      FROM public.turmas t
+      LEFT JOIN public.turma_alunos ta ON ta.turma_id = t.id
+      GROUP BY t.id
+      ORDER BY t.id DESC`
   );
 
   return result.rows.map((row) => {
@@ -792,11 +792,11 @@ export async function addTurma(
 ) {
   return transaction(async (client) => {
     const result = await client.query(
-      `INSERT INTO turmas
-       (
-         nome,
-         professor,
-         professor_id,
+      `INSERT INTO public.turmas
+        (
+          nome,
+          professor,
+          professor_id,
          alunos
        )
        VALUES
@@ -838,7 +838,7 @@ export async function addTurma(
         const params = valores.flat();
 
         await client.query(
-          `INSERT INTO turma_alunos (turma_id, aluno_id)
+          `INSERT INTO public.turma_alunos (turma_id, aluno_id)
            VALUES ${placeholders}
            ON CONFLICT (turma_id, aluno_id) DO NOTHING`,
           params
@@ -875,11 +875,11 @@ export async function getTurma(
        ) AS aluno_ids,
        t.criado_em,
        t.atualizado_em
-     FROM turmas t
-     LEFT JOIN turma_alunos ta ON ta.turma_id = t.id
-     WHERE t.id = $1
-     GROUP BY t.id
-     LIMIT 1`,
+      FROM public.turmas t
+      LEFT JOIN public.turma_alunos ta ON ta.turma_id = t.id
+      WHERE t.id = $1
+      GROUP BY t.id
+      LIMIT 1`,
     [id]
   );
 
@@ -912,7 +912,7 @@ export async function updateTurma(
 ) {
   return transaction(async (client) => {
     const result = await client.query(
-      `UPDATE turmas
+      `UPDATE public.turmas
        SET
          nome = COALESCE($1, nome),
          professor = COALESCE($2, professor),
@@ -953,7 +953,7 @@ export async function updateTurma(
 
     if (alunoIds !== null && Array.isArray(alunoIds)) {
       await client.query(
-        `DELETE FROM turma_alunos WHERE turma_id = $1`,
+        `DELETE FROM public.turma_alunos WHERE turma_id = $1`,
         [id]
       );
 
@@ -966,7 +966,7 @@ export async function updateTurma(
         const params = valores.flat();
 
         await client.query(
-          `INSERT INTO turma_alunos (turma_id, aluno_id)
+          `INSERT INTO public.turma_alunos (turma_id, aluno_id)
            VALUES ${placeholders}
            ON CONFLICT (turma_id, aluno_id) DO NOTHING`,
           params
@@ -989,7 +989,7 @@ export async function deleteTurma(
   id
 ) {
   const result = await query(
-    `DELETE FROM turmas
+    `DELETE FROM public.turmas
      WHERE id = $1
      RETURNING *`,
     [id]
@@ -1007,7 +1007,7 @@ export async function deleteTurma(
 export async function getTreinos() {
   const result = await query(
     `SELECT *
-     FROM treinos
+     FROM public.treinos
      ORDER BY id DESC`
   );
 
@@ -1023,7 +1023,7 @@ export async function getTreino(
 ) {
   const result = await query(
     `SELECT *
-     FROM treinos
+     FROM public.treinos
      WHERE id = $1
      LIMIT 1`,
     [id]
@@ -1044,10 +1044,10 @@ export async function addTreino(
   treino
 ) {
   const result = await query(
-    `INSERT INTO treinos
-     (
-       nome,
-       dia,
+    `INSERT INTO public.treinos
+      (
+        nome,
+        dia,
        horario,
        turma,
        turma_id,
@@ -1088,7 +1088,7 @@ export async function updateTreino(
   treino
 ) {
   const result = await query(
-    `UPDATE treinos
+    `UPDATE public.treinos
      SET
        nome = COALESCE($1, nome),
        dia = COALESCE($2, dia),
@@ -1127,7 +1127,7 @@ export async function deleteTreino(
   id
 ) {
   const result = await query(
-    `DELETE FROM treinos
+    `DELETE FROM public.treinos
      WHERE id = $1
      RETURNING *`,
     [id]
@@ -1146,7 +1146,7 @@ export async function deleteTreino(
 export async function getPresencas() {
   const result = await query(
     `SELECT *
-     FROM presencas
+     FROM public.presencas
      ORDER BY id DESC`
   );
 
@@ -1158,7 +1158,7 @@ export async function addPresenca(
   presenca
 ) {
   const result = await query(
-    `INSERT INTO presencas
+    `INSERT INTO public.presencas
       (
         aluno_id,
         treino_id,
@@ -1192,7 +1192,7 @@ export async function getPresencasPorTreino(
   const params = [treinoId];
   let sql =
     `SELECT *
-     FROM presencas
+     FROM public.presencas
      WHERE treino_id = $1`;
 
   if (data) {
@@ -1241,7 +1241,7 @@ export async function updatePresenca(
     );
 
   const result = await query(
-    `UPDATE presencas
+    `UPDATE public.presencas
      SET
        ${columns.join(', ')}
      WHERE id = $${values.length + 1}
@@ -1260,7 +1260,7 @@ export async function deletePresenca(
   id
 ) {
   const result = await query(
-    `DELETE FROM presencas
+    `DELETE FROM public.presencas
       WHERE id = $1
       RETURNING *`,
     [id]
@@ -1277,7 +1277,7 @@ export async function deletePresenca(
 export async function getGraduacoes() {
   const result = await query(
     `SELECT *
-     FROM graduacoes
+     FROM public.graduacoes
      ORDER BY id DESC`
   );
 
@@ -1287,8 +1287,8 @@ export async function getGraduacoes() {
 export async function getGraduacoesPorProfessor(professorId) {
   const result = await query(
     `SELECT g.*
-     FROM graduacoes g
-     JOIN alunos a ON a.id = g.aluno_id
+     FROM public.graduacoes g
+     JOIN public.alunos a ON a.id = g.aluno_id
      WHERE a.professor_id = $1
      ORDER BY g.id DESC`,
     [professorId]
@@ -1302,8 +1302,8 @@ export async function getGraduacao(id) {
     `SELECT
        g.*,
        a.professor_id
-     FROM graduacoes g
-     JOIN alunos a ON a.id = g.aluno_id
+     FROM public.graduacoes g
+     JOIN public.alunos a ON a.id = g.aluno_id
      WHERE g.id = $1
      LIMIT 1`,
     [id]
@@ -1317,10 +1317,10 @@ export async function addGraduacao(
   graduacao
 ) {
   const result = await query(
-    `INSERT INTO graduacoes
-     (
-       aluno_id,
-       faixa,
+    `INSERT INTO public.graduacoes
+      (
+        aluno_id,
+        faixa,
        data,
        professor,
        observacao
@@ -1373,7 +1373,7 @@ export async function updateGraduacao(
     );
 
   const result = await query(
-    `UPDATE graduacoes
+    `UPDATE public.graduacoes
      SET
        ${columns.join(', ')}
      WHERE id = $${values.length + 1}
@@ -1391,7 +1391,7 @@ export async function deleteGraduacao(
   id
 ) {
   const result = await query(
-    `DELETE FROM graduacoes
+    `DELETE FROM public.graduacoes
      WHERE id = $1
      RETURNING *`,
     [id]
@@ -1408,15 +1408,15 @@ export async function deleteGraduacao(
 export async function getPixConfig() {
   const result = await query(
     `SELECT
-       id,
-       chave_pix,
-       nome_recebedor,
-       cidade_recebedor,
-       criado_em,
-       atualizado_em
-     FROM pix_config
-     ORDER BY id ASC
-     LIMIT 1`
+      id,
+      chave_pix,
+      nome_recebedor,
+      cidade_recebedor,
+      criado_em,
+      atualizado_em
+    FROM public.pix_config
+    ORDER BY id ASC
+    LIMIT 1`
   );
 
   return result.rows[0] || null;
@@ -1451,7 +1451,7 @@ export async function updatePixConfig(
     );
 
   const result = await query(
-    `UPDATE pix_config
+    `UPDATE public.pix_config
      SET
        ${columns.join(', ')}
      WHERE id = $${values.length + 1}
@@ -1493,11 +1493,11 @@ export async function updateFirstPixConfig(
     );
 
   const result = await query(
-    `UPDATE pix_config
+    `UPDATE public.pix_config
      SET
        ${columns.join(', ')}
      WHERE id = (
-       SELECT id FROM pix_config
+       SELECT id FROM public.pix_config
        ORDER BY id ASC
        LIMIT 1
      )
@@ -1510,7 +1510,7 @@ export async function updateFirstPixConfig(
   }
 
   const insertResult = await query(
-    `INSERT INTO pix_config
+    `INSERT INTO public.pix_config
       (chave_pix, nome_recebedor, cidade_recebedor)
      VALUES
       ($1, $2, $3)
@@ -1534,14 +1534,14 @@ export async function getPixChaves() {
     `SELECT
        id,
        nome_identificacao,
-       chave_pix,
-       tipo,
-       descricao,
-       ativo,
-       criado_em,
-       atualizado_em
-     FROM pix_chaves
-     ORDER BY id ASC`
+      chave_pix,
+      tipo,
+      descricao,
+      ativo,
+      criado_em,
+      atualizado_em
+    FROM public.pix_chaves
+    ORDER BY id ASC`
   );
 
   return result.rows;
@@ -1552,14 +1552,14 @@ export async function getPixChave(id) {
     `SELECT
        id,
        nome_identificacao,
-       chave_pix,
-       tipo,
-       descricao,
-       ativo,
-       criado_em,
-       atualizado_em
-     FROM pix_chaves
-     WHERE id = $1`,
+      chave_pix,
+      tipo,
+      descricao,
+      ativo,
+      criado_em,
+      atualizado_em
+    FROM public.pix_chaves
+    WHERE id = $1`,
     [id]
   );
 
@@ -1571,15 +1571,15 @@ export async function getPixChavesAtivas() {
     `SELECT
        id,
        nome_identificacao,
-       chave_pix,
-       tipo,
-       descricao,
-       ativo,
-       criado_em,
-       atualizado_em
-     FROM pix_chaves
-     WHERE ativo = TRUE
-     ORDER BY id ASC`
+      chave_pix,
+      tipo,
+      descricao,
+      ativo,
+      criado_em,
+      atualizado_em
+    FROM public.pix_chaves
+    WHERE ativo = TRUE
+    ORDER BY id ASC`
   );
 
   return result.rows;
@@ -1614,10 +1614,10 @@ export async function addPixChave(chave) {
     );
 
   const result = await query(
-    `INSERT INTO pix_chaves
+    `INSERT INTO public.pix_chaves
        (${columns})
      VALUES
-       (${placeholders})
+      (${placeholders})
      RETURNING *`,
     values
   );
@@ -1650,7 +1650,7 @@ export async function updatePixChave(id, chave) {
     );
 
   const result = await query(
-    `UPDATE pix_chaves
+    `UPDATE public.pix_chaves
      SET
        ${columns.join(', ')}
      WHERE id = $${values.length + 1}
@@ -1666,7 +1666,7 @@ export async function updatePixChave(id, chave) {
 
 export async function deletePixChave(id) {
   const result = await query(
-    `DELETE FROM pix_chaves
+    `DELETE FROM public.pix_chaves
      WHERE id = $1
      RETURNING id`,
     [id]
@@ -1684,14 +1684,14 @@ export async function criarRecuperacaoSenha(
   tokenHash
 ) {
   await query(
-    `UPDATE recuperacao_senha
+    `UPDATE public.recuperacao_senha
      SET used_at = NOW()
      WHERE professor_id = $1 AND used_at IS NULL`,
     [professorId]
   );
 
   const result = await query(
-    `INSERT INTO recuperacao_senha
+    `INSERT INTO public.recuperacao_senha
       (professor_id, token_hash, expires_at)
      VALUES
       ($1, $2, NOW() + INTERVAL '15 minutes')
@@ -1705,7 +1705,7 @@ export async function criarRecuperacaoSenha(
 export async function buscarRecuperacaoSenhaValida(tokenHash) {
   const result = await query(
     `SELECT *
-     FROM recuperacao_senha
+     FROM public.recuperacao_senha
      WHERE token_hash = $1
        AND used_at IS NULL
        AND expires_at > NOW()
@@ -1719,7 +1719,7 @@ export async function buscarRecuperacaoSenhaValida(tokenHash) {
 
 export async function marcarRecuperacaoSenhaComoUsada(id) {
   const result = await query(
-    `UPDATE recuperacao_senha
+    `UPDATE public.recuperacao_senha
      SET used_at = NOW()
      WHERE id = $1 AND used_at IS NULL
      RETURNING *`,
@@ -1731,7 +1731,7 @@ export async function marcarRecuperacaoSenhaComoUsada(id) {
 
 export async function invalidarRecuperacoesSenhaProfessor(professorId) {
   await query(
-    `UPDATE recuperacao_senha
+    `UPDATE public.recuperacao_senha
      SET used_at = NOW()
      WHERE professor_id = $1 AND used_at IS NULL`,
     [professorId]
@@ -1744,7 +1744,7 @@ export async function invalidarRecuperacoesSenhaProfessor(professorId) {
 
 export async function invalidarOtpsProfessor(professorId) {
   await query(
-    `UPDATE otp_recovery
+    `UPDATE public.otp_recovery
      SET used_at = NOW()
      WHERE professor_id = $1 AND used_at IS NULL`,
     [professorId]
@@ -1759,7 +1759,7 @@ export async function criarOtp(
   email = null
 ) {
   const result = await query(
-    `INSERT INTO otp_recovery
+    `INSERT INTO public.otp_recovery
       (professor_id, telefone, email, codigo_hash, expires_at)
      VALUES
       ($1, $2, $3, $4, $5)
@@ -1773,7 +1773,7 @@ export async function criarOtp(
 export async function buscarOtpValido(professorId, codigoHash) {
   const result = await query(
     `SELECT *
-     FROM otp_recovery
+     FROM public.otp_recovery
       WHERE professor_id = $1
         AND codigo_hash = $2
         AND used_at IS NULL
@@ -1788,7 +1788,7 @@ export async function buscarOtpValido(professorId, codigoHash) {
 
 export async function marcarOtpComoUsado(id) {
   const result = await query(
-    `UPDATE otp_recovery
+    `UPDATE public.otp_recovery
      SET used_at = NOW()
      WHERE id = $1 AND used_at IS NULL
      RETURNING *`,
@@ -1804,9 +1804,9 @@ export async function marcarOtpComoUsado(id) {
 
 async function garantirTabelaResetTokenJti() {
   await query(
-    `CREATE TABLE IF NOT EXISTS reset_token_jti (
+    `CREATE TABLE IF NOT EXISTS public.reset_token_jti (
       jti_hash VARCHAR(64) PRIMARY KEY,
-      professor_id INTEGER NOT NULL REFERENCES professores(id),
+      professor_id INTEGER NOT NULL REFERENCES public.professores(id),
       expires_at TIMESTAMP NOT NULL,
       used_at TIMESTAMP NULL,
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -1821,7 +1821,7 @@ export async function criarResetTokenJti(professorId, jti) {
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   await query(
-    `INSERT INTO reset_token_jti (jti_hash, professor_id, expires_at)
+    `INSERT INTO public.reset_token_jti (jti_hash, professor_id, expires_at)
      VALUES ($1, $2, $3)`,
     [jtiHash, professorId, expiresAt]
   );
@@ -1833,7 +1833,7 @@ export async function marcarResetTokenJtiComoUsado(jtiHash) {
   await garantirTabelaResetTokenJti();
 
   const result = await query(
-    `UPDATE reset_token_jti
+    `UPDATE public.reset_token_jti
      SET used_at = NOW()
      WHERE jti_hash = $1 AND used_at IS NULL
      RETURNING *`,

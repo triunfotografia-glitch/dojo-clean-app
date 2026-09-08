@@ -52,9 +52,9 @@ export async function connectDatabase() {
     );
 
     await pool.query(`
-      ALTER TABLE treinos
-        ADD COLUMN IF NOT EXISTS turma_id INTEGER REFERENCES turmas(id) ON DELETE SET NULL,
-        ADD COLUMN IF NOT EXISTS professor_id INTEGER REFERENCES professores(id) ON DELETE SET NULL,
+      ALTER TABLE public.treinos
+        ADD COLUMN IF NOT EXISTS turma_id INTEGER REFERENCES public.turmas(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS professor_id INTEGER REFERENCES public.professores(id) ON DELETE SET NULL,
         ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT NOW()
     `);
   } catch (error) {

@@ -71,7 +71,7 @@ export async function login(req, res) {
           aluno_id,
           criado_em,
           atualizado_em
-        FROM professores
+        FROM public.professores
         WHERE LOWER(nome) = LOWER($1)
         LIMIT 1
       `,
@@ -186,7 +186,7 @@ export async function esqueciSenha(req, res) {
     const result = await query(
       `
         SELECT id, nome, email
-        FROM professores
+        FROM public.professores
         WHERE LOWER(email) = LOWER($1)
         LIMIT 1
       `,
@@ -308,7 +308,7 @@ export async function redefinirSenha(req, res) {
     const senhaHash = await bcrypt.hash(nova_senha, 10);
 
     await query(
-      `UPDATE professores
+      `UPDATE public.professores
        SET senha = $1, atualizado_em = NOW()
        WHERE id = $2`,
       [senhaHash, professorId]
@@ -364,7 +364,7 @@ export async function solicitarRecuperacaoEmail(req, res) {
     const result = await query(
       `
         SELECT id, nome, email
-        FROM professores
+        FROM public.professores
         WHERE LOWER(email) = LOWER($1)
         LIMIT 1
       `,
@@ -438,7 +438,7 @@ export async function solicitarRecuperacaoWhatsApp(req, res) {
 
     const result = await query(
       `SELECT id, telefone
-       FROM professores
+       FROM public.professores
        WHERE regexp_replace(telefone, '\D', '', 'g') = regexp_replace($1, '\D', '', 'g')
        LIMIT 1`,
       [telefoneNormalizado]
@@ -522,7 +522,7 @@ export async function validarOtp(req, res) {
       const emailNormalizado = email.trim().toLowerCase();
 
       professorResult = await query(
-        `SELECT id FROM professores WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+        `SELECT id FROM public.professores WHERE LOWER(email) = LOWER($1) LIMIT 1`,
         [emailNormalizado]
       );
     } else if (telefone && typeof telefone === 'string' && telefone.trim()) {
@@ -535,7 +535,7 @@ export async function validarOtp(req, res) {
       }
 
       professorResult = await query(
-        `SELECT id FROM professores WHERE regexp_replace(telefone, '\D', '', 'g') = regexp_replace($1, '\D', '', 'g') LIMIT 1`,
+        `SELECT id FROM public.professores WHERE regexp_replace(telefone, '\D', '', 'g') = regexp_replace($1, '\D', '', 'g') LIMIT 1`,
         [telefoneNormalizado]
       );
     } else {
