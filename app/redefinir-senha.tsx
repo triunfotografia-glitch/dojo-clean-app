@@ -82,7 +82,14 @@ export default function RedefinirSenha() {
       await redefinirSenha(resetToken, novaSenha);
 
       Alert.alert("Sucesso", "Senha redefinida com sucesso. Você já pode fazer o login.", [
-        { text: "OK", onPress: () => router.replace("/professor/login") },
+        {
+          text: "OK",
+          onPress: () => {
+            setTimeout(() => {
+              router.replace("/professor/login");
+            }, 50);
+          },
+        },
       ]);
     } catch (error) {
       console.error("Erro ao redefinir senha:", error);

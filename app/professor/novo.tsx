@@ -175,8 +175,9 @@ export default function NovoProfessor() {
         }`
       );
 
-
-      router.back();
+      setTimeout(() => {
+        router.back();
+      }, 50);
 
 
 

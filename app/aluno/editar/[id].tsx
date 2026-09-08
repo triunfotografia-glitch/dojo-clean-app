@@ -179,7 +179,9 @@ export default function EditarAluno() {
 
       await editarAluno(alunoParaSalvar);
       Alert.alert("Sucesso", "Aluno atualizado!");
-      router.back();
+      setTimeout(() => {
+        router.back();
+      }, 50);
 
     } catch (error) {
 
