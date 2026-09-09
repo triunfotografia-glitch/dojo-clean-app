@@ -1,3 +1,6 @@
 node_modules/
 .env
 .env.local
+start_dev.js
+tmp_read_pix.mjs
+*.tmp

@@ -64,13 +64,6 @@ export async function sendPasswordResetEmail({ to, nome, token, frontendUrl }) {
     html,
   };
 
-  console.log('[EMAIL DEBUG] Recuperação de senha:', {
-    emailUser: process.env.EMAIL_USER || '(não configurado)',
-    emailFrom: process.env.EMAIL_FROM || '(não configurado)',
-    fromFinal: mailOptions.from,
-    to: mailOptions.to,
-  });
-
   await transporter.sendMail(mailOptions);
 }
 

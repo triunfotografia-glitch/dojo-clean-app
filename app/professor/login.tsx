@@ -72,15 +72,15 @@ export default function Login() {
 
 router.replace("/(tabs)");
 
-    } catch (error) {
-      console.error(
-        "Erro ao realizar login:",
-        error
-      );
+    } catch (error: any) {
+      const detalhe =
+        error && error.message
+          ? error.message
+          : String(error ?? "Erro desconhecido");
 
       Alert.alert(
         "Erro",
-        "Não foi possível realizar o login. Verifique sua conexão e tente novamente."
+        "Não foi possível realizar o login. Verifique sua conexão e tente novamente.\n\n" + detalhe
       );
     } finally {
       setCarregando(false);

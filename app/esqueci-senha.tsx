@@ -33,12 +33,15 @@ export default function EsqueciSenha() {
         pathname: "/redefinir-senha",
         params: { email: email.trim() },
       });
-    } catch (error) {
-      console.error("Erro ao solicitar recuperação:", error);
+    } catch (error: any) {
+      const detalhe =
+        error && error.message
+          ? error.message
+          : String(error ?? "Erro desconhecido");
 
       Alert.alert(
         "Erro",
-        "Não foi possível solicitar a recuperação. Tente novamente mais tarde."
+        "Não foi possível solicitar a recuperação. Tente novamente mais tarde.\n\n" + detalhe
       );
     } finally {
       setCarregando(false);
