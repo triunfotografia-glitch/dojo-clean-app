@@ -29,11 +29,13 @@ export default function NovaTurma() {
   const turmaId = Array.isArray(id) ? id[0] : id;
   const modoEdicao = Boolean(turmaId);
 
-  const [nome, setNome] = useState('');
-  const [professorId, setProfessorId] = useState('');
-  const [alunoIds, setAlunoIds] = useState<string[]>([]);
+const [nome, setNome] = useState('');
+const [professorId, setProfessorId] = useState('');
+const [alunoIds, setAlunoIds] = useState<string[]>([]);
+const [turmaCarregada, setTurmaCarregada] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
+    setTurmaCarregada(false);
     if (!turmaId) return;
 
     const turma = turmas.find(
@@ -45,6 +47,7 @@ export default function NovaTurma() {
     setNome(turma.nome);
     setProfessorId(turma.professorId || '');
     setAlunoIds(turma.alunoIds || []);
+    setTurmaCarregada(true);
   }, [turmaId, turmas]);
 
   function alternarAluno(id: string) {
@@ -56,6 +59,11 @@ export default function NovaTurma() {
   }
 
   async function salvar() {
+    if (modoEdicao && !turmaCarregada) {
+      Alert.alert('Aguarde', 'Dados da turma ainda estão sendo carregados.');
+      return;
+    }
+
     if (!nome.trim()) {
       Alert.alert(
         'Atenção',
