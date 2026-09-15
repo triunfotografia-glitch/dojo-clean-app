@@ -830,7 +830,7 @@ export async function addTurma(
 
     if (Array.isArray(alunoIds) && alunoIds.length > 0) {
       const valores = alunoIds
-        .map((alunoId) => [turmaCriada.id, alunoId])
+        .map((alunoId) => [turmaCriada.id, Number(alunoId)])
         .filter(([turmaId, alunoId]) => Number.isInteger(alunoId));
 
       if (valores.length > 0) {
