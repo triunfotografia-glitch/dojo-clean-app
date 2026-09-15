@@ -23,6 +23,10 @@ function normalizarData(data: string): string {
     return valor;
   }
 
+  if (/^\d{4}-\d{2}-\d{2}T/.test(valor)) {
+    return valor.slice(0, 10);
+  }
+
   const date = new Date(valor);
 
   if (isNaN(date.getTime())) {
