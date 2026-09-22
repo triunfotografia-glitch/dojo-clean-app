@@ -320,12 +320,19 @@ export async function deleteTreino(req, res) {
       });
     }
 
-    const excluido =
+    const resultadoExclusao =
       await deleteTreinoRecord(id);
 
-    if (!excluido) {
+    if (resultadoExclusao.status === 'not_found') {
       return res.status(404).json({
         error: 'Treino não encontrado.',
+      });
+    }
+
+    if (resultadoExclusao.status === 'has_presence') {
+      return res.status(409).json({
+        error:
+          'Não é possível excluir um treino que já possui chamada registrada.',
       });
     }
 

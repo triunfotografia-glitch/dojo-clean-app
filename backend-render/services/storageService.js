@@ -1153,18 +1153,43 @@ DELETAR TREINO
 export async function deleteTreino(
   id
 ) {
-  const result = await query(
-    `DELETE FROM public.treinos
-     WHERE id = $1
-     RETURNING *`,
-    [id]
-  );
+  return transaction(async (client) => {
+    const treinoResult = await client.query(
+      `SELECT id
+       FROM public.treinos
+       WHERE id = $1
+       FOR UPDATE`,
+      [id]
+    );
 
-  if (!result.rows[0]) {
-    return null;
-  }
+    if (!treinoResult.rows[0]) {
+      return { status: 'not_found' };
+    }
 
-  return result.rows[0];
+    const presencaResult = await client.query(
+      `SELECT 1
+       FROM public.presencas
+       WHERE treino_id = $1
+       LIMIT 1`,
+      [id]
+    );
+
+    if (presencaResult.rows[0]) {
+      return { status: 'has_presence' };
+    }
+
+    const result = await client.query(
+      `DELETE FROM public.treinos
+       WHERE id = $1
+       RETURNING *`,
+      [id]
+    );
+
+    return {
+      status: result.rows[0] ? 'deleted' : 'not_found',
+      treino: result.rows[0] || null,
+    };
+  });
 }
 /* =========================
    PRESENÇAS

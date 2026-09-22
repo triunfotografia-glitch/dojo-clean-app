@@ -4,6 +4,7 @@ import { useProfessores } from "@/components/context/ProfessorContext";
 import { Treino, useTreinos } from "@/components/context/TreinoContext";
 import { useTurmas } from "@/components/context/TurmaContext";
 import { usePresencas } from "@/components/context/PresencaContext";
+import { ApiError } from "@/services/api";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -73,7 +74,11 @@ export default function Treinos() {
       removerPresencasPorTreino(id);
     } catch (error) {
       console.error('Erro ao excluir treino:', error);
-      Alert.alert('Erro', 'Não foi possível excluir o treino. Tente novamente.');
+      const mensagem =
+        error instanceof ApiError && error.status === 409
+          ? error.message
+          : 'Não foi possível excluir o treino. Tente novamente.';
+      Alert.alert('Erro', mensagem);
     }
   }
 
