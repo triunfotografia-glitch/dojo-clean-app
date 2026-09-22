@@ -237,11 +237,14 @@ export default function PerfilAluno() {
         item.status === 'justificado'
     ).length;
 
+  const totalValidos =
+    presentes + faltas;
+
   const frequencia =
-    historicoPresenca.length > 0
+    totalValidos > 0
       ? Math.round(
           (presentes /
-            historicoPresenca.length) *
+            totalValidos) *
           100
         )
       : 0;
