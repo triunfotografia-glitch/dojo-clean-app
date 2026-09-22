@@ -1195,6 +1195,92 @@ export async function deleteTreino(
    PRESENÇAS
 ========================= */
 
+export async function createChamada(
+  chamada
+) {
+  const result = await query(
+    `INSERT INTO public.chamadas
+      (treino_id, data, status, professor_id)
+     VALUES ($1, $2, 'aberta', $3)
+     RETURNING *`,
+    [
+      chamada.treino_id,
+      chamada.data,
+      chamada.professor_id,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+export async function getChamadaByTreinoData(
+  treinoId,
+  data
+) {
+  const result = await query(
+    `SELECT *
+     FROM public.chamadas
+     WHERE treino_id = $1
+       AND data = $2
+     LIMIT 1`,
+    [treinoId, data]
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function getChamadaById(
+  id
+) {
+  const result = await query(
+    `SELECT *
+     FROM public.chamadas
+     WHERE id = $1
+     LIMIT 1`,
+    [id]
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function encerrarChamada(
+  id,
+  encerradaPor
+) {
+  return transaction(async (client) => {
+    const atual = await client.query(
+      `SELECT *
+       FROM public.chamadas
+       WHERE id = $1
+       FOR UPDATE`,
+      [id]
+    );
+
+    if (!atual.rows[0]) {
+      return { status: 'not_found' };
+    }
+
+    if (atual.rows[0].status === 'encerrada') {
+      return { status: 'closed' };
+    }
+
+    const result = await client.query(
+      `UPDATE public.chamadas
+       SET status = 'encerrada',
+           encerrada_em = NOW(),
+           encerrada_por = $2
+       WHERE id = $1
+       RETURNING *`,
+      [id, encerradaPor]
+    );
+
+    return {
+      status: 'closed_now',
+      chamada: result.rows[0],
+    };
+  });
+}
+
 export async function getPresencas() {
   const result = await query(
     `SELECT *
@@ -1209,31 +1295,38 @@ export async function getPresencas() {
 export async function addPresenca(
   presenca
 ) {
-  const result = await query(
-    `INSERT INTO public.presencas
-      (
-        aluno_id,
-        treino_id,
-        data,
-        status
-      )
-     VALUES
-      (
-        $1,
-        $2,
-        $3,
-        $4
-      )
-     RETURNING *`,
-    [
-      presenca.aluno_id,
-      presenca.treino_id,
-      presenca.data,
-      presenca.status,
-    ]
-  );
+  return transaction(async (client) => {
+    const chamada = await client.query(
+      `SELECT status
+       FROM public.chamadas
+       WHERE treino_id = $1
+         AND data = $2
+       FOR UPDATE`,
+      [presenca.treino_id, presenca.data]
+    );
 
-  return result.rows[0];
+    if (chamada.rows[0]?.status === 'encerrada') {
+      return { status: 'closed' };
+    }
+
+    const result = await client.query(
+      `INSERT INTO public.presencas
+        (aluno_id, treino_id, data, status)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [
+        presenca.aluno_id,
+        presenca.treino_id,
+        presenca.data,
+        presenca.status,
+      ]
+    );
+
+    return {
+      status: 'created',
+      presenca: result.rows[0],
+    };
+  });
 }
 
 
@@ -1292,33 +1385,121 @@ export async function updatePresenca(
       ([, value]) => value
     );
 
-  const result = await query(
-    `UPDATE public.presencas
-     SET
-       ${columns.join(', ')}
-     WHERE id = $${values.length + 1}
-     RETURNING *`,
-    [
-      ...values,
-      id,
-    ]
-  );
+  return transaction(async (client) => {
+    const atual = await client.query(
+      `SELECT treino_id, data
+       FROM public.presencas
+       WHERE id = $1
+       FOR UPDATE`,
+      [id]
+    );
 
-  return result.rows[0];
+    if (!atual.rows[0]) {
+      return { status: 'not_found' };
+    }
+
+    const chamada = await client.query(
+      `SELECT status
+       FROM public.chamadas
+       WHERE treino_id = $1
+         AND data = $2
+       FOR UPDATE`,
+      [
+        atual.rows[0].treino_id,
+        atual.rows[0].data,
+      ]
+    );
+
+    if (chamada.rows[0]?.status === 'encerrada') {
+      return { status: 'closed' };
+    }
+
+    const treinoIdAtualizado =
+      mapped.treino_id ?? atual.rows[0].treino_id;
+    const dataAtualizada =
+      mapped.data ?? atual.rows[0].data;
+
+    if (
+      String(treinoIdAtualizado) !== String(atual.rows[0].treino_id) ||
+      String(dataAtualizada) !== String(atual.rows[0].data)
+    ) {
+      const chamadaDestino = await client.query(
+        `SELECT status
+         FROM public.chamadas
+         WHERE treino_id = $1
+           AND data = $2
+         FOR UPDATE`,
+        [
+          treinoIdAtualizado,
+          dataAtualizada,
+        ]
+      );
+
+      if (chamadaDestino.rows[0]?.status === 'encerrada') {
+        return { status: 'closed' };
+      }
+    }
+
+    const result = await client.query(
+      `UPDATE public.presencas
+       SET ${columns.join(', ')}
+       WHERE id = $${values.length + 1}
+       RETURNING *`,
+      [...values, id]
+    );
+
+    return {
+      status: 'updated',
+      presenca: result.rows[0],
+    };
+  });
 }
 
 
 export async function deletePresenca(
   id
 ) {
-  const result = await query(
-    `DELETE FROM public.presencas
-      WHERE id = $1
-      RETURNING *`,
-    [id]
-  );
+  return transaction(async (client) => {
+    const atual = await client.query(
+      `SELECT treino_id, data
+       FROM public.presencas
+       WHERE id = $1
+       FOR UPDATE`,
+      [id]
+    );
 
-  return result.rows[0] || null;
+    if (!atual.rows[0]) {
+      return { status: 'not_found' };
+    }
+
+    const chamada = await client.query(
+      `SELECT status
+       FROM public.chamadas
+       WHERE treino_id = $1
+         AND data = $2
+       FOR UPDATE`,
+      [
+        atual.rows[0].treino_id,
+        atual.rows[0].data,
+      ]
+    );
+
+    if (chamada.rows[0]?.status === 'encerrada') {
+      return { status: 'closed' };
+    }
+
+    const result = await client.query(
+      `DELETE FROM public.presencas
+       WHERE id = $1
+       RETURNING *`,
+      [id]
+    );
+
+    return {
+      status: 'deleted',
+      presenca: result.rows[0],
+    };
+  });
 }
 
 

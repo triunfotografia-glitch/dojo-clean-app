@@ -8,6 +8,7 @@
 -- ============================================================
 CREATE TYPE status_cobranca AS ENUM ('pendente', 'pago', 'atrasado');
 CREATE TYPE status_presenca AS ENUM ('presente', 'falta', 'justificado');
+CREATE TYPE status_chamada AS ENUM ('aberta', 'encerrada');
 
 -- ============================================================
 -- TRIGGER FUNCTION (updated_at automático)
@@ -102,6 +103,24 @@ CREATE TABLE IF NOT EXISTS treinos (
     criado_em       TIMESTAMP DEFAULT NOW(),
     atualizado_em   TIMESTAMP DEFAULT NOW()
 );
+
+-- ============================================================
+-- TABELA: chamadas
+-- ============================================================
+CREATE TABLE IF NOT EXISTS chamadas (
+    id              SERIAL PRIMARY KEY,
+    treino_id       INTEGER NOT NULL REFERENCES treinos(id) ON DELETE CASCADE,
+    data            DATE NOT NULL,
+    status          status_chamada NOT NULL DEFAULT 'aberta',
+    professor_id    INTEGER NOT NULL REFERENCES professores(id) ON DELETE RESTRICT,
+    aberta_em       TIMESTAMP NOT NULL DEFAULT NOW(),
+    encerrada_em    TIMESTAMP,
+    encerrada_por   INTEGER REFERENCES professores(id) ON DELETE SET NULL,
+    UNIQUE(treino_id, data)
+);
+
+CREATE INDEX IF NOT EXISTS idx_chamadas_treino_data
+  ON chamadas(treino_id, data);
 
 -- ============================================================
 -- TABELA: presencas

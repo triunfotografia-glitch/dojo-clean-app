@@ -192,15 +192,21 @@ export async function createPresenca(req, res) {
        CRIAR PRESENÇA
     ===================================================== */
 
-    const novaPresenca = await addPresenca({
+    const resultado = await addPresenca({
       aluno_id: alunoIdNumero,
       treino_id: treinoIdNumero,
       data: data.trim(),
       status: status.trim(),
     });
 
+    if (resultado.status === 'closed') {
+      return res.status(409).json({
+        error: 'Não é possível alterar uma chamada encerrada.',
+      });
+    }
+
     return res.status(201).json(
-      novaPresenca
+      resultado.presenca
     );
 
   } catch (error) {
@@ -432,19 +438,25 @@ export async function updatePresenca(req, res) {
       });
     }
 
-    const atualizada =
+    const resultado =
       await updatePresencaRecord(
         id,
         dadosAtualizados
       );
 
-    if (!atualizada) {
+    if (resultado.status === 'not_found') {
       return res.status(404).json({
         error: 'Presença não encontrada.',
       });
     }
 
-    return res.json(atualizada);
+    if (resultado.status === 'closed') {
+      return res.status(409).json({
+        error: 'Não é possível alterar uma chamada encerrada.',
+      });
+    }
+
+    return res.json(resultado.presenca);
   } catch (error) {
     console.error(
       'Erro ao atualizar presença:',
@@ -475,12 +487,18 @@ export async function deletePresenca(req, res) {
       });
     }
 
-    const excluida =
+    const resultado =
       await deletePresencaRecord(id);
 
-    if (!excluida) {
+    if (resultado.status === 'not_found') {
       return res.status(404).json({
         error: 'Presença não encontrada.',
+      });
+    }
+
+    if (resultado.status === 'closed') {
+      return res.status(409).json({
+        error: 'Não é possível alterar uma chamada encerrada.',
       });
     }
 

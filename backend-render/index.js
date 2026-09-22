@@ -11,6 +11,7 @@ import { adminMiddleware } from './middleware/adminMiddleware.js';
 import alunosRoutes from './routes/alunos.js';
 import authRoutes from './routes/auth.js';
 import campeonatosRoutes from './routes/campeonatos.js';
+import chamadasRoutes from './routes/chamadas.js';
 import cobrancasRoutes from './routes/cobrancas.js';
 import graduacoesRoutes from './routes/graduacoes.js';
 import pixRoutes from './routes/pix.js';
@@ -156,6 +157,12 @@ app.use(
   '/treinos',
   authMiddleware,
   treinosRoutes
+);
+
+app.use(
+  '/chamadas',
+  authMiddleware,
+  chamadasRoutes
 );
 
 app.use(

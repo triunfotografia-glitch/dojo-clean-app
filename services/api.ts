@@ -22,6 +22,17 @@ import type {
   Turma,
 } from "@/components/context/TurmaContext";
 
+export interface Chamada {
+  id: string;
+  treinoId: string;
+  data: string;
+  status: "aberta" | "encerrada";
+  professorId: string;
+  abertaEm: string;
+  encerradaEm?: string | null;
+  encerradaPor?: string | null;
+}
+
 import { notifyAuthLost, onAuthLost, notifyAuthChanged, onAuthChanged } from "./authEvents";
 
 class ApiError extends Error {
@@ -1080,6 +1091,44 @@ export async function deleteTreino(
     }
   );
 
+}
+
+export async function criarChamada(
+  treinoId: string | number,
+  data: string
+): Promise<Chamada> {
+  return request<Chamada>(
+    `${API_URL}/chamadas`,
+    {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        treinoId,
+        data,
+      }),
+    }
+  );
+}
+
+export async function buscarChamada(
+  treinoId: string | number,
+  data: string
+): Promise<Chamada | null> {
+  return request<Chamada | null>(
+    `${API_URL}/chamadas/treino/${treinoId}?data=${encodeURIComponent(data)}`
+  );
+}
+
+export async function encerrarChamada(
+  id: string | number
+): Promise<Chamada> {
+  return request<Chamada>(
+    `${API_URL}/chamadas/${id}/encerrar`,
+    {
+      method: "POST",
+      headers: jsonHeaders(),
+    }
+  );
 }
 
 // PRESENÇAS

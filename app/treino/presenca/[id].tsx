@@ -3,6 +3,12 @@ import { useDojo } from '@/components/context/DojoContext';
 import { StatusPresenca, usePresencas } from '@/components/context/PresencaContext';
 import { useTreinos } from '@/components/context/TreinoContext';
 import { useTurmas } from '@/components/context/TurmaContext';
+import {
+  buscarChamada,
+  Chamada,
+  criarChamada,
+  encerrarChamada,
+} from '@/services/api';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -72,6 +78,9 @@ export default function PresencaTreino() {
 
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [chamada, setChamada] = useState<Chamada | null>(null);
+  const [carregandoChamada, setCarregandoChamada] = useState(true);
+  const [salvandoChamada, setSalvandoChamada] = useState(false);
   const [hoje, setHoje] = useState(() => dataLocalDoDojo());
 
   useEffect(() => {
@@ -81,6 +90,31 @@ export default function PresencaTreino() {
 
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const treinoAtual = treino;
+
+    if (!treinoAtual?.id) return;
+
+    async function carregarChamada() {
+      setCarregandoChamada(true);
+
+      try {
+        const atual = await buscarChamada(
+          treinoAtual!.id,
+          hoje
+        );
+        setChamada(atual);
+      } catch (error) {
+        console.error('Erro ao carregar chamada:', error);
+        Alert.alert('Erro', 'Não foi possível carregar o estado da chamada.');
+      } finally {
+        setCarregandoChamada(false);
+      }
+    }
+
+    void carregarChamada();
+  }, [treino?.id, hoje]);
 
   const totalAlunos = alunosDaTurma.length;
   const presencasDoTreinoNaData = presencas.filter(
@@ -93,6 +127,9 @@ export default function PresencaTreino() {
   const faltas = presencasDoTreinoNaData.filter((item) => item.status === 'falta').length;
   const justificados = presencasDoTreinoNaData.filter((item) => item.status === 'justificado').length;
   const frequencia = totalAlunos > 0 ? Math.round((presentes / totalAlunos) * 100) : 0;
+  const chamadaPermiteEdicao =
+    !carregandoChamada &&
+    (chamada === null || chamada.status === 'aberta');
 
   useEffect(() => {
     const treinoAtual = treino;
@@ -109,7 +146,7 @@ export default function PresencaTreino() {
   }, [treino?.id, hoje]);
 
   async function marcar(alunoId: string, status: StatusPresenca) {
-    if (!treino || salvando) return;
+    if (!treino || salvando || !chamadaPermiteEdicao) return;
 
     setSalvando(true);
 
@@ -133,7 +170,7 @@ export default function PresencaTreino() {
   }
 
   async function remover(alunoId: string) {
-    if (!treino || salvando) return;
+    if (!treino || salvando || !chamadaPermiteEdicao) return;
 
     const existente = presencas.find(
       (item) => item.treinoId === treino.id && item.alunoId === alunoId && normalizarData(item.data) === hoje
@@ -153,6 +190,44 @@ export default function PresencaTreino() {
     }
   }
 
+  async function iniciarChamada() {
+    if (!treino || salvandoChamada || chamada) return;
+
+    setSalvandoChamada(true);
+
+    try {
+      const nova = await criarChamada(treino.id, hoje);
+      setChamada(nova);
+    } catch (error) {
+      console.error('Erro ao iniciar chamada:', error);
+      Alert.alert('Erro', 'Não foi possível iniciar a chamada.');
+    } finally {
+      setSalvandoChamada(false);
+    }
+  }
+
+  async function concluirChamada() {
+    if (
+      !chamada ||
+      chamada.status !== 'aberta' ||
+      salvandoChamada
+    ) {
+      return;
+    }
+
+    setSalvandoChamada(true);
+
+    try {
+      const encerrada = await encerrarChamada(chamada.id);
+      setChamada(encerrada);
+    } catch (error) {
+      console.error('Erro ao encerrar chamada:', error);
+      Alert.alert('Erro', 'Não foi possível encerrar a chamada.');
+    } finally {
+      setSalvandoChamada(false);
+    }
+  }
+
   if (!treino) {
     return <View style={styles.container}><Text style={styles.title}>Treino não encontrado</Text></View>;
   }
@@ -163,6 +238,27 @@ export default function PresencaTreino() {
       <Text style={styles.training}>{treino.nome}</Text>
       <Text style={styles.info}>{treino.dia} • {treino.horario} • {hoje.split('-').reverse().join('/')}</Text>
       <Text style={styles.info}>Turma: {String(treino.turma ?? 'Não definida')}</Text>
+      {!carregandoChamada && !chamada ? (
+        <View style={styles.callState}>
+          <Text style={styles.warning}>Chamada não iniciada.</Text>
+          <Pressable
+            style={styles.finishButton}
+            onPress={() => void iniciarChamada()}
+            disabled={salvandoChamada}
+          >
+            <Text style={styles.finishText}>
+              {salvandoChamada ? 'Iniciando...' : 'Iniciar chamada'}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {!carregandoChamada && chamada ? (
+        <Text style={styles.callStatus}>
+          {chamada.status === 'aberta'
+            ? 'Chamada aberta'
+            : 'Chamada encerrada'}
+        </Text>
+      ) : null}
       {!turma ? <Text style={styles.warning}>Associe uma turma cadastrada ao treino para fazer a chamada.</Text> : null}
       {turma && alunosDaTurma.length === 0 ? <Text style={styles.warning}>Esta turma ainda não possui alunos ativos.</Text> : null}
       {carregando ? <Text style={styles.warning}>Carregando presenças...</Text> : null}
@@ -199,16 +295,16 @@ export default function PresencaTreino() {
             <Text style={styles.name}>{aluno.nome}</Text>
             <View style={styles.options}>
               {opcoes.map((opcao) => (
-                <Pressable key={opcao.status} style={[styles.option, atual?.status === opcao.status && styles[opcao.status]]} onPress={() => marcar(aluno.id, opcao.status)}>
+                <Pressable key={opcao.status} style={[styles.option, atual?.status === opcao.status && styles[opcao.status], !chamadaPermiteEdicao && styles.disabled]} onPress={() => marcar(aluno.id, opcao.status)} disabled={!chamadaPermiteEdicao}>
                   <Text style={styles.optionText}>{opcao.texto}</Text>
                 </Pressable>
               ))}
             </View>
-            {atual ? <Pressable style={styles.removeButton} onPress={() => remover(aluno.id)}><Text style={styles.removeText}>Remover</Text></Pressable> : null}
+            {atual && chamadaPermiteEdicao ? <Pressable style={styles.removeButton} onPress={() => remover(aluno.id)}><Text style={styles.removeText}>Remover</Text></Pressable> : null}
           </View>
         );
       })}
-      {alunosDaTurma.length > 0 ? <Pressable style={styles.finishButton} onPress={() => Alert.alert('Chamada salva', 'As marcações foram salvas automaticamente.')}><Text style={styles.finishText}>Concluir chamada</Text></Pressable> : null}
+      {chamada?.status === 'aberta' ? <Pressable style={styles.finishButton} onPress={() => void concluirChamada()} disabled={salvandoChamada}><Text style={styles.finishText}>{salvandoChamada ? 'Encerrando...' : 'Concluir chamada'}</Text></Pressable> : null}
     </ScrollView>
   );
 }
@@ -219,6 +315,8 @@ const styles = StyleSheet.create({
   training: { color: COLORS.primary, fontSize: 20, fontWeight: 'bold', marginTop: 18 },
   info: { color: COLORS.textSecondary, marginTop: 6 },
   warning: { color: '#FFB74D', marginTop: 25 },
+  callState: { marginTop: 10 },
+  callStatus: { color: '#81C784', fontWeight: 'bold', marginTop: 18 },
   card: { backgroundColor: COLORS.card, borderColor: COLORS.border, borderRadius: 16, borderWidth: 1, marginTop: 16, padding: 16 },
   name: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
   options: { flexDirection: 'row', gap: 8, marginTop: 14 },
@@ -227,6 +325,7 @@ const styles = StyleSheet.create({
   falta: { backgroundColor: '#7F1D1D', borderColor: '#E53935' },
   justificado: { backgroundColor: '#6A4F00', borderColor: '#FFB300' },
   optionText: { color: COLORS.white, fontSize: 12, fontWeight: 'bold' },
+  disabled: { opacity: 0.55 },
   removeButton: { alignItems: 'center', marginTop: 10, padding: 8 },
   removeText: { color: '#FF6B6B', fontSize: 12, fontWeight: 'bold' },
   finishButton: { alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 14, marginVertical: 30, padding: 16 },
