@@ -83,9 +83,15 @@ export default function PresencaTreino() {
   }, []);
 
   const totalAlunos = alunosDaTurma.length;
-  const presentes = presencas.filter((item) => normalizarData(item.data) === hoje && item.status === 'presente').length;
-  const faltas = presencas.filter((item) => normalizarData(item.data) === hoje && item.status === 'falta').length;
-  const justificados = presencas.filter((item) => normalizarData(item.data) === hoje && item.status === 'justificado').length;
+  const presencasDoTreinoNaData = presencas.filter(
+    (item) =>
+      treino?.id !== undefined &&
+      String(item.treinoId) === String(treino.id) &&
+      normalizarData(item.data) === hoje
+  );
+  const presentes = presencasDoTreinoNaData.filter((item) => item.status === 'presente').length;
+  const faltas = presencasDoTreinoNaData.filter((item) => item.status === 'falta').length;
+  const justificados = presencasDoTreinoNaData.filter((item) => item.status === 'justificado').length;
   const frequencia = totalAlunos > 0 ? Math.round((presentes / totalAlunos) * 100) : 0;
 
   useEffect(() => {
