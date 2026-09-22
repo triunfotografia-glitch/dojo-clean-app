@@ -280,12 +280,17 @@ export function TurmaProvider({
     turma: Omit<Turma, 'id'>
   ): Promise<Turma> {
     try {
-      const atualizada = await updateTurma(id, {
+      const dadosAtualizacao: Partial<Turma> = {
         nome: turma.nome,
         professorId:
           turma.professorId || '',
-        alunoIds: turma.alunoIds || [],
-      });
+      };
+
+      if (Array.isArray(turma.alunoIds)) {
+        dadosAtualizacao.alunoIds = turma.alunoIds;
+      }
+
+      const atualizada = await updateTurma(id, dadosAtualizacao);
 
       const turmaNormalizada =
         normalizarTurma(atualizada);

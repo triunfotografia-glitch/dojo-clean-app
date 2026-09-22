@@ -29,16 +29,15 @@ import React, {
 } from "react";
 
 import {
-  cancelarNotificacoesPorCobranca,
-  solicitarPermissaoNotificacao,
   agendarNotificacao,
+  cancelarNotificacoesPorCobranca,
   construirConteudoNotificacao,
-  notificarImediatamente,
   existeNotificacaoAgendada,
   foiNotificacaoVencidaEnviada,
   marcarNotificacaoVencidaEnviada,
+  notificarImediatamente,
   removerMarcacaoNotificacaoVencida,
-  NotificationTipo,
+  solicitarPermissaoNotificacao
 } from "@/services/notificationService";
 
 // ==============================

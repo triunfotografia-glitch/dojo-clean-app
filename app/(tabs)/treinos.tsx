@@ -3,6 +3,7 @@ import { CompactSelector } from "@/components/CompactSelector";
 import { useProfessores } from "@/components/context/ProfessorContext";
 import { Treino, useTreinos } from "@/components/context/TreinoContext";
 import { useTurmas } from "@/components/context/TurmaContext";
+import { usePresencas } from "@/components/context/PresencaContext";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -20,6 +21,7 @@ export default function Treinos() {
   const { treinos, adicionarTreino, excluirTreino } = useTreinos();
   const { professores } = useProfessores();
   const { turmas } = useTurmas();
+  const { removerPresencasPorTreino } = usePresencas();
   const [nome, setNome] = useState('');
   const [diasSelecionados, setDiasSelecionados] = useState<string[]>([]);
   const [horario, setHorario] = useState('');
@@ -68,6 +70,7 @@ export default function Treinos() {
   async function excluir(id: string) {
     try {
       await excluirTreino(id);
+      removerPresencasPorTreino(id);
     } catch (error) {
       console.error('Erro ao excluir treino:', error);
       Alert.alert('Erro', 'Não foi possível excluir o treino. Tente novamente.');

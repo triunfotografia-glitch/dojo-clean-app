@@ -8,14 +8,14 @@
 } from '../services/storageService.js';
 
 function normalizarIdAluno(valor) {
-  if (typeof valor === 'number' && Number.isInteger(valor) && valor > 0) {
+  if (typeof valor === 'number' && Number.isSafeInteger(valor) && valor > 0) {
     return valor;
   }
 
   if (typeof valor === 'string' && /^\d+$/.test(valor)) {
     const num = Number(valor);
 
-    if (Number.isInteger(num) && num > 0) {
+    if (Number.isSafeInteger(num) && num > 0) {
       return num;
     }
   }
@@ -23,36 +23,60 @@ function normalizarIdAluno(valor) {
   return null;
 }
 
-function extrairAlunoIds(turma) {
-  const candidatos = [
-    ...(Array.isArray(turma?.alunos) ? turma.alunos : []),
-    ...(Array.isArray(turma?.aluno_ids) ? turma.aluno_ids : []),
-    ...(Array.isArray(turma?.alunoIds) ? turma.alunoIds : []),
-  ];
+function obterAlunoIds(turma) {
+  for (const campo of ['alunos', 'aluno_ids', 'alunoIds']) {
+    if (Object.prototype.hasOwnProperty.call(turma, campo)) {
+      return {
+        informado: true,
+        valor: turma[campo],
+      };
+    }
+  }
 
-  const ids = candidatos
-    .map(normalizarIdAluno)
-    .filter((id) => id !== null);
+  return {
+    informado: false,
+    valor: undefined,
+  };
+}
 
-  return [...new Set(ids)];
+function normalizarAlunoIds(turma) {
+  const campo = obterAlunoIds(turma);
+
+  if (!campo.informado) {
+    return {
+      informado: false,
+      ids: undefined,
+    };
+  }
+
+  if (!Array.isArray(campo.valor)) {
+    return {
+      informado: true,
+      ids: null,
+    };
+  }
+
+  const ids = campo.valor.map(normalizarIdAluno);
+
+  if (ids.some((id) => id === null)) {
+    return {
+      informado: true,
+      ids: null,
+    };
+  }
+
+  return {
+    informado: true,
+    ids: [...new Set(ids)],
+  };
 }
 
 async function validarAlunosDaTurma(req, alunoIds) {
-  if (req.usuario.administrador === true) {
-    return null;
-  }
-
-  const professorId = Number(req.usuario.id);
-
   for (const alunoId of alunoIds) {
     const aluno = await getAluno(alunoId);
 
     if (!aluno) {
       return { erro: 'Aluno não encontrado.', status: 404 };
-    }
-
-    if (Number(aluno.professor_id) !== professorId) {
-      return { erro: 'Acesso negado a este aluno.', status: 403 };
     }
   }
 
@@ -175,7 +199,26 @@ export async function createTurma(req, res) {
           : Number(req.usuario.id),
     };
 
-    const alunoIds = extrairAlunoIds(dadosComProfessor);
+    const alunoIdsNormalizados =
+      normalizarAlunoIds(dadosComProfessor);
+
+    if (
+      alunoIdsNormalizados.informado &&
+      alunoIdsNormalizados.ids === null
+    ) {
+      return res.status(400).json({
+        error: 'IDs de alunos inválidos.',
+      });
+    }
+
+    const alunoIds =
+      alunoIdsNormalizados.ids || [];
+
+    if (alunoIdsNormalizados.informado) {
+      dadosComProfessor.aluno_ids = alunoIds;
+      delete dadosComProfessor.alunos;
+      delete dadosComProfessor.alunoIds;
+    }
 
     if (alunoIds.length > 0) {
       const validacao = await validarAlunosDaTurma(req, alunoIds);
@@ -261,13 +304,31 @@ export async function updateTurma(req, res) {
         dadosAtualizados.nome.trim();
     }
 
+    const alunoIdsNormalizados =
+      normalizarAlunoIds(dadosAtualizados);
+
+    if (
+      alunoIdsNormalizados.informado &&
+      alunoIdsNormalizados.ids === null
+    ) {
+      return res.status(400).json({
+        error: 'IDs de alunos inválidos.',
+      });
+    }
+
     const temAlteracaoAlunos =
-      dadosAtualizados.alunos !== undefined ||
-      dadosAtualizados.aluno_ids !== undefined ||
-      dadosAtualizados.alunoIds !== undefined;
+      alunoIdsNormalizados.informado;
 
     if (temAlteracaoAlunos) {
-      const alunoIds = extrairAlunoIds(dadosAtualizados);
+      dadosAtualizados.aluno_ids =
+        alunoIdsNormalizados.ids;
+      delete dadosAtualizados.alunos;
+      delete dadosAtualizados.alunoIds;
+    }
+
+    if (temAlteracaoAlunos) {
+      const alunoIds =
+        alunoIdsNormalizados.ids || [];
 
       if (alunoIds.length > 0) {
         const validacao = await validarAlunosDaTurma(req, alunoIds);

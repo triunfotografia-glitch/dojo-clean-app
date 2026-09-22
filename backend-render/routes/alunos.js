@@ -35,7 +35,6 @@ router.get(
   '/:id',
   authMiddleware,
   professorMiddleware,
-  alunoScopeMiddleware,
   getAluno
 );
 

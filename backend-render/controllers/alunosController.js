@@ -7,6 +7,23 @@ import {
   updateAluno as updateAlunoRecord,
 } from '../services/storageService.js';
 
+function sanitizarAlunoParaProfessor(aluno, professorId) {
+  if (Number(aluno.professor_id) === professorId) {
+    return aluno;
+  }
+
+  const {
+    cobrancas,
+    valor_mensalidade,
+    proxima_cobranca,
+    dia_vencimento,
+    mensalidade,
+    ...dadosPublicos
+  } = aluno;
+
+  return dadosPublicos;
+}
+
 
 /* =========================================================
    LISTAR ALUNOS
@@ -15,34 +32,13 @@ import {
 export async function listAlunos(req, res) {
   try {
     const professorId = Number(req.usuario.id);
-    const alunos =
+    const alunos = await getAlunos();
+
+    const alunosSanitizados = alunos.map((aluno) =>
       req.usuario.administrador === true
-        ? await getAlunos()
-        : await getAlunos(professorId);
-
-    const alunosSanitizados = alunos.map((aluno) => {
-      if (req.usuario.administrador === true) {
-        return aluno;
-      }
-
-      const isProprietario =
-        Number(aluno.professor_id) === professorId;
-
-      if (isProprietario) {
-        return aluno;
-      }
-
-      const {
-        cobrancas,
-        valor_mensalidade,
-        proxima_cobranca,
-        dia_vencimento,
-        mensalidade,
-        ...dadosPublicos
-      } = aluno;
-
-      return dadosPublicos;
-    });
+        ? aluno
+        : sanitizarAlunoParaProfessor(aluno, professorId)
+    );
 
     return res.json(alunosSanitizados);
   } catch (error) {
@@ -83,18 +79,13 @@ export async function getAluno(req, res) {
       });
     }
 
-    if (req.usuario.administrador !== true) {
-      const professorId = Number(req.usuario.id);
-      const isProprietario = Number(aluno.professor_id) === professorId;
-
-      if (!isProprietario) {
-        return res.status(403).json({
-          error: 'Acesso negado a este aluno.',
-        });
-      }
+    if (req.usuario.administrador === true) {
+      return res.json(aluno);
     }
 
-    return res.json(aluno);
+    return res.json(
+      sanitizarAlunoParaProfessor(aluno, Number(req.usuario.id))
+    );
   } catch (error) {
     console.error(
       'Erro ao buscar aluno por ID:',

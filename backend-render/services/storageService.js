@@ -92,6 +92,38 @@ function prepareFields(data) {
   );
 }
 
+function normalizarAlunoId(valor) {
+  if (typeof valor === 'number') {
+    return Number.isSafeInteger(valor) && valor > 0
+      ? valor
+      : null;
+  }
+
+  if (typeof valor === 'string' && /^\d+$/.test(valor.trim())) {
+    const id = Number(valor);
+
+    return Number.isSafeInteger(id) && id > 0
+      ? id
+      : null;
+  }
+
+  return null;
+}
+
+function normalizarAlunoIds(alunoIds) {
+  if (!Array.isArray(alunoIds)) {
+    throw new Error('IDs de alunos inválidos.');
+  }
+
+  const ids = alunoIds.map(normalizarAlunoId);
+
+  if (ids.some((id) => id === null)) {
+    throw new Error('IDs de alunos inválidos.');
+  }
+
+  return [...new Set(ids)];
+}
+
 
 /* =========================
    ALUNOS
@@ -791,6 +823,13 @@ export async function addTurma(
   turma
 ) {
   return transaction(async (client) => {
+    const alunoIds = normalizarAlunoIds(
+      turma.alunos ??
+        turma.aluno_ids ??
+        turma.alunoIds ??
+        []
+    );
+
     const result = await client.query(
       `INSERT INTO public.turmas
         (
@@ -811,27 +850,15 @@ export async function addTurma(
         turma.nome,
         turma.professor || null,
         turma.professor_id || null,
-        JSON.stringify(
-          turma.alunos ??
-            turma.aluno_ids ??
-            turma.alunoIds ??
-            []
-        ),
+        JSON.stringify(alunoIds),
       ]
     );
 
     const turmaCriada = result.rows[0];
 
-    const alunoIds =
-      turma.alunos ??
-      turma.aluno_ids ??
-      turma.alunoIds ??
-      [];
-
-    if (Array.isArray(alunoIds) && alunoIds.length > 0) {
+    if (alunoIds.length > 0) {
       const valores = alunoIds
-        .map((alunoId) => [turmaCriada.id, Number(alunoId)])
-        .filter(([turmaId, alunoId]) => Number.isInteger(alunoId));
+        .map((alunoId) => [turmaCriada.id, alunoId]);
 
       if (valores.length > 0) {
         const placeholders = valores.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(', ');
@@ -911,6 +938,18 @@ export async function updateTurma(
   turma
 ) {
   return transaction(async (client) => {
+    const alunoIdsInformados =
+      turma.alunos !== undefined ||
+      turma.aluno_ids !== undefined ||
+      turma.alunoIds !== undefined;
+    const alunoIds = alunoIdsInformados
+      ? normalizarAlunoIds(
+          turma.alunos ??
+            turma.aluno_ids ??
+            turma.alunoIds
+        )
+      : null;
+
     const result = await client.query(
       `UPDATE public.turmas
        SET
@@ -930,12 +969,7 @@ export async function updateTurma(
           turma.aluno_ids !== undefined ||
           turma.alunoIds !== undefined
         )
-          ? JSON.stringify(
-              turma.alunos ??
-                turma.aluno_ids ??
-                turma.alunoIds ??
-                []
-            )
+          ? JSON.stringify(alunoIds)
           : null,
         id,
       ]
@@ -945,20 +979,13 @@ export async function updateTurma(
       return null;
     }
 
-    const alunoIds =
-      turma.alunos ??
-      turma.aluno_ids ??
-      turma.alunoIds ??
-      null;
-
-    if (alunoIds !== null && Array.isArray(alunoIds)) {
+    if (alunoIdsInformados) {
       await client.query(
         `DELETE FROM public.turma_alunos WHERE turma_id = $1`,
         [id]
       );
 
       const valores = alunoIds
-        .filter((alunoId) => Number.isInteger(alunoId))
         .map((alunoId) => [id, alunoId]);
 
       if (valores.length > 0) {

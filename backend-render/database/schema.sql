@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS otp_recovery (
     email         TEXT,
     expires_at    TIMESTAMP NOT NULL,
     used_at       TIMESTAMP,
-    criado_em     TIMESTAMP DEFAULT NOW()
+    created_at    TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_otp_recovery_professor_id

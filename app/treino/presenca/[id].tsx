@@ -40,6 +40,23 @@ function normalizarData(data: string): string {
   return `${ano}-${mes}-${dia}`;
 }
 
+function dataLocalDoDojo(date = new Date()): string {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const valores = Object.fromEntries(
+    partes
+      .filter((parte) => parte.type !== 'literal')
+      .map((parte) => [parte.type, parte.value])
+  );
+
+  return `${valores.year}-${valores.month}-${valores.day}`;
+}
+
 export default function PresencaTreino() {
   const params = useLocalSearchParams<{ id: string }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -50,18 +67,16 @@ export default function PresencaTreino() {
   const treino = treinos.find((item) => item.id === id);
   const turma = turmas.find((item) => item.id === treino?.turmaId || item.nome.trim().toLowerCase() === (treino?.turma ?? '').trim().toLowerCase());
   const alunosDaTurma = alunos.filter((aluno) => {
-    const associadoNaTurma = turma?.alunoIds.includes(aluno.id);
-    const turmaDoAluno = (aluno.turma ?? '').trim().toLowerCase() === (treino?.turma ?? '').trim().toLowerCase();
-    return aluno.ativo && (associadoNaTurma || turmaDoAluno);
+    return aluno.ativo && turma?.alunoIds.includes(aluno.id);
   });
 
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
-  const [hoje, setHoje] = useState(() => new Date().toISOString().slice(0, 10));
+  const [hoje, setHoje] = useState(() => dataLocalDoDojo());
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setHoje(new Date().toISOString().slice(0, 10));
+      setHoje(dataLocalDoDojo());
     }, 60000);
 
     return () => clearInterval(timer);
@@ -85,7 +100,7 @@ export default function PresencaTreino() {
     }
 
     void carregar();
-  }, [treino?.id]);
+  }, [treino?.id, hoje]);
 
   async function marcar(alunoId: string, status: StatusPresenca) {
     if (!treino || salvando) return;

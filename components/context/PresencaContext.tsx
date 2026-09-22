@@ -49,6 +49,9 @@ interface PresencaContextData {
   excluirPresenca: (
     id: string
   ) => Promise<void>;
+  removerPresencasPorTreino: (
+    treinoId: string
+  ) => void;
 }
 
 const PresencaContext =
@@ -374,6 +377,13 @@ export function PresencaProvider({
 
       throw error;
     }
+
+  }
+
+  function removerPresencasPorTreino(treinoId: string) {
+    setPresencas((lista) =>
+      lista.filter((item) => item.treinoId !== String(treinoId))
+    );
   }
 
   // ==========================================================
@@ -388,6 +398,7 @@ export function PresencaProvider({
         registrarPresenca,
         editarPresenca,
         excluirPresenca,
+        removerPresencasPorTreino,
       }}
     >
       {children}

@@ -10,6 +10,26 @@ if (!connectionString) {
   );
 }
 
+function isRenderDatabase(url) {
+  try {
+    return new URL(url).hostname.endsWith('.render.com');
+  } catch {
+    return false;
+  }
+}
+
+if (
+  !(
+    process.env.NODE_ENV === 'production' &&
+    process.env.ALLOW_PRODUCTION_DATABASE === 'true'
+  ) &&
+  isRenderDatabase(connectionString)
+) {
+  throw new Error(
+    'DATABASE_URL de produção Render não pode ser usada fora do ambiente production.'
+  );
+}
+
 const sslRejectUnauthorized =
   String(
     process.env.DATABASE_SSL_REJECT_UNAUTHORIZED ||
