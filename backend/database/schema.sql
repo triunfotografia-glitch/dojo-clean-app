@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS treinos (
 CREATE TABLE IF NOT EXISTS presencas (
     id              SERIAL PRIMARY KEY,
     aluno_id        INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
-    treino_id       INTEGER NOT NULL REFERENCES treinos(id) ON DELETE CASCADE,
+    treino_id       INTEGER NOT NULL REFERENCES treinos(id),
     data            DATE NOT NULL,
     status          status_presenca NOT NULL,
     criado_em       TIMESTAMP DEFAULT NOW(),
@@ -246,3 +246,22 @@ CREATE INDEX idx_cobrancas_status ON cobrancas(status);
 CREATE INDEX idx_cobrancas_vencimento ON cobrancas(vencimento);
 CREATE INDEX idx_cobrancas_competencia ON cobrancas(competencia);
 CREATE INDEX idx_cobrancas_aluno_status ON cobrancas(aluno_id, status);
+
+-- ============================================================
+-- TABELA: chamadas
+-- ============================================================
+CREATE TABLE IF NOT EXISTS chamadas (
+    id              SERIAL PRIMARY KEY,
+    treino_id       INTEGER NOT NULL REFERENCES treinos(id) ON DELETE CASCADE,
+    data            DATE NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'aberta' CHECK (status IN ('aberta', 'encerrada')),
+    professor_id    INTEGER REFERENCES professores(id) ON DELETE SET NULL,
+    aberta_em       TIMESTAMP DEFAULT NOW(),
+    encerrada_em    TIMESTAMP,
+    encerrada_por   INTEGER REFERENCES professores(id) ON DELETE SET NULL,
+    UNIQUE(treino_id, data)
+);
+
+CREATE INDEX IF NOT EXISTS idx_chamadas_treino_id ON chamadas(treino_id);
+CREATE INDEX IF NOT EXISTS idx_chamadas_data ON chamadas(data);
+CREATE INDEX IF NOT EXISTS idx_chamadas_status ON chamadas(status);

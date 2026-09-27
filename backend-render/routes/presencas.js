@@ -1,74 +1,25 @@
 import { Router } from 'express';
 
 import {
-    createPresenca,
-    deletePresenca,
-    listPresencas,
-    listPresencasPorTreino,
-    updatePresenca,
+  createPresenca,
+  deletePresenca,
+  listPresencas,
+  listPresencasPorTreino,
+  updatePresenca,
 } from '../controllers/presencasController.js';
 
+import { authMiddleware } from '../middleware/authMiddleware.js';
 import { professorMiddleware, presencaScopeMiddleware } from '../middleware/adminMiddleware.js';
 
 const router = Router();
 
-/* =========================================================
-   PRESENÇAS
-   O authMiddleware é aplicado no index.js
-========================================================= */
+router.use(authMiddleware);
+router.use(professorMiddleware);
 
-/*
- * GET /presencas
- * Lista todas as presenças
- */
-router.get(
-  '/',
-  listPresencas
-);
-
-
-/*
- * GET /presencas/treino/:treinoId
- * Lista presenças de um treino específico
- */
-router.get(
-  '/treino/:treinoId',
-  listPresencasPorTreino
-);
-
-
-/*
- * POST /presencas
- * Registra uma presença
- */
-router.post(
-  '/',
-  professorMiddleware,
-  createPresenca
-);
-
-
-/*
- * PUT /presencas/:id
- * Atualiza uma presença
- */
-router.put(
-  '/:id',
-  professorMiddleware,
-  presencaScopeMiddleware,
-  updatePresenca
-);
-
-
-/*
- * DELETE /presencas/:id
- * Exclui uma presença
- */
-router.delete(
-  '/:id',
-  professorMiddleware,
-  presencaScopeMiddleware,
-  deletePresenca
-);
+router.get('/', listPresencas);
+router.get('/treino/:treinoId', listPresencasPorTreino);
+router.post('/', createPresenca);
+router.put('/:id', presencaScopeMiddleware, updatePresenca);
+router.delete('/:id', presencaScopeMiddleware, deletePresenca);
 
 export default router;

@@ -54,6 +54,8 @@ interface PresencaContextData {
   ) => void;
 }
 
+const PRESENCAS_STORAGE_KEY = '@dojo_lb:presencas';
+
 const PresencaContext =
   createContext<PresencaContextData>(
     {} as PresencaContextData
@@ -144,6 +146,29 @@ export function PresencaProvider({
           'Erro ao carregar presenças:',
           error
         );
+
+        if (!ativo) return;
+
+        try {
+          const local = await AsyncStorage.getItem(
+            PRESENCAS_STORAGE_KEY
+          );
+
+          if (local) {
+            const presencasLocais = JSON.parse(local);
+
+            if (Array.isArray(presencasLocais)) {
+              setPresencas(
+                presencasLocais.map(normalizarPresenca)
+              );
+            }
+          }
+        } catch (error) {
+          console.warn(
+            'Erro ao carregar presenças locais:',
+            error
+          );
+        }
       } finally {
         if (ativo) {
           setCarregado(true);
@@ -157,6 +182,24 @@ export function PresencaProvider({
       ativo = false;
     };
   }, []);
+
+  // ==============================
+  // SALVAR PRESENÇAS LOCALMENTE
+  // ==============================
+
+  useEffect(() => {
+    if (!carregado) return;
+
+    AsyncStorage.setItem(
+      PRESENCAS_STORAGE_KEY,
+      JSON.stringify(presencas)
+    ).catch((error) => {
+      console.warn(
+        'Erro ao salvar presenças localmente:',
+        error
+      );
+    });
+  }, [presencas, carregado]);
 
   // ==============================
   // AUTH LOSS LISTENER

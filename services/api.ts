@@ -53,11 +53,8 @@ export {
   onAuthChanged,
 };
 
-const FALLBACK_API_URL_DEV = "http://192.168.15.64:3000";
-
 const RAW_API_URL =
-  process.env.EXPO_PUBLIC_API_URL ??
-  (__DEV__ ? FALLBACK_API_URL_DEV : undefined);
+  process.env.EXPO_PUBLIC_API_URL;
 
 function normalizeBaseUrl(url: string | undefined): string | undefined {
   if (!url) return url;

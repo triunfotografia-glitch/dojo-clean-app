@@ -318,6 +318,12 @@ export async function deleteTreino(req, res) {
       error
     );
 
+    if (error.message && error.message.includes('presenças registradas')) {
+      return res.status(409).json({
+        error: error.message,
+      });
+    }
+
     return res.status(500).json({
       error: 'Erro ao deletar treino.',
     });

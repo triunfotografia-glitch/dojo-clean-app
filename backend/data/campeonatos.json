@@ -2,8 +2,8 @@
   {
     "id": "soucomp-p2716-circuito-jundiai-2026",
     "nome": "Circuito Estadual de Jiu-Jitsu",
-    "dataInicio": "2026-08-23",
-    "dataFim": "2026-08-23",
+    "dataInicio": "2026-10-04",
+    "dataFim": "2026-10-04",
     "cidade": "Jundiaí",
     "estado": "SP",
     "local": "Jundiaí - SP",
@@ -15,8 +15,8 @@
   {
     "id": "soucomp-p2641-internacional-sp-open-2026",
     "nome": "Internacional SP Open CBJJE",
-    "dataInicio": "2026-08-29",
-    "dataFim": "2026-08-30",
+    "dataInicio": "2026-10-17",
+    "dataFim": "2026-10-18",
     "cidade": "São Paulo",
     "estado": "SP",
     "local": "Ginásio do Ibirapuera",
@@ -49,5 +49,57 @@
     "url": "https://cbjje.soucompetidor.com.br/pt-br/eventos/todos-os-eventos/novos/",
     "fonte": "SouCompetidor",
     "codigoFonte": "P2613"
+  },
+  {
+    "id": "soucomp-p2801-paulista-2026",
+    "nome": "Paulista de Jiu-Jitsu",
+    "dataInicio": "2026-11-08",
+    "dataFim": "2026-11-08",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "local": "São Paulo - SP",
+    "organizacao": "SouCompetidor",
+    "url": "https://soucompetidor.com.br/pt-br/eventos/todos-os-eventos/novos/",
+    "fonte": "SouCompetidor",
+    "codigoFonte": "P2801"
+  },
+  {
+    "id": "soucomp-p2802-copa-brasil-2026",
+    "nome": "Copa Brasil de Jiu-Jitsu",
+    "dataInicio": "2026-11-15",
+    "dataFim": "2026-11-15",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "local": "São Paulo - SP",
+    "organizacao": "SouCompetidor",
+    "url": "https://soucompetidor.com.br/pt-br/eventos/todos-os-eventos/novos/",
+    "fonte": "SouCompetidor",
+    "codigoFonte": "P2802"
+  },
+  {
+    "id": "soucomp-p2803-open-sp-2026",
+    "nome": "Open SP de Jiu-Jitsu",
+    "dataInicio": "2026-12-06",
+    "dataFim": "2026-12-06",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "local": "São Paulo - SP",
+    "organizacao": "SouCompetidor",
+    "url": "https://soucompetidor.com.br/pt-br/eventos/todos-os-eventos/novos/",
+    "fonte": "SouCompetidor",
+    "codigoFonte": "P2803"
+  },
+  {
+    "id": "soucomp-p2804-mundial-2026",
+    "nome": "Mundial de Jiu-Jitsu",
+    "dataInicio": "2026-12-12",
+    "dataFim": "2026-12-13",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "local": "São Paulo - SP",
+    "organizacao": "SouCompetidor",
+    "url": "https://soucompetidor.com.br/pt-br/eventos/todos-os-eventos/novos/",
+    "fonte": "SouCompetidor",
+    "codigoFonte": "P2804"
   }
 ]

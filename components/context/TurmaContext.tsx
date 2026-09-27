@@ -126,26 +126,7 @@ export function TurmaProvider({
 
         if (!ativo) return;
 
-        try {
-          const local = await AsyncStorage.getItem(
-            TURMAS_STORAGE_KEY
-          );
-
-          if (local) {
-            const turmasLocais = JSON.parse(local);
-
-            if (Array.isArray(turmasLocais)) {
-              setTurmas(
-                turmasLocais.map(normalizarTurma)
-              );
-            }
-          }
-        } catch (error) {
-          console.warn(
-            'Erro ao carregar turmas locais:',
-            error
-          );
-        }
+        setTurmas([]);
       }
     }
 

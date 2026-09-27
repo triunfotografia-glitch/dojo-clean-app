@@ -71,7 +71,7 @@ export default function PresencaTreino() {
   const { alunos } = useDojo();
   const { presencas, registrarPresenca, editarPresenca, excluirPresenca, carregarPresencasPorTreino } = usePresencas();
   const treino = treinos.find((item) => item.id === id);
-  const turma = turmas.find((item) => item.id === treino?.turmaId || item.nome.trim().toLowerCase() === (treino?.turma ?? '').trim().toLowerCase());
+  const turma = turmas.find((item) => String(item.id) === String(treino?.turmaId) || item.nome.trim().toLowerCase() === (treino?.turma ?? '').trim().toLowerCase());
   const alunosDaTurma = alunos.filter((aluno) => {
     return aluno.ativo && turma?.alunoIds.includes(aluno.id);
   });
@@ -152,7 +152,7 @@ export default function PresencaTreino() {
 
     try {
       const existente = presencas.find(
-        (item) => item.treinoId === treino.id && item.alunoId === alunoId && normalizarData(item.data) === hoje
+        (item) => String(item.treinoId) === String(treino.id) && String(item.alunoId) === String(alunoId) && normalizarData(item.data) === hoje
       );
 
       if (existente) {
@@ -173,7 +173,7 @@ export default function PresencaTreino() {
     if (!treino || salvando || !chamadaPermiteEdicao) return;
 
     const existente = presencas.find(
-      (item) => item.treinoId === treino.id && item.alunoId === alunoId && normalizarData(item.data) === hoje
+      (item) => String(item.treinoId) === String(treino.id) && String(item.alunoId) === String(alunoId) && normalizarData(item.data) === hoje
     );
 
     if (!existente) return;
@@ -289,7 +289,7 @@ export default function PresencaTreino() {
         </View>
       ) : null}
       {alunosDaTurma.map((aluno) => {
-        const atual = presencas.find((item) => item.treinoId === treino.id && item.alunoId === aluno.id && normalizarData(item.data) === hoje);
+        const atual = presencas.find((item) => String(item.treinoId) === String(treino.id) && String(item.alunoId) === String(aluno.id) && normalizarData(item.data) === hoje);
         return (
           <View key={aluno.id} style={styles.card}>
             <Text style={styles.name}>{aluno.nome}</Text>

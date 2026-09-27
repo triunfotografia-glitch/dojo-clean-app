@@ -113,26 +113,7 @@ export function TreinoProvider({
 
         if (!ativo) return;
 
-        try {
-          const local = await AsyncStorage.getItem(
-            TREINOS_STORAGE_KEY
-          );
-
-          if (local) {
-            const treinosLocais = JSON.parse(local);
-
-            if (Array.isArray(treinosLocais)) {
-              setTreinos(
-                treinosLocais.map(normalizarTreino)
-              );
-            }
-          }
-        } catch (error) {
-          console.warn(
-            'Erro ao carregar treinos locais:',
-            error
-          );
-        }
+        setTreinos([]);
       }
     }
 

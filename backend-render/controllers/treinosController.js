@@ -329,13 +329,6 @@ export async function deleteTreino(req, res) {
       });
     }
 
-    if (resultadoExclusao.status === 'has_presence') {
-      return res.status(409).json({
-        error:
-          'Não é possível excluir um treino que já possui chamada registrada.',
-      });
-    }
-
     return res.status(204).send();
   } catch (error) {
     console.error(

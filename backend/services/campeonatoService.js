@@ -125,5 +125,5 @@ export async function getProximosCampeonatos() {
 
   const dedup = dedupEventos(normalizados);
 
-  return dedup.slice(0, 3);
+  return dedup.slice(0, 10);
 }

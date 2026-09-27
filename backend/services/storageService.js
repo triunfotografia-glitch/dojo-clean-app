@@ -1046,6 +1046,17 @@ DELETAR TREINO
 export async function deleteTreino(
   id
 ) {
+  const presencaResult = await query(
+    `SELECT 1 FROM presencas WHERE treino_id = $1 LIMIT 1`,
+    [id]
+  );
+
+  if (presencaResult.rows[0]) {
+    throw new Error(
+      'Não é possível excluir: existem presenças registradas para este treino. Exclua as presenças primeiro.'
+    );
+  }
+
   const result = await query(
     `DELETE FROM treinos
      WHERE id = $1
@@ -1075,12 +1086,11 @@ export async function getPresencas(professorId = null) {
       a.nome AS aluno_nome
     FROM presencas p
     JOIN alunos a ON a.id = p.aluno_id
-    JOIN treinos t ON t.id = p.treino_id
   `;
   const params = [];
 
   if (professorId !== null) {
-    sql += ` WHERE t.professor_id = $1`;
+    sql += ` WHERE p.treino_id IN (SELECT id FROM treinos WHERE professor_id = $1)`;
     params.push(professorId);
   }
 
@@ -1199,6 +1209,94 @@ export async function deletePresenca(id) {
   );
 
   return result.rows[0] || null;
+}
+
+/* =========================
+   CHAMADAS
+   ========================= */
+
+export async function createChamada(
+  chamada
+) {
+  const result = await query(
+    `INSERT INTO chamadas
+      (treino_id, data, status, professor_id)
+     VALUES ($1, $2, 'aberta', $3)
+     RETURNING *`,
+    [
+      chamada.treino_id,
+      chamada.data,
+      chamada.professor_id,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+export async function getChamadaByTreinoData(
+  treinoId,
+  data
+) {
+  const result = await query(
+    `SELECT *
+     FROM chamadas
+     WHERE treino_id = $1
+       AND data = $2
+     LIMIT 1`,
+    [treinoId, data]
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function getChamadaById(
+  id
+) {
+  const result = await query(
+    `SELECT *
+     FROM chamadas
+     WHERE id = $1
+     LIMIT 1`,
+    [id]
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function encerrarChamada(
+  id,
+  encerradaPor
+) {
+  const atual = await query(
+    `SELECT *
+     FROM chamadas
+     WHERE id = $1
+     LIMIT 1`,
+    [id]
+  );
+
+  if (!atual.rows[0]) {
+    return { status: 'not_found' };
+  }
+
+  if (atual.rows[0].status === 'encerrada') {
+    return { status: 'closed' };
+  }
+
+  const result = await query(
+    `UPDATE chamadas
+     SET status = 'encerrada',
+         encerrada_em = NOW(),
+         encerrada_por = $2
+     WHERE id = $1
+     RETURNING *`,
+    [id, encerradaPor]
+  );
+
+  return {
+    status: 'closed_now',
+    chamada: result.rows[0],
+  };
 }
 
 

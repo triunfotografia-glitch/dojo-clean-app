@@ -556,55 +556,10 @@ export function DojoProvider({
             error
           );
 
-          const mensagem =
-            error instanceof Error
-              ? error.message
-              : String(error);
+          if (!ativo) return;
 
-          // ========================
-          // FALLBACK LOCAL
-          // ========================
+          setAlunos([]);
 
-          const local =
-            await AsyncStorage.getItem(
-              STORAGE_KEY
-            );
-
-          if (local) {
-
-            try {
-
-              const alunosLocais =
-                JSON.parse(local);
-
-              if (!ativo) return;
-
-              setAlunos(
-                normalizarAlunos(
-                  alunosLocais
-                )
-              );
-
-            } catch (error) {
-
-              console.warn(
-                "Erro ao carregar alunos locais:",
-                error
-              );
-
-              if (!ativo) return;
-
-              setAlunos([]);
-
-            }
-
-          } else {
-
-            if (!ativo) return;
-
-            setAlunos([]);
-
-          }
         }
 
       } catch (error) {

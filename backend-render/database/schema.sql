@@ -128,7 +128,7 @@ CREATE INDEX IF NOT EXISTS idx_chamadas_treino_data
 CREATE TABLE IF NOT EXISTS presencas (
     id              SERIAL PRIMARY KEY,
     aluno_id        INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
-    treino_id       INTEGER NOT NULL REFERENCES treinos(id) ON DELETE CASCADE,
+    treino_id       INTEGER NOT NULL REFERENCES treinos(id),
     data            DATE NOT NULL,
     status          status_presenca NOT NULL,
     criado_em       TIMESTAMP DEFAULT NOW(),

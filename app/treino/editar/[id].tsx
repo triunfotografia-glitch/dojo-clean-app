@@ -45,7 +45,7 @@ export default function EditarTreino() {
     if (!treino) return;
     if (inicializadoRef.current) return;
     inicializadoRef.current = true;
-    setTurmaId(treino.turmaId || turmas.find((item) => item.nome.toLowerCase() === treino.turma.toLowerCase())?.id || '');
+    setTurmaId(treino.turmaId ? String(treino.turmaId) : turmas.find((item) => item.nome.toLowerCase() === treino.turma.toLowerCase())?.id || '');
     setProfessorId(treino.professorId || professores.find((item) => item.nome === treino.professor)?.id || '');
   }, [treino?.id, turmas, professores]);
 
@@ -60,7 +60,7 @@ export default function EditarTreino() {
       Alert.alert('Atenção', 'Informe nome, dia e horário do treino.');
       return;
     }
-    const turma = turmas.find((item) => item.id === turmaId);
+    const turma = turmas.find((item) => String(item.id) === String(turmaId));
     const professor = professores.find((item) => item.id === professorId);
     try {
       await editarTreino({

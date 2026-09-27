@@ -1166,18 +1166,6 @@ export async function deleteTreino(
       return { status: 'not_found' };
     }
 
-    const presencaResult = await client.query(
-      `SELECT 1
-       FROM public.presencas
-       WHERE treino_id = $1
-       LIMIT 1`,
-      [id]
-    );
-
-    if (presencaResult.rows[0]) {
-      return { status: 'has_presence' };
-    }
-
     const result = await client.query(
       `DELETE FROM public.treinos
        WHERE id = $1
@@ -1281,13 +1269,22 @@ export async function encerrarChamada(
   });
 }
 
-export async function getPresencas() {
-  const result = await query(
-    `SELECT *
-     FROM public.presencas
-     ORDER BY id DESC`
-  );
+export async function getPresencas(professorId = null) {
+  let sql = `
+    SELECT p.*, t.professor_id
+    FROM public.presencas p
+    JOIN public.treinos t ON t.id = p.treino_id
+  `;
+  const params = [];
 
+  if (professorId !== null) {
+    sql += ` WHERE t.professor_id = $1`;
+    params.push(professorId);
+  }
+
+  sql += ` ORDER BY p.id DESC`;
+
+  const result = await query(sql, params);
   return result.rows;
 }
 
@@ -1332,22 +1329,30 @@ export async function addPresenca(
 
 export async function getPresencasPorTreino(
   treinoId,
-  data
+  data,
+  professorId = null
 ) {
   const params = [treinoId];
   let sql =
-    `SELECT *
-     FROM public.presencas
-     WHERE treino_id = $1`;
+    `SELECT p.*
+     FROM public.presencas p
+     JOIN public.treinos t ON t.id = p.treino_id
+     WHERE p.treino_id = $1`;
 
   if (data) {
     sql +=
-      ` AND data = $2`;
+      ` AND p.data = $2`;
     params.push(data);
   }
 
+  if (professorId !== null) {
+    sql +=
+      ` AND t.professor_id = $${params.length + 1}`;
+    params.push(professorId);
+  }
+
   sql +=
-    ` ORDER BY aluno_id ASC`;
+    ` ORDER BY p.aluno_id ASC`;
 
   const result = await query(
     sql,
