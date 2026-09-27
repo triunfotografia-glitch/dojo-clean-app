@@ -1269,6 +1269,21 @@ export async function encerrarChamada(
   });
 }
 
+export async function getPresenca(id) {
+  const result = await query(
+    `SELECT
+       p.*,
+       t.professor_id
+     FROM public.presencas p
+     JOIN public.treinos t ON t.id = p.treino_id
+     WHERE p.id = $1
+     LIMIT 1`,
+    [id]
+  );
+
+  return result.rows[0] || null;
+}
+
 export async function getPresencas(professorId = null) {
   let sql = `
     SELECT p.*, t.professor_id
